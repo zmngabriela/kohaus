@@ -5,6 +5,10 @@ const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 const propertyMediaBucket = import.meta.env.VITE_SUPABASE_PROPERTY_MEDIA_BUCKET || 'property-media'
 const runningInVitest = Boolean(import.meta.env.VITEST)
 
+if (!runningInVitest && (!supabaseUrl || !supabasePublishableKey)) {
+  throw new Error('Supabase configuration is missing. Check the deployment environment.')
+}
+
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabasePublishableKey) && !runningInVitest
 
 export const supabase = hasSupabaseConfig
