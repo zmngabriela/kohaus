@@ -1,3 +1,9 @@
+-- KOHAUS: canonical schema and compatibility upgrades.
+-- Run this single file in the Supabase SQL Editor. Safe to repeat.
+-- Preserves existing data; ambiguous legacy prices abort the transaction.
+-- Keep public Auth signups disabled: Auth users receive CRM access.
+begin;
+
 create extension if not exists "pgcrypto";
 
 create or replace function public.set_updated_at()
@@ -431,11 +437,6 @@ with check (
 );
 
 drop policy if exists "public read active dashboard_properties" on public.dashboard_properties;
-create policy "public read active dashboard_properties"
-on public.dashboard_properties
-for select
-to anon, authenticated
-using (status = 'active');
 
 drop policy if exists "dashboard access dashboard_clients" on public.dashboard_clients;
 create policy "dashboard access dashboard_clients"
@@ -503,7 +504,7 @@ with check (
   )
 );
 
--- Apply once through the authorized Supabase SQL editor after the base schema.
+-- Tasks
 create table if not exists public.dashboard_tasks (
   id text primary key,
   created_at timestamptz not null default now(),
@@ -539,9 +540,6 @@ alter table public.dashboard_properties add column if not exists currency text n
 alter table public.dashboard_clients add column if not exists currency text not null default 'EUR' check (currency ~ '^[A-Z]{3}$');
 -- One canonical price: price_value. Display is derived by the app using currency.
 -- Atomic migration: unknown or conflicting amounts abort BEFORE dropping anything.
-begin;
-alter table public.dashboard_properties add column if not exists currency text not null default 'EUR' check (currency ~ '^[A-Z]{3}$');
-alter table public.dashboard_clients add column if not exists currency text not null default 'EUR' check (currency ~ '^[A-Z]{3}$');
 lock table public.dashboard_properties in access exclusive mode;
 do $$
 declare
@@ -575,10 +573,8 @@ begin
   end loop;
   alter table public.dashboard_properties drop column price_label;
 end $$;
-commit;
 
 -- CRM international: language, private addresses, off-market and invoices.
-begin;
 alter table public.owner_leads add column if not exists language text check (language in ('es','en','pt'));
 alter table public.dashboard_clients add column if not exists language text check (language in ('es','en','pt'));
 alter table public.dashboard_properties add column if not exists off_market boolean not null default false;
@@ -606,6 +602,7 @@ select id, created_at, title, reference, operation, destination, type, price_val
  case when off_market then '' else observations end as observations,
  case when off_market then '[]'::jsonb else photos end as photos,
  case when off_market then '{}'::jsonb else jsonb_build_object(
+ 'translations', coalesce(portal_data->'translations','{}'::jsonb),
  'extras', coalesce(portal_data->'extras','[]'::jsonb),
  'province',portal_data->'province','municipality',portal_data->'municipality',
  'neighborhood',portal_data->'neighborhood','condition',portal_data->'condition',
@@ -618,7 +615,7 @@ select id, created_at, title, reference, operation, destination, type, price_val
  'orientation',portal_data->'orientation','buildingYear',portal_data->'buildingYear',
  'energyConsumptionRating',portal_data->'energyConsumptionRating','energyEmissionsRating',portal_data->'energyEmissionsRating'
  ) end as portal_data
-from public.dashboard_properties where status='active';
+from public.dashboard_properties where status in ('active', 'closed');
 revoke all on public.public_properties from public;
 grant select on public.public_properties to anon, authenticated;
 
@@ -684,9 +681,7 @@ end $$;
 revoke all on function public.save_property_with_address(jsonb,text,text) from public;
 grant execute on function public.save_property_with_address(jsonb,text,text) to authenticated;
 
-commit;
 
-begin;
 -- Keep older permissive policies from exposing the complete CRM property record.
 alter table public.dashboard_properties enable row level security;
 drop policy if exists "CRM property membership required" on public.dashboard_properties;
@@ -708,4 +703,5 @@ begin
   execute format('create policy "CRM membership required" on public.%I as restrictive for select to anon, authenticated using (exists(select 1 from public.dashboard_users where user_id=auth.uid()))',table_name);
  end loop;
 end $$;
+
 commit;
