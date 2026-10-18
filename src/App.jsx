@@ -1,3 +1,12 @@
+import EditorDialog from './components/EditorDialog'
+import CrmRecord from './components/CrmRecord'
+import { useVisibleDropdown } from './lib/useVisibleDropdown'
+import HeroVideo from './components/HeroVideo'
+import { propertyTranslations } from './lib/propertyTranslations'
+import PrivacyConsent from './components/PrivacyConsent'
+import { isPublishedListing, belongsInCatalog, listingLabels, closedListingsLast } from './lib/publicListings'
+import { AboutPage, ContactPage, companyContact, companyCopy } from './components/CompanyPages'
+import { LegalPage, PrivacyNotice } from './components/Legal'
 import OffMarket from './components/OffMarket'
 import offMarketImage from './assets/kohaus-intro-concept-mirrorless-v3.png'
 import { preferredLanguage, recipientLanguage, visitRecipient } from './lib/language'
@@ -5,14 +14,14 @@ import { visitMessage } from './lib/visitMessage'
 import { buildVisitEmail } from './lib/visitEmail'
 import { propertyPrice, priceFields, CURRENCIES } from './lib/propertyPrice'
 import { normalizeTypes, parseBudget } from './lib/clientCriteria'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 const Invoices = lazy(() => import('./components/Invoices'))
 import './App.css'
+import './components/Dropdown.css'
 import Tasks from './components/Tasks'
 import Opportunities from './components/Opportunities'
 import { opportunityCopy } from './lib/opportunityCopy'
-import { matchProperties, propertyExtras } from './lib/opportunities'
-import heroImage from './assets/hero-kohaus-mirrorless-v2.png'
+import { propertyExtras } from './lib/opportunities'
 import locationBarcelona from './assets/barcelona.jpg'
 import locationCostaBrava from './assets/costa-brava.jpg'
 import locationPortugal from './assets/portugal.jpg'
@@ -334,7 +343,7 @@ const COPY = {
       propertyPanelCopy: 'Gestiona la cartera sin saturar la vista. Crea nuevos inmuebles desde una capa dedicada y edita los ya guardados cuando haga falta.',
       addProperty: 'Cargar nuevo inmueble',
       openPropertyEditor: 'Nuevo inmueble',
-      editProperty: 'Edit',
+      editProperty: 'Editar',
       updateProperty: 'Guardar cambios',
       closeEditor: 'Cerrar',
       backToProperties: 'Volver a inmuebles',
@@ -1140,7 +1149,7 @@ const COPY = {
       propertyPanelCopy: 'Gerencie a carteira sem poluir a vista. Crie novos imóveis numa camada dedicada e edite os já salvos quando precisar.',
       addProperty: 'Cadastrar novo imóvel',
       openPropertyEditor: 'Novo imóvel',
-      editProperty: 'Edit',
+      editProperty: 'Editar',
       updateProperty: 'Salvar alterações',
       closeEditor: 'Fechar',
       backToProperties: 'Voltar para imóveis',
@@ -1975,18 +1984,18 @@ async function fetchDashboardProperties(database = supabase, databaseEnabled = h
 
 function publicProperty(property) {
   const { id, createdAt, title, reference, operation, destination, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket } = property
-  return { id, createdAt, title, reference, operation, destination, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket, observations: offMarket ? '' : property.observations || '', photos: offMarket ? [] : property.photos || [], portalData: offMarket ? {} : Object.fromEntries(Object.entries(property.portalData || {}).filter(([key]) => ['province','municipality','neighborhood','condition','usefulSurface','builtSurface','orientation','buildingYear','energyConsumptionRating','energyEmissionsRating','nearCityCenter','nearShops','nearSchools','nearPharmacy','nearParks','nearPolice','nearPublicTransport','numberOfFloors'].includes(key))), extras: offMarket ? [] : propertyExtras(property) }
+  return { id, createdAt, title, reference, operation, destination, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket, observations: offMarket ? '' : property.observations || '', photos: offMarket ? [] : property.photos || [], portalData: offMarket ? {} : Object.fromEntries(Object.entries(property.portalData || {}).filter(([key]) => ['translations','province','municipality','neighborhood','condition','usefulSurface','builtSurface','orientation','buildingYear','energyConsumptionRating','energyEmissionsRating','nearCityCenter','nearShops','nearSchools','nearPharmacy','nearParks','nearPolice','nearPublicTransport','numberOfFloors'].includes(key))), extras: offMarket ? [] : propertyExtras(property) }
 }
 
 async function fetchPublishedProperties(database = supabase, databaseEnabled = hasSupabaseConfig) {
   if (!databaseEnabled || !database) {
-    return getLocalDashboardProperties().filter((property) => property.status === 'active').map(publicProperty)
+    return getLocalDashboardProperties().filter(isPublishedListing).map(publicProperty)
   }
 
   const { data, error } = await database
     .from('public_properties')
     .select('*')
-    .eq('status', 'active')
+    .in('status', ['active', 'closed'])
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -2596,6 +2605,8 @@ function matchSurfaceFilter(surface, filter) {
 }
 
 function sortCatalogProperties(left, right, order) {
+  const statusOrder = closedListingsLast(left, right)
+  if (statusOrder) return statusOrder
   if (order === 'price-asc') {
     return left.priceValue === null ? 1 : right.priceValue === null ? -1 : left.priceValue - right.priceValue
   }
@@ -2677,21 +2688,6 @@ function formatBudgetRange(client) {
   return 'Flexible'
 }
 
-function getClientMatches(client, properties, copy) {
-  return matchProperties(client, properties).map(property => ({
-    property, score: 100,
-    reasons: [copy.dashboard.matchReasons.active,
-      ...(client.destinations?.length ? [copy.dashboard.matchReasons.destination] : []),
-      ...(client.types?.length ? [copy.dashboard.matchReasons.type] : []),
-      ...(client.budgetMin || client.budgetMax ? [copy.dashboard.matchReasons.budget] : []),
-      ...(client.minRooms ? [copy.dashboard.matchReasons.rooms] : []),
-      ...(client.minBathrooms ? [copy.property.detailLabels.bathrooms] : []),
-      ...(client.minSurface ? [copy.dashboard.matchReasons.surface] : []),
-      ...(client.requiredExtras || []).map(extra => copy.catalog.extras[extra]),
-    ],
-  }))
-}
-
 function formatDate(value, language) {
   return new Intl.DateTimeFormat(language, {
     dateStyle: 'medium',
@@ -2729,6 +2725,7 @@ function PropertyDetailGroup({ title, items }) {
 }
 
 function CustomSelect({
+  leadingIcon,
   value,
   onChange,
   options,
@@ -2741,6 +2738,7 @@ function CustomSelect({
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
+  useVisibleDropdown(rootRef, open, setOpen)
   const activeOption = options.find((option) => option.value === value) ?? options[0]
 
   useEffect(() => {
@@ -2767,6 +2765,7 @@ function CustomSelect({
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
+        {leadingIcon}
         <span className="custom-select-trigger-label">{activeOption?.label}</span>
       </button>
       {open ? (
@@ -2803,6 +2802,7 @@ function CustomMultiSelect({
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
+  useVisibleDropdown(rootRef, open, setOpen)
   const selectedLabels = options.filter((option) => value.includes(option.value)).map((option) => option.label)
   const triggerLabel = selectedLabels.length > 0 ? selectedLabels.join(', ') : placeholderLabel
 
@@ -2888,6 +2888,7 @@ function PriceRangeSelect({
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
+  useVisibleDropdown(rootRef, open, setOpen)
   const hasMin = Boolean(minValue)
   const hasMax = Boolean(maxValue)
   const summary = hasMin && hasMax
@@ -2987,13 +2988,68 @@ function Header({
   onCatalogClick,
   onOwnerClick,
   onOffMarketClick,
-  onDashboardClick,
-  authProfile,
+  showSignOut,
   onSignOut,
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuButton = useRef(null)
+  const headerRef = useRef(null)
+  useLayoutEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+    const updateHeight = () => header.parentElement.style.setProperty('--header-height', `${header.getBoundingClientRect().height}px`)
+    updateHeight()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(header)
+    return () => observer.disconnect()
+  }, [])
+  const closeLabel = { pt: 'Fechar', es: 'Cerrar', en: 'Close' }[language]
+  useEffect(() => {
+    function dismiss(event) {
+      if (event.key === 'Escape' && menuOpen) {
+        setMenuOpen(false)
+        menuButton.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', dismiss)
+    return () => window.removeEventListener('keydown', dismiss)
+  }, [menuOpen])
   return (
-    <header className="site-header">
-      <nav className="nav-group nav-group-left" aria-label="Primary">
+    <header ref={headerRef} className={`site-header${menuOpen ? ' menu-open' : ''}`}>
+      <button ref={menuButton} type="button" className="mobile-menu-toggle" aria-expanded={menuOpen} aria-controls="header-menu-panel" onClick={() => setMenuOpen(open => !open)}>{menuOpen ? closeLabel : 'Menu'}</button>
+      <a
+        href="/"
+        className="brand-mark"
+        onClick={(event) => {
+          event.preventDefault()
+          setMenuOpen(false)
+          onHomeClick()
+        }}
+      >
+        <img src="/brand/kohaus-logo-transparent.png" alt="KOHAUS Real Estate" />
+      </a>
+
+      <div className="lang-switch">
+        <CustomSelect
+          leadingIcon={<svg className="language-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><path d="M3 12h18" /></svg>}
+          value={language}
+          onChange={onLanguageChange}
+          options={[
+            { value: 'es', label: 'Español' },
+            { value: 'en', label: 'English' },
+            { value: 'pt', label: 'Português' },
+          ]}
+          className="lang-switch"
+          triggerClassName="lang-switch-trigger"
+          menuClassName="lang-switch-menu"
+          optionClassName="lang-switch-option"
+          ariaLabel={copy.nav.language}
+        />
+      </div>
+
+      <div className="header-menu-panel" id="header-menu-panel">
+      <nav id="primary-navigation" className="nav-group nav-group-left" onClick={() => setMenuOpen(false)} aria-label="Primary">
         <a
           href="?view=catalogo&op=comprar&dest=todos"
           onClick={(event) => {
@@ -3024,71 +3080,49 @@ function Header({
         </a>
       </nav>
 
-      <a
-        href="/"
-        className="brand-mark"
-        onClick={(event) => {
-          event.preventDefault()
-          onHomeClick()
-        }}
-      >
-        <img src="/brand/kohaus-logo-transparent.png" alt="KOHAUS Real Estate" />
-      </a>
 
-      <div className="nav-side">
+      <div id="secondary-navigation" className="nav-side">
         <nav className="nav-group nav-group-right" aria-label="Secondary">
-          <a
-            href="?view=dashboard"
-            onClick={(event) => {
-              event.preventDefault()
-              onDashboardClick()
-            }}
-          >
-            {copy.nav.dashboard}
-          </a>
-          {authProfile ? (
+          <a href={`?view=about&lang=${language}`}>{companyCopy[language].about}</a>
+          <a href={`?view=contact&lang=${language}`}>{companyCopy[language].contact}</a>
+          {showSignOut ? (
             <button type="button" className="nav-ghost-button" onClick={onSignOut}>
               {copy.nav.signOut}
             </button>
           ) : null}
         </nav>
 
-        <div className="lang-switch">
-          <CustomSelect
-            value={language}
-            onChange={onLanguageChange}
-            options={[
-              { value: 'es', label: 'Español' },
-              { value: 'en', label: 'English' },
-              { value: 'pt', label: 'Português' },
-            ]}
-            className="lang-switch"
-            triggerClassName="lang-switch-trigger"
-            menuClassName="lang-switch-menu"
-            optionClassName="lang-switch-option"
-            ariaLabel={copy.nav.language}
-          />
-        </div>
+      </div>
       </div>
     </header>
   )
 }
 
-function Footer({ copy }) {
+function Footer({ copy, language }) {
   return (
     <footer className="site-footer" id="contacto">
       <div>
-        <img className="footer-brand-logo" src="/brand/kohaus-logo-transparent.png" alt="KOHAUS Real Estate" />
+        <div className="footer-logo-frame"><img className="footer-brand-logo" src="/brand/kohaus-logo-transparent.png" alt="KOHAUS Real Estate" /></div>
         <p>{copy.footer.description}</p>
       </div>
-      <div>
+      <div className="footer-contact">
         <span>{copy.footer.contact}</span>
-        <p>hello@kohaus.com</p>
+        <p>{companyCopy[language].location}</p>
+        <p><a href={`mailto:${companyContact.email}`}>{companyContact.email}</a></p>
+        <p><a href={`tel:${companyContact.tel}`}>{companyContact.phone}</a></p>
+        <nav className="social-links" aria-label={language === 'en' ? 'Social media' : 'Redes sociais'}>
+          <a href="https://www.instagram.com/guilhermeconinch.broker/" target="_blank" rel="noopener noreferrer">Instagram</a>
+          <a href="https://www.facebook.com/corretorguilhermeconinch/" target="_blank" rel="noopener noreferrer">Facebook</a>
+          <a href="https://es.linkedin.com/company/broker-guilherme-coninch" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        </nav>
       </div>
       <div>
         <span>{copy.footer.legal}</span>
-        <p>{copy.footer.legalLinks.join(' · ')}</p>
+        <nav className="legal-links" aria-label={copy.footer.legal}>
+          {['legal', 'privacy', 'cookies'].map((page, index) => <a key={page} href={`?view=${page}&lang=${language}`}>{copy.footer.legalLinks[index]}</a>)}
+        </nav>
       </div>
+      <div className="footer-copyright">© {new Date().getFullYear()} KOHAUS Real Estate. {companyCopy[language].rights}</div>
     </footer>
   )
 }
@@ -3112,8 +3146,7 @@ function DashboardAuthGate({
       <section className="dashboard-auth-shell">
         <div className="dashboard-auth-copy">
           <p className="section-label dashboard-label">{copy.auth.badge}</p>
-          <h1>{copy.auth.title}</h1>
-          <p>{copy.auth.copy}</p>
+          <h1 className="section-title">{copy.auth.title}</h1>
         </div>
 
         <div className="dashboard-auth-card">
@@ -3170,6 +3203,10 @@ function DashboardAuthGate({
 
 export default function App() {
   const [route, setRoute] = useState(() => parseRoute())
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [route.view, route.destination, route.propertyId])
   const [language, setLanguage] = useState(() => parseRoute().language)
   const propertyPhotoItemsRef = useRef([])
   const requiresDashboardAuth = hasSupabaseConfig
@@ -3210,6 +3247,7 @@ export default function App() {
   const [clientEditor, setClientEditor] = useState(CLIENT_EDITOR_DEFAULT)
   const [propertyEditor, setPropertyEditor] = useState(PROPERTY_EDITOR_DEFAULT)
   const [visitEditorId, setVisitEditorId] = useState(null)
+  const [visitEditorOpen, setVisitEditorOpen] = useState(false)
   const [draggedPropertyPhotoId, setDraggedPropertyPhotoId] = useState(null)
   const [dashboardSection, setDashboardSection] = useState(route.dashboardSection || DASHBOARD_SECTION_DEFAULT)
   const [authSession, setAuthSession] = useState(null)
@@ -3475,7 +3513,7 @@ export default function App() {
   const portalFormCopy = getPortalFormCopy(language)
   const portalEnvironmentCopy = getPortalEnvironmentCopy(language)
   const catalogProperties = publishedProperties
-  .filter((property) => property.status === 'active' && (route.view === 'off-market' ? property.offMarket : !property.offMarket))
+  .filter((property) => belongsInCatalog(property, route.view === 'off-market'))
   .map((property) => ({
     ...property,
 
@@ -3487,11 +3525,7 @@ export default function App() {
 
     note: '',
 
-    title: {
-      es: property.title,
-      en: property.title,
-      pt: property.title,
-    },
+    title: propertyTranslations(property, 'title'),
 
     location: {
       es: getDestinationMeta(property.destination, 'es').name,
@@ -3499,17 +3533,9 @@ export default function App() {
       pt: getDestinationMeta(property.destination, 'pt').name,
     },
 
-    summary: {
-      es: property.observations ?? '',
-      en: property.observations ?? '',
-      pt: property.observations ?? '',
-    },
+    summary: propertyTranslations(property, 'description'),
 
-    description: {
-      es: property.observations ?? '',
-      en: property.observations ?? '',
-      pt: property.observations ?? '',
-    },
+    description: propertyTranslations(property, 'description'),
 
     detailNote: {
       es: '',
@@ -3534,7 +3560,7 @@ export default function App() {
 
   const featuredProperties = [...catalogProperties]
     .filter((property) => property.image)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => closedListingsLast(a, b) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 4)
 
   const filteredDashboardProperties = filterDashboardProperties(
@@ -3620,6 +3646,7 @@ export default function App() {
             property.operation === selectedProperty.operation
           ),
       )
+      .sort(closedListingsLast)
       .slice(0, 2)
   : []
   const canOpenDashboard = !requiresDashboardAuth || Boolean(authAccess)
@@ -3634,7 +3661,7 @@ export default function App() {
     setRoute(nextRoute)
     const nextSearch = toSearch(nextRoute)
     window.history.pushState({}, '', nextSearch)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }
 
   function goHome() {
@@ -3784,7 +3811,7 @@ export default function App() {
       setOwnerForm({ ...OWNER_FORM_DEFAULTS, operation: ownerForm.operation })
       setOwnerSuccess(true)
       setDataError('')
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     } catch (error) {
       console.error(error)
       setDataError(error.message || 'Não foi possível salvar os dados no banco de dados.')
@@ -3855,7 +3882,7 @@ export default function App() {
       }
 
       setDashboardProperties(next)
-      setPublishedProperties(next.filter((property) => property.status === 'active').map(publicProperty))
+      setPublishedProperties(next.filter(isPublishedListing).map(publicProperty))
       setDataError('')
       closePropertyEditor()
     } catch (error) {
@@ -3893,30 +3920,6 @@ export default function App() {
     }
   }
 
-  function handleClientDraftChange(id, field, value) {
-    setDashboardClients((current) => current.map((client) => (client.id === id ? { ...client, [field]: value } : client)))
-  }
-
-  async function handleClientStatusChange(client, status) {
-    const next = await updateDashboardClient(client.id, {
-      status,
-      history: [createHistoryEntry(`Client status changed to ${copy.dashboard.clientStatusOptions[status]}.`), ...client.history],
-    })
-    setDashboardClients(next)
-  }
-
-  async function handleClientNotesSave(client) {
-    if (!client.notes.trim()) {
-      return
-    }
-
-    const next = await updateDashboardClient(client.id, {
-      notes: client.notes,
-      history: [createHistoryEntry(client.notes.trim()), ...client.history],
-    })
-    setDashboardClients(next)
-  }
-
   async function handleVisitSubmit(event) {
     event.preventDefault()
     try {
@@ -3940,6 +3943,7 @@ export default function App() {
         setLeads(nextLeads)
       }
       setVisitForm(VISIT_FORM_DEFAULTS)
+      setVisitEditorOpen(false)
       setVisitEditorId(null)
       setDataError('')
       goDashboard('visits')
@@ -3949,15 +3953,14 @@ export default function App() {
     }
   }
 
-  async function handleVisitStatusChange(visit, status) {
-    const next = await updateDashboardVisit(visit.id, {
-      status,
-      history: [createHistoryEntry(`Visit status changed to ${copy.dashboard.visitStatusOptions[status]}.`), ...visit.history],
-    })
-    setDashboardVisits(next)
+  function closeVisitEditor() {
+    setVisitEditorOpen(false)
+    setVisitEditorId(null)
+    setVisitForm(VISIT_FORM_DEFAULTS)
   }
 
   function openVisitEditor(visit) {
+    setVisitEditorOpen(true)
     setVisitForm({
       clientId: visit.clientId || '',
       propertyId: visit.propertyId || '',
@@ -3976,6 +3979,7 @@ export default function App() {
   }
 
   function openCreateVisit(lead = null) {
+    setVisitEditorOpen(true)
     setVisitEditorId(null)
     setVisitForm(
       lead
@@ -4003,7 +4007,7 @@ export default function App() {
       phone: lead.phone,
       email: lead.email,
       operation: lead.operation === 'alquilar' ? 'alquilar' : 'comprar',
-      notes: [lead.comments, `Lead source: ${copy.ownerForm.sources[lead.source]}`].filter(Boolean).join('\n'),
+      notes: [lead.comments, `Lead source: ${(copy.ownerForm.sources[lead.source] || companyCopy[language].contact)}`].filter(Boolean).join('\n'),
     })
     setClientEditor({
       isOpen: true,
@@ -4024,7 +4028,7 @@ export default function App() {
         lead.comments,
         lead.address ? `Address: ${lead.address}` : '',
         lead.city ? `City: ${lead.city}` : '',
-        `Lead source: ${copy.ownerForm.sources[lead.source]}`,
+        `Lead source: ${(copy.ownerForm.sources[lead.source] || companyCopy[language].contact)}`,
         `Owner contact: ${lead.name} ${lead.surname}`.trim(),
         lead.phone ? `Phone: ${lead.phone}` : '',
         lead.email ? `Email: ${lead.email}` : '',
@@ -4176,12 +4180,6 @@ export default function App() {
     setDraggedPropertyPhotoId(null)
   }
 
-  function handlePropertyDraftChange(id, field, value) {
-    setDashboardProperties((current) =>
-      current.map((property) => (property.id === id ? { ...property, [field]: value } : property)),
-    )
-  }
-
   function handlePortalDraftChange(propertyId, portalId, field, value) {
     setDashboardProperties((current) =>
       current.map((property) => {
@@ -4197,14 +4195,6 @@ export default function App() {
         }
       }),
     )
-  }
-
-  async function handlePropertyStatusChange(property, status) {
-    const next = await updateDashboardProperty(property.id, {
-      status,
-      history: [createHistoryEntry(`Status changed to ${copy.dashboard.propertyStatusOptions[status]}.`), ...property.history],
-    })
-    setDashboardProperties(next)
   }
 
   async function handlePortalSave(property, portalId) {
@@ -4228,18 +4218,6 @@ export default function App() {
     }
   }
 
-  async function handleObservationSave(property) {
-    if (!property.observations.trim()) {
-      return
-    }
-
-    const next = await updateDashboardProperty(property.id, {
-      observations: property.observations,
-      history: [createHistoryEntry(property.observations.trim()), ...property.history],
-    })
-    setDashboardProperties(next)
-  }
-
   return (
     <div className="page-shell">
       <Header
@@ -4250,8 +4228,7 @@ export default function App() {
         onCatalogClick={(operation) => goCatalog(operation)}
         onOwnerClick={() => goOwnerForm('vender')}
         onOffMarketClick={() => { setCatalogFilters({ ...CATALOG_FILTER_DEFAULTS, operation: 'all' }); setOffMarketSelection(null); syncRoute({ ...route, view: 'off-market', language, operation: 'all', destination: 'todos', reference: '' }) }}
-        onDashboardClick={() => goDashboard()}
-        authProfile={authAccess}
+        showSignOut={route.view === 'dashboard' && Boolean(authSession)}
         onSignOut={handleSignOut}
       />
 
@@ -4356,9 +4333,14 @@ export default function App() {
             {dashboardSection === 'leads' ? (
               leads.length ? (
                 <section className="dashboard-section">
+                  <div className="dashboard-properties-head"><div><p className="section-label dashboard-label">{copy.dashboard.sections.leads}</p><h2>{copy.dashboard.title}</h2></div></div>
                   <div className="dashboard-leads-grid">
                     {leads.map((lead) => (
-                      <article key={lead.id} className="dashboard-lead-card">
+                      <CrmRecord key={lead.id} className="dashboard-lead-card" language={language} title={`${lead.name} ${lead.surname}`} meta={[lead.phone, lead.email, lead.city, copy.ownerForm.operations[lead.operation] || companyCopy[language].contact].filter(Boolean).join(' · ')} status={copy.dashboard.statusOptions[lead.status]} fields={[
+                        { label: copy.dashboard.columns.source, value: copy.ownerForm.sources[lead.source] || lead.source },
+                        { label: copy.dashboard.columns.date, value: formatDate(lead.createdAt, language) },
+                        { label: copy.ownerForm.fields?.comments || (language === 'pt' ? 'Mensagem' : language === 'es' ? 'Mensaje' : 'Message'), value: lead.comments },
+                      ]}>
                         <div className="dashboard-lead-top">
                           <div>
                             <p className="dashboard-lead-name">
@@ -4374,11 +4356,11 @@ export default function App() {
                         <div className="dashboard-lead-details">
                           <div>
                             <span>{copy.dashboard.columns.operation}</span>
-                            <strong>{copy.ownerForm.operations[lead.operation]}</strong>
+                            <strong>{(copy.ownerForm.operations[lead.operation] || companyCopy[language].contact)}</strong>
                           </div>
                           <div>
                             <span>{copy.dashboard.columns.source}</span>
-                            <strong>{copy.ownerForm.sources[lead.source]}</strong>
+                            <strong>{(copy.ownerForm.sources[lead.source] || companyCopy[language].contact)}</strong>
                           </div>
                           <div>
                             <span>{copy.dashboard.columns.date}</span>
@@ -4417,7 +4399,7 @@ export default function App() {
                             {copy.dashboard.leadToVisit}
                           </button>
                         </div>
-                      </article>
+                      </CrmRecord>
                     ))}
                   </div>
                 </section>
@@ -4498,108 +4480,14 @@ export default function App() {
                 {filteredDashboardProperties.length ? (
                   <div className="dashboard-properties-grid">
                     {filteredDashboardProperties.map((property) => (
-                      <article key={property.id} className="dashboard-property-card">
-                        <div className="dashboard-property-top">
-                          <div>
-                            <p className="dashboard-property-reference">{property.reference}</p>
-                            <h3>{property.title}</h3>
-                          </div>
-                          <div className="dashboard-property-actions">
-                            <button
-                              type="button"
-                              className="dashboard-property-edit"
-                              onClick={() => openEditPropertyEditor(property)}
-                            >
-                              {copy.dashboard.editProperty}
-                            </button>
-                            <CustomSelect
-                              value={property.status}
-                              onChange={(value) => handlePropertyStatusChange(property, value)}
-                              options={propertyStatusOptions}
-                              className="dashboard-status-select"
-                              ariaLabel={copy.dashboard.statusLabel}
-                              light
-                            />
-                          </div>
-                        </div>
-                        <div className="dashboard-property-meta">
-                          <div>
-                            <span>{copy.dashboard.propertyColumns.operation}</span>
-                            <strong>{getOperationLabel(property.operation, language)}</strong>
-                          </div>
-                          <div>
-                            <span>{copy.dashboard.propertyColumns.destination}</span>
-                            <strong>{getDestinationMeta(property.destination, language).name}</strong>
-                          </div>
-                          <div>
-                            <span>{copy.dashboard.propertyColumns.type}</span>
-                            <strong>{getTypeLabel(property.type, language)}</strong>
-                          </div>
-                          <div>
-                            <span>{copy.dashboard.propertyColumns.price}</span>
-                            <strong>{property.priceLabel || '-'}</strong>
-                          </div>
-                          <div>
-                            <span>{copy.dashboard.propertyColumns.surface}</span>
-                            <strong>{property.surface} m²</strong>
-                          </div>
-                          <div>
-                            <span>{copy.dashboard.propertyColumns.rooms}</span>
-                            <strong>{property.rooms}</strong>
-                          </div>
-                          <div>
-                            <span>{copy.dashboard.propertyColumns.bathrooms}</span>
-                            <strong>{property.bathrooms}</strong>
-                          </div>
-                        </div>
-                        <div className="dashboard-property-observations">
-                          <span>{copy.dashboard.observationLabel}</span>
-                          <textarea
-                            value={property.observations}
-                            onChange={(event) => handlePropertyDraftChange(property.id, 'observations', event.target.value)}
-                          />
-                          <button type="button" onClick={() => handleObservationSave(property)}>
-                            {copy.dashboard.saveObservation}
-                          </button>
-                        </div>
-                        <div className="dashboard-property-portals-summary">
-                          <span>{copy.dashboard.sections.portals}</span>
-                          {getPropertyPortalPublications(property).length ? (
-                            <div className="dashboard-portal-badges">
-                              {getPropertyPortalPublications(property).map((publication) => {
-                                const definition = getPortalDefinition(publication.portalId)
-                                return (
-                                  <button
-                                    key={publication.portalId}
-                                    type="button"
-                                    className={`dashboard-portal-badge is-${publication.status}`}
-                                    onClick={() => goDashboard('portals')}
-                                  >
-                                    <strong>{definition?.name || publication.portalId}</strong>
-                                    <span>{copy.dashboard.portalStatusOptions[publication.status]}</span>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          ) : property.portalPublications?.length ? (
-                            <p className="dashboard-portal-empty">{copy.dashboard.portalSummaryQueued}</p>
-                          ) : (
-                            <p className="dashboard-portal-empty">{copy.dashboard.portalSummaryEmpty}</p>
-                          )}
-                        </div>
-                        {property.photos?.length ? (
-                          <div className="dashboard-property-photos">
-                            <span>{copy.dashboard.photoLabel}</span>
-                            <div className="dashboard-property-photo-grid">
-                              {property.photos.map((photo) => (
-                                <figure key={photo.id} className="dashboard-property-photo">
-                                  <img src={photo.url} alt={photo.name || property.title} />
-                                </figure>
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-                      </article>
+                      <CrmRecord key={property.id} className="dashboard-property-card" language={language} title={property.title} image={property.photos?.[0]?.url}
+                        meta={`${property.reference} · ${getOperationLabel(property.operation, language)}${property.offMarket ? ' · Off-market' : ''}`}
+                        status={copy.dashboard.propertyStatusOptions[property.status]} editLabel={copy.dashboard.editProperty} onEdit={() => openEditPropertyEditor(property)}
+                        fields={[
+                          { label: copy.dashboard.propertyFilters.destination, value: `${getDestinationMeta(property.destination, language).name} · ${getTypeLabel(property.type, language)}` },
+                          { label: copy.dashboard.clientColumns.budget, value: property.priceLabel || '—' },
+                          { label: copy.dashboard.clientColumns.criteria, value: `${property.surface} m² · ${property.rooms} ${copy.dashboard.propertyColumns.rooms} · ${property.bathrooms} ${copy.dashboard.propertyColumns.bathrooms}` },
+                        ]} />
                     ))}
                   </div>
                 ) : (
@@ -4665,7 +4553,11 @@ export default function App() {
                       const livePublications = getPropertyPortalPublications(liveProperty)
 
                       return (
-                        <article key={property.id} className="dashboard-portal-card">
+                        <CrmRecord key={property.id} className="dashboard-portal-card" language={language} title={property.title} image={property.photos?.[0]?.url} meta={`${property.reference} · ${getDestinationMeta(property.destination, language).name} · ${livePublications.map(publication => `${getPortalDefinition(publication.portalId)?.name || publication.portalId}: ${copy.dashboard.portalStatusOptions[publication.status]}`).join(' · ')}`} editLabel={copy.dashboard.editPropertyFile} onEdit={() => openEditPropertyEditor(liveProperty)} fields={[
+                          { label: copy.dashboard.propertyColumns.type, value: getTypeLabel(property.type, language) },
+                          { label: copy.dashboard.clientColumns.budget, value: property.priceLabel },
+                          { label: copy.dashboard.propertyColumns.surface, value: `${property.surface || '—'} m² · ${property.rooms || 0} ${copy.dashboard.propertyColumns.rooms}` },
+                        ]}>
                           <div className="dashboard-property-top">
                             <div>
                               <p className="dashboard-property-reference">{property.reference}</p>
@@ -4808,7 +4700,7 @@ export default function App() {
                           ) : (
                             <p className="dashboard-portal-empty">{copy.dashboard.portalsSelectionEmpty}</p>
                           )}
-                        </article>
+                        </CrmRecord>
                       )
                     })}
                   </div>
@@ -4844,6 +4736,8 @@ export default function App() {
                   </button>
                 </div>
 
+                {visitEditorOpen && <EditorDialog title={visitEditorId ? copy.dashboard.editVisit : copy.dashboard.addVisit} closeLabel={copy.dashboard.closeEditor} onClose={closeVisitEditor}>
+                {dataError && <p role="alert">{dataError}</p>}
                 <form className="dashboard-visit-form" onSubmit={handleVisitSubmit}>
                   <label>
                     <span>{copy.dashboard.visitFields.client}</span>
@@ -4941,20 +4835,9 @@ export default function App() {
                     <button type="submit" className="dashboard-property-submit">
                       {visitEditorId ? copy.dashboard.updateVisit : copy.dashboard.addVisit}
                     </button>
-                    {visitEditorId ? (
-                      <button
-                        type="button"
-                        className="dashboard-editor-secondary"
-                        onClick={() => {
-                          setVisitForm(VISIT_FORM_DEFAULTS)
-                          setVisitEditorId(null)
-                        }}
-                      >
-                        {copy.dashboard.closeEditor}
-                      </button>
-                    ) : null}
                   </div>
                 </form>
+                </EditorDialog>}
 
                 <div className="dashboard-property-filters">
                   <label>
@@ -4988,72 +4871,18 @@ export default function App() {
                       const emailLink = buildVisitEmail(visit, linkedProperty, linkedClient, messageLanguage)
 
                       return (
-                        <article key={visit.id} className="dashboard-visit-card">
-                          <div className="dashboard-property-top">
-                            <div>
-                              <p className="dashboard-property-reference">{copy.dashboard.visitStatusOptions[visit.status]}</p>
-                              <h3>{visit.contactName}</h3>
-                            </div>
-                            <div className="dashboard-property-actions">
-                              <button type="button" className="dashboard-property-edit" onClick={() => openVisitEditor(visit)}>
-                                {copy.dashboard.editVisit}
-                              </button>
-                              <CustomSelect
-                                value={visit.status}
-                                onChange={(value) => handleVisitStatusChange(visit, value)}
-                                options={visitStatusOptions}
-                                className="dashboard-status-select"
-                                ariaLabel={copy.dashboard.visitFields.status}
-                                light
-                              />
-                            </div>
-                          </div>
-
-                          <div className="dashboard-property-meta">
-                            <div>
-                              <span>{copy.dashboard.visitColumns.when}</span>
-                              <strong>{formatDate(visit.scheduledAt, language)}</strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.visitColumns.contact}</span>
-                              <strong>{visit.contactPhone || visit.contactEmail || '-'}</strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.visitColumns.property}</span>
-                              <strong>{linkedProperty ? `${linkedProperty.reference} · ${linkedProperty.title}` : copy.dashboard.unlinked}</strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.visitColumns.linkedClient}</span>
-                              <strong>{linkedClient ? `${linkedClient.name} ${linkedClient.surname}`.trim() : copy.dashboard.unlinked}</strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.visitColumns.source}</span>
-                              <strong>{visit.leadId ? copy.dashboard.sections.leads : linkedClient ? copy.dashboard.sections.clients : copy.dashboard.manualSource}</strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.visitFields.location}</span>
-                              <strong>{visit.location || copy.dashboard.unlinked}</strong>
-                            </div>
-                          </div>
-
-                          {visit.notes ? (
-                            <div className="dashboard-property-observations">
-                              <span>{copy.dashboard.visitFields.notes}</span>
-                              <p className="dashboard-visit-note">{visit.notes}</p>
-                            </div>
-                          ) : null}
-
-                          <div className="dashboard-visit-links">
-                            {calendarLink ? (
-                              <a className="dashboard-property-cta dashboard-calendar-link" href={calendarLink} target="_blank" rel="noreferrer">
-                                {copy.dashboard.calendarLink}
-                              </a>
-                            ) : null}
-                            {emailLink ? <a className="dashboard-property-cta dashboard-calendar-link" href={emailLink}>{copy.dashboard.visitEmail}</a> : <button type="button" className="dashboard-property-cta dashboard-calendar-link" disabled title={copy.dashboard.visitEmailMissing}>{copy.dashboard.visitEmail}</button>}
-                          </div>
-                          <p className="dashboard-visit-reminder-tip">{copy.dashboard.visitReminderTip}</p>
-                          {!emailLink ? <p className="dashboard-visit-reminder-tip">{copy.dashboard.visitEmailMissing}</p> : null}
-                        </article>
+                        <CrmRecord key={visit.id} className="dashboard-visit-card" language={language} title={visit.contactName}
+                          meta={<strong className="task-deadline">{formatDate(visit.scheduledAt, language)} · {visit.durationMinutes || 60} min</strong>}
+                          status={copy.dashboard.visitStatusOptions[visit.status]} editLabel={copy.dashboard.editVisit} onEdit={() => openVisitEditor(visit)}
+                          fields={[
+                            { label: copy.dashboard.visitColumns.contact, value: [visit.contactPhone, visit.contactEmail].filter(Boolean).join(' · ') },
+                            { label: copy.dashboard.visitColumns.property, value: linkedProperty ? `${linkedProperty.reference} · ${linkedProperty.title}` : copy.dashboard.unlinked },
+                            { label: copy.dashboard.visitFields.location, value: visit.location },
+                          ]}
+                          actions={<>
+                            {calendarLink && <a className="dashboard-property-edit dashboard-calendar-link" href={calendarLink} target="_blank" rel="noreferrer" title={copy.dashboard.visitReminderTip}>{copy.dashboard.calendarLink}</a>}
+                            {emailLink ? <a className="dashboard-property-edit" href={emailLink}>{copy.dashboard.visitEmail}</a> : <button type="button" disabled title={copy.dashboard.visitEmailMissing}>{copy.dashboard.visitEmail}</button>}
+                          </>} />
                       )
                     })}
                   </div>
@@ -5123,101 +4952,22 @@ export default function App() {
                 {filteredDashboardClients.length ? (
                   <div className="dashboard-clients-grid">
                     {filteredDashboardClients.map((client) => {
-                      const matches = getClientMatches(client, dashboardProperties, copy)
                       return (
-                        <article key={client.id} className="dashboard-client-card">
-                          <div className="dashboard-property-top">
-                            <div>
-                              <p className="dashboard-property-reference">{client.operation === 'comprar' ? copy.nav.buy : copy.nav.rent}</p>
-                              <h3>
-                                {client.name} {client.surname}
-                              </h3>
-                            </div>
-                            <div className="dashboard-property-actions">
-                              <button type="button" className="dashboard-property-edit" onClick={() => openClientEditor(client)}>
-                                {copy.dashboard.editClient}
-                              </button>
-                              <CustomSelect
-                                value={client.status}
-                                onChange={(value) => handleClientStatusChange(client, value)}
-                                options={clientStatusOptions}
-                                className="dashboard-status-select"
-                                ariaLabel={copy.dashboard.clientFields.status}
-                                light
-                              />
-                            </div>
-                          </div>
-
-                          <div className="dashboard-property-meta">
-                            <div>
-                              <span>{copy.dashboard.clientColumns.contact}</span>
-                              <strong>{client.phone || client.email || '-'}</strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.clientColumns.budget}</span>
-                              <strong>{formatBudgetRange(client)} {client.currency || 'EUR'}</strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.clientColumns.criteria}</span>
-                              <strong>
-                                {client.destinations.map((destination) => getDestinationMeta(destination, language).name).join(' · ') || copy.catalog.all}
-                              </strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.propertyColumns.type}</span>
-                              <strong>{normalizeTypes(client.types).map((type) => getTypeLabel(type, language)).join(' · ') || copy.catalog.all}</strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.propertyColumns.rooms}</span>
-                              <strong>{client.minRooms ? `>= ${client.minRooms}` : copy.catalog.all}</strong>
-                            </div>
-                            <div>
-                              <span>{copy.dashboard.propertyColumns.surface}</span>
-                              <strong>{client.minSurface ? `>= ${client.minSurface} m²` : copy.catalog.all}</strong>
-                            </div>
-                          </div>
-
-                          <div className="dashboard-property-observations">
-                            <span>{copy.dashboard.clientFields.notes}</span>
-                            <textarea
-                              value={client.notes}
-                              onChange={(event) => handleClientDraftChange(client.id, 'notes', event.target.value)}
-                            />
-                            <button type="button" onClick={() => handleClientNotesSave(client)}>
-                              {copy.dashboard.saveObservation}
-                            </button>
-                          </div>
-
-                          <div className="dashboard-client-matches">
-                            <span>{copy.dashboard.matchTitle}</span>
-                            {matches.length ? (
-                              <div className="dashboard-match-list">
-                                {matches.map((match) => (
-                                  <article key={`${client.id}-${match.property.id}`} className="dashboard-match-item">
-                                    <div className="dashboard-match-top">
-                                      <div>
-                                        <strong>{match.property.title}</strong>
-                                        <p>
-                                          {match.property.reference} · {match.property.priceLabel}
-                                        </p>
-                                      </div>
-                                      <span>{match.score}%</span>
-                                    </div>
-                                    <div className="dashboard-match-tags">
-                                      {match.reasons.map((reason) => (
-                                        <span key={`${match.property.id}-${reason}`} className="dashboard-match-tag">
-                                          {reason}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </article>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="dashboard-client-empty-match">{copy.dashboard.noMatches}</p>
-                            )}
-                          </div>
-                        </article>
+                        <CrmRecord key={client.id} className="dashboard-client-card" language={language}
+                          title={`${client.name} ${client.surname}`} meta={getOperationLabel(client.operation, language)}
+                          status={copy.dashboard.clientStatusOptions[client.status]} editLabel={copy.dashboard.editClient} onEdit={() => openClientEditor(client)}
+                          fields={[
+                            { label: copy.dashboard.clientColumns.contact, value: [client.phone, client.email].filter(Boolean).join(' · ') },
+                            { label: copy.dashboard.clientColumns.budget, value: `${formatBudgetRange(client)} ${client.currency || 'EUR'}` },
+                            { label: copy.dashboard.clientColumns.criteria, value: [
+                              client.destinations.map(destination => getDestinationMeta(destination, language).name).join(', '),
+                              normalizeTypes(client.types).map(type => getTypeLabel(type, language)).join(', '),
+                              client.minRooms ? `${copy.dashboard.propertyColumns.rooms}: ≥ ${client.minRooms}` : '',
+                              client.minBathrooms ? `${copy.dashboard.propertyColumns.bathrooms}: ≥ ${client.minBathrooms}` : '',
+                              client.minSurface ? `≥ ${client.minSurface} m²` : '',
+                              ...(client.requiredExtras || []).map(extra => copy.catalog.extras[extra] || extra),
+                            ].filter(Boolean).join(' · ') },
+                          ]} />
                       )
                     })}
                   </div>
@@ -5363,6 +5113,18 @@ export default function App() {
                   onChange={(event) => setPropertyForm((current) => ({ ...current, observations: event.target.value }))}
                 />
               </label>
+              <div className="dashboard-property-form-full">
+                <p>{language === 'pt' ? 'Traduções do anúncio' : language === 'es' ? 'Traducciones del anuncio' : 'Listing translations'}</p>
+                <p className="dashboard-property-help">{language === 'pt' ? 'Campos opcionais. Quando vazios, o site usa o título e a descrição originais acima.' : language === 'es' ? 'Campos opcionales. Si están vacíos, se utiliza el título y la descripción originales.' : 'Optional fields. Empty fields use the original title and description above.'}</p>
+              </div>
+              {['pt', 'es', 'en'].map(locale => <div className="dashboard-property-form-full" key={locale}>
+                <label><span>{copy.dashboard.propertyFields.title} — {({ pt: 'Português', es: 'Español', en: 'English' })[locale]}</span>
+                  <input value={propertyForm.portalData?.translations?.[locale]?.title || ''} onChange={event => setPropertyForm(current => ({ ...current, portalData: { ...current.portalData, translations: { ...current.portalData?.translations, [locale]: { ...current.portalData?.translations?.[locale], title: event.target.value } } } }))} />
+                </label>
+                <label><span>{language === 'pt' ? 'Descrição' : language === 'es' ? 'Descripción' : 'Description'} — {({ pt: 'Português', es: 'Español', en: 'English' })[locale]}</span>
+                  <textarea value={propertyForm.portalData?.translations?.[locale]?.description || ''} onChange={event => setPropertyForm(current => ({ ...current, portalData: { ...current.portalData, translations: { ...current.portalData?.translations, [locale]: { ...current.portalData?.translations?.[locale], description: event.target.value } } } }))} />
+                </label>
+              </div>)}
               <label className="dashboard-property-form-full">
                 <span>{copy.dashboard.propertyFields.photos}</span>
                 <input type="file" accept="image/*" multiple disabled={propertyForm.offMarket} onChange={handlePropertyPhotoFilesChange} />
@@ -5712,9 +5474,12 @@ export default function App() {
               <button type="submit" className="catalog-search-button">
                 {copy.catalog.filters.search}
               </button>
+              <button type="button" className="catalog-filter-toggle" aria-expanded={filtersOpen} aria-controls="catalog-advanced-filters" onClick={() => setFiltersOpen(open => !open)}>
+                {language === 'en' ? 'Filters' : 'Filtros'} <span aria-hidden="true">{filtersOpen ? '−' : '+'}</span>
+              </button>
             </form>
 
-            <div className="catalog-filter-strip">
+            <div id="catalog-advanced-filters" className="catalog-filter-strip" hidden={!filtersOpen}>
               {route.view === 'off-market' && <label><span>{copy.dashboard.propertyFields.operation}</span><CustomSelect value={catalogFilters.operation} onChange={value => setCatalogFilters(current => ({ ...current, operation: value }))} options={[{value:'all',label:copy.catalog.all},{value:'comprar',label:copy.nav.buy},{value:'alquilar',label:copy.nav.rent}]} className="catalog-custom-select" ariaLabel={copy.dashboard.propertyFields.operation} /></label>}
               <label>
                 <span>{copy.catalog.filters.type}</span>
@@ -5827,7 +5592,7 @@ export default function App() {
             <div className="catalog-results-head">
               <div>
                 <p className="section-label">{copy.catalog.selection}</p>
-                <h1>
+                <h1 className="section-title">
                   {route.view === 'off-market' ? 'Off-market' : getOperationLabel(catalogFilters.operation, language)}{' '}
                   {catalogFilters.destination === 'todos'
                     ? copy.catalog.inMainDestinations
@@ -5852,7 +5617,7 @@ export default function App() {
                         backgroundImage: `linear-gradient(rgba(20, 16, 14, 0.08), rgba(20, 16, 14, 0.18)), url(${property.image})`,
                       }}
                     >
-                      <span className="listing-chip">{property.offMarket ? (language === 'pt' ? 'Imagem ilustrativa' : language === 'es' ? 'Imagen ilustrativa' : 'Illustrative image') : property.note}</span>
+                      <div className="listing-chips">{listingLabels(property, language).map(label => <span className="listing-chip" key={label}>{label}</span>)}</div>
                     </div>
                     <div className="listing-body">
                       <p className="listing-reference">{property.reference}</p>
@@ -5886,7 +5651,7 @@ export default function App() {
               })}
             </div>
             {!publicLoading && !filteredCatalog.length && <p>{language === 'pt' ? 'Nenhum imóvel encontrado com estes critérios.' : language === 'es' ? 'No se han encontrado inmuebles con estos criterios.' : 'No properties match these criteria.'}</p>}
-            {route.view === 'off-market' && offMarketSelection && <OffMarket key={offMarketSelection.id} property={offMarketSelection} language={language} onSubmit={saveOwnerLead} onClose={() => setOffMarketSelection(null)} />}
+            {offMarketSelection && <OffMarket key={offMarketSelection.id} property={offMarketSelection} language={language} onSubmit={saveOwnerLead} onClose={() => setOffMarketSelection(null)} />}
           </section>
         </main>
       ) : null}
@@ -6024,7 +5789,7 @@ export default function App() {
                     }
                     required
                   />
-                  <span>{copy.ownerForm.legal}</span>
+                  <PrivacyConsent language={language} text={copy.ownerForm.legal} />
                 </label>
                 <label className="owner-form-check owner-form-full">
                   <input
@@ -6212,7 +5977,7 @@ export default function App() {
                 </label>
                 <label className="owner-form-check owner-form-full">
                   <input type="checkbox" checked={propertyInquiry.legalAccepted} onChange={(event) => setPropertyInquiry((current) => ({ ...current, legalAccepted: event.target.checked }))} required />
-                  <span>{copy.ownerForm.legal}</span>
+                  <PrivacyConsent language={language} text={copy.ownerForm.legal} />
                 </label>
                 <button type="submit" className="owner-form-submit owner-form-full">{copy.property.inquirySubmit}</button>
               </form>
@@ -6237,7 +6002,7 @@ export default function App() {
                         backgroundImage: `linear-gradient(rgba(20, 16, 14, 0.08), rgba(20, 16, 14, 0.18)), url(${property.image})`,
                       }}
                     >
-                      <span className="listing-chip">{property.note}</span>
+                      <div className="listing-chips">{listingLabels(property, language).map(label => <span className="listing-chip" key={label}>{label}</span>)}</div>
                     </div>
                     <div className="listing-body">
                       <p className="listing-reference">{property.reference}</p>
@@ -6270,17 +6035,24 @@ export default function App() {
         </main>
       ) : null}
 
+      {route.view === 'contact' && <ContactPage language={language} onSubmit={saveOwnerLead} />}
+      {route.view === 'about' && <AboutPage language={language} />}
+      {['legal', 'privacy', 'cookies'].includes(route.view) && <LegalPage page={route.view} language={language} />}
+
       {route.view === 'home' ? (
         <main id="inicio">
+          <div className="home-first-screen">
           <section
             className="hero-section"
-            style={{
-              backgroundImage: `linear-gradient(rgba(19, 16, 13, 0.28), rgba(19, 16, 13, 0.34)), url(${heroImage})`,
-            }}
+            style={{ '--hero-image': 'url(/media/kohaus-hero-poster.jpg)' }}
           >
+            <HeroVideo language={language} />
             <div className="hero-overlay">
-              <h1>{copy.home.title}</h1>
-              <p className="hero-copy">{copy.home.copy}</p>
+              <div className="hero-heading"><h1>{copy.home.title}</h1>
+              </div>
+            </div>
+          </section>
+          <div className="hero-search-band">
               <form
                 className="search-panel"
                 onSubmit={(event) => {
@@ -6330,9 +6102,9 @@ export default function App() {
                 </label>
                 <button type="submit">{copy.home.search}</button>
               </form>
-            </div>
-          </section>
+          </div>
 
+          </div>
           <section className="featured-section" id="comprar">
             <div className="featured-heading">
               <p className="section-label">{copy.home.featuredLabel}</p>
@@ -6393,10 +6165,12 @@ export default function App() {
           <section className="destinations-section" id="destinos">
             <div className="locations-ribbon">
               {DESTINATIONS.map((destination) => (
-                <article
+                <a
                   key={destination.slug}
                   className="location-tile"
-                  onClick={() => {
+                  href={`?view=catalogo&op=comprar&dest=${destination.slug}&lang=${language}`}
+                  onClick={(event) => {
+                    event.preventDefault()
                     setCatalogFilters((current) => ({
                       ...current,
                       operation: 'comprar',
@@ -6413,7 +6187,7 @@ export default function App() {
                       backgroundImage: `linear-gradient(rgba(24, 20, 17, 0.18), rgba(24, 20, 17, 0.3)), url(${destination.image})`,
                     }}
                   />
-                </article>
+                </a>
               ))}
             </div>
           </section>
@@ -6423,7 +6197,7 @@ export default function App() {
               <p className="section-label">{copy.home.aboutLabel}</p>
               <h2>{copy.home.aboutTitle}</h2>
               <p>{copy.home.aboutCopy}</p>
-              <a className="outline-button" href="#contacto">
+              <a className="outline-button" href={`?view=about&lang=${language}`}>
                 {copy.home.aboutCta}
               </a>
             </div>
@@ -6432,7 +6206,8 @@ export default function App() {
         </main>
       ) : null}
 
-      <Footer copy={copy} />
+      <Footer copy={copy} language={language} />
+      <PrivacyNotice language={language} />
     </div>
   )
 }

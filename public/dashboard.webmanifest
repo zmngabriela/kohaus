@@ -1,0 +1,14 @@
+{
+  "id": "/?view=dashboard",
+  "name": "KOHAUS Dashboard",
+  "short_name": "KOHAUS",
+  "description": "Painel interno da KOHAUS Real Estate",
+  "start_url": "/?view=dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fdfbed",
+  "theme_color": "#fdfbed",
+  "icons": [
+    { "src": "/brand/kohaus-favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

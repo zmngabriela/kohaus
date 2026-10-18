@@ -50,7 +50,7 @@ describe('KOHAUS app regressions', () => {
       const { container, unmount } = renderApp(route)
 
       expect(container.querySelectorAll('.site-footer')).toHaveLength(1)
-      expect(screen.getByText('hello@kohaus.com')).toBeInTheDocument()
+      expect(screen.getByText('hola@thekohaus.com')).toBeInTheDocument()
 
       unmount()
     })
@@ -92,6 +92,7 @@ describe('KOHAUS app regressions', () => {
     const user = userEvent.setup()
     renderApp('/?view=catalogo&lang=en&op=comprar&dest=todos')
 
+    await user.click(screen.getByRole('button', { name: 'Filters' }))
     await user.click(screen.getByRole('button', { name: 'Type' }))
     expect(screen.getAllByRole('button', { name: 'Apartment' })).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Villa' })).toBeInTheDocument()
@@ -117,6 +118,7 @@ describe('KOHAUS app regressions', () => {
       expect(getListingCards(container)).toHaveLength(2)
     })
 
+    await user.click(screen.getByRole('button', { name: 'Filters' }))
     await user.click(screen.getByRole('button', { name: 'Extras' }))
     await user.click(screen.getByRole('button', { name: 'Terrace' }))
     await user.click(screen.getByRole('button', { name: 'Views' }))
@@ -136,6 +138,7 @@ describe('KOHAUS app regressions', () => {
       expect(getListingCards(container)).toHaveLength(2)
     })
 
+    await user.click(screen.getByRole('button', { name: 'Filters' }))
     const priceTrigger = screen.getByRole('button', { name: 'Price' })
     await user.click(priceTrigger)
 
@@ -160,6 +163,7 @@ describe('KOHAUS app regressions', () => {
       expect(getListingCards(container)).toHaveLength(2)
     })
 
+    await user.click(screen.getByRole('button', { name: 'Filters' }))
     await user.click(screen.getByRole('button', { name: 'Bathrooms' }))
     await user.click(screen.getByRole('button', { name: '3+' }))
 
@@ -199,7 +203,7 @@ describe('KOHAUS app regressions', () => {
 
     expect(await screen.findByText('Barcelona penthouse for investor matching')).toBeInTheDocument()
     const createdPropertyCard = screen.getByText('Barcelona penthouse for investor matching').closest('.dashboard-property-card')
-    expect(createdPropertyCard?.querySelector('.dashboard-property-reference')).toHaveTextContent(/^KH-/)
+    expect(createdPropertyCard?.querySelector('.crm-record-copy > p')).toHaveTextContent(/^KH-/)
 
     await user.click(screen.getAllByRole('button', { name: 'Edit' }).find((button) =>
       button.closest('.dashboard-property-card')?.textContent?.includes('Barcelona penthouse for investor matching'),
@@ -217,7 +221,9 @@ describe('KOHAUS app regressions', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
 
     expect(await screen.findByText('Barcelona penthouse updated from dashboard')).toBeInTheDocument()
-    expect(screen.getByText('Updated from the dashboard test flow.')).toBeInTheDocument()
+    expect(screen.queryByText('Updated from the dashboard test flow.')).not.toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: 'Edit' }).find(button => button.closest('.dashboard-property-card')?.textContent?.includes('Barcelona penthouse updated from dashboard')))
+    expect(screen.getByLabelText('Notes')).toHaveValue('Updated from the dashboard test flow.')
   })
 
   it('promotes the KOHAUS Selection label on property details', async () => {
@@ -317,6 +323,7 @@ describe('KOHAUS app regressions', () => {
     await user.click(screen.getByRole('button', { name: 'Portals' }))
 
     expect(screen.getByText('Portal-ready townhouse')).toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: 'Manage' }).find(button => button.closest('.dashboard-portal-card')?.textContent?.includes('Portal-ready townhouse')))
     expect(screen.getAllByText('Draft').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Fotocasa').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'Publish · API pending' })).toBeDisabled()
@@ -358,7 +365,7 @@ describe('KOHAUS app regressions', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Save client' }))
 
     expect(await screen.findByText('Maya Costa')).toBeInTheDocument()
-    expect(screen.getByText('+34 600 111 222')).toBeInTheDocument()
+    expect(screen.getByText(/\+34 600 111 222/)).toBeInTheDocument()
 
     await user.click(screen.getAllByRole('button', { name: 'Edit client' }).find((button) =>
       button.closest('.dashboard-client-card')?.textContent?.includes('Maya Costa'),
@@ -370,7 +377,9 @@ describe('KOHAUS app regressions', () => {
     await user.type(notesInput, 'Qualified and ready for curated options.')
     await user.click(within(editDialog).getByRole('button', { name: 'Update client' }))
 
-    expect(await screen.findByText('Qualified and ready for curated options.')).toBeInTheDocument()
+    expect(screen.queryByText('Qualified and ready for curated options.')).not.toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: 'Edit client' }).find(button => button.closest('.dashboard-client-card')?.textContent?.includes('Maya Costa')))
+    expect(within(screen.getByRole('dialog', { name: 'Edit client' })).getByLabelText('Internal notes')).toHaveValue('Qualified and ready for curated options.')
   })
 
   it('persists a property through Supabase and reloads the database result', async () => {
@@ -411,7 +420,7 @@ describe('KOHAUS app regressions', () => {
     }
     const order = vi.fn().mockResolvedValue({ data: [rowFromOlderSchema], error: null })
     const eq = vi.fn(() => ({ order }))
-    const select = vi.fn(() => ({ eq }))
+    const select = vi.fn(() => ({ eq, in: eq }))
     const database = { from: vi.fn(() => ({ select })) }
 
     const result = await fetchPublishedProperties(database, true)

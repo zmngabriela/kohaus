@@ -1,0 +1,27 @@
+.company-page { max-width:1000px; margin:auto; padding:48px 44px 100px; }
+.page-shell main.company-page h1 { max-width:620px; margin:0 0 20px; }
+.page-shell main.company-page h2 { margin:0 0 24px;}
+.company-intro,.company-manifesto p,.company-person p { color:var(--copy); font-size:var(--fs-body-lg); line-height:1.85; max-width:600px; }
+.contact-details { display:flex; flex-wrap:wrap; gap:20px 48px; margin:44px 0 64px; align-items:center; }
+.contact-details p { margin:0; }.contact-details a { color:inherit; text-underline-offset:6px; }
+.contact-section { padding-top:40px; border-top:1px solid var(--line); max-width:800px; }
+.contact-form { display:grid; grid-template-columns:1fr 1fr; gap:24px; }.contact-form label { display:grid; gap:8px; font-size:var(--fs-ui); }
+.contact-form input,.contact-form textarea { border:1px solid var(--line-strong); background:var(--paper); border-radius:0; padding:14px; font:inherit; color:var(--ink); width:100%; }
+.contact-form textarea { resize:vertical; }.contact-wide { grid-column:1 / -1; }
+.contact-form .contact-consent { display:flex; align-items:flex-start; gap:12px; }.contact-consent input { width:16px; height:16px; margin-top:3px; flex-shrink:0; accent-color:var(--copy); }.contact-consent a { color:inherit; }
+.contact-form button { justify-self:start; }.contact-form button:disabled { opacity:.6; }
+.company-manifesto,.company-person { display:grid; grid-template-columns:1fr 1fr; gap:48px; padding:28px 0 36px; }.company-manifesto p:first-child { margin-top:0; }.company-person .outline-button { display:inline-block; margin-top:20px; }
+.footer-copyright { grid-column:1 / -1; border-top:1px solid #ffffff30; padding-top:24px; font-size:var(--fs-label-xs); }
+@media(max-width:720px) { .company-page { padding:48px 24px 64px; }.contact-details { flex-direction:column; align-items:flex-start; gap:18px; }.contact-form,.company-manifesto,.company-person { grid-template-columns:1fr; gap:24px; }.contact-form input,.contact-form textarea { font-size:16px; }.company-manifesto { margin-top:0; padding-top:12px; }.company-person { padding:36px 0; }.company-manifesto { padding:12px 0 36px; } }
+.company-person-portrait { display: grid; align-content: start; gap: 24px; }
+.company-person-portrait img { display: block; width: 200px; height: 200px; max-width: 100%; object-fit: cover; }
+
+.company-contact .company-intro { margin-bottom: 0; }
+.company-contact .contact-details { flex-direction: column; align-items: flex-start; gap: 8px; margin: 28px 0 36px; font-size: var(--fs-body-lg); }
+.company-contact .contact-details a { text-decoration: none; }
+.company-contact .contact-details a:hover { opacity: .7; }
+.company-contact .contact-section { padding-top: 28px; max-width: 100%; }
+
+/* Shared label-to-heading spacing on Contact and About, at every breakpoint. */
+.page-shell main.company-page > .section-label { margin:0; }
+.page-shell main.company-page > .company-opening { margin-top:16px; padding-top:0; }

@@ -1,0 +1,61 @@
+/* Shared by language, search, multi-selects, price filters and CRM fields. */
+.custom-select { position: relative; display: inline-flex; width: 100%; }
+.custom-select-trigger,
+.custom-select-option {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: start;
+  width: 100%;
+}
+.custom-select-trigger { padding: 0; }
+.custom-select-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--ink);
+  border: 1px solid rgba(32, 25, 20, .08);
+  box-shadow: 0 10px 30px rgba(32, 25, 20, .12);
+  z-index: 30;
+}
+.custom-select .custom-select-option {
+  min-height: 28px;
+  height: auto;
+  padding: 4px 0;
+  color: var(--paper);
+  font-size: var(--fs-label-sm);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.custom-select .custom-select-option.is-active { color: rgba(247, 243, 235, .56); }
+.custom-select-option:hover { background: rgba(253, 251, 237, .06); }
+.custom-select .custom-select-option:focus-visible { outline: 1px solid var(--paper); outline-offset: 2px; }
+.custom-select-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.custom-select:not(.lang-switch)::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid var(--copy);
+  border-bottom: 1px solid var(--copy);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+.lang-switch .custom-select-trigger { font-size: var(--fs-label-sm); font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }

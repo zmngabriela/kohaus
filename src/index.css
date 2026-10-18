@@ -1,17 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
+  --brand-logo-width: 136px;
+  /* Approved KOHAUS cream: preserve this color unless explicitly requested. */
   --paper: #fdfbed;
-  --surface: #fdfbed;
-  --field: #fdfbed;
+  --surface: var(--paper);
+  --field: var(--paper);
   --paper-deep: #c3b7a9;
   --ink: #323232;
+  --section-dark: #242424;
   --copy: #645a50;
   --muted: #645a50;
   --line: rgba(100, 90, 80, 0.18);
   --line-strong: rgba(100, 90, 80, 0.34);
   --accent: #b5633e;
   --sans: 'Manrope', 'Helvetica Neue', sans-serif;
+  /* Shared hierarchy: page titles, section titles, body and supporting labels. */
+  --fs-title-medium: clamp(1.4rem, 2vw, 1.75rem);
   --fs-label-xs: 0.72rem;
   --fs-label-sm: 0.78rem;
   --fs-ui-sm: 0.82rem;
@@ -20,11 +25,8 @@
   --fs-body-md: 0.96rem;
   --fs-body-lg: 0.98rem;
   --fs-card-title: 1.18rem;
-  --fs-price: 1.82rem;
-  --fs-hero-title: clamp(2.25rem, 3.8vw, 3.35rem);
-  --fs-section-title: clamp(1.75rem, 2.8vw, 2.5rem);
-  --fs-property-title: clamp(2.1rem, 3vw, 3.15rem);
-  --fs-property-section: clamp(1.85rem, 3vw, 2.7rem);
+  --fs-price: var(--fs-title-medium);
+  --fs-section-title: var(--fs-title-medium);
 
   font-family: var(--sans);
   line-height: 1.5;
@@ -63,4 +65,10 @@ a {
 
 #root {
   min-height: 100vh;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --fs-title-medium: clamp(1.35rem, 5vw, 1.5rem);
+  }
 }

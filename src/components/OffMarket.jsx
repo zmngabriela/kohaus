@@ -1,3 +1,4 @@
+import PrivacyConsent from './PrivacyConsent'
 import { useEffect, useRef, useState } from 'react'
 import './CrmExtensions.css'
 const copy = {
@@ -25,7 +26,7 @@ export default function OffMarket({ property, language, onSubmit, onClose }) {
   {!sent && <form onSubmit={submit} className="crm-extension-form"><fieldset disabled={busy}>
    {['name','surname','email','phone'].map(key=><label key={key}>{c[key]}<input name={key} type={key==='email'?'email':key==='phone'?'tel':'text'} required /></label>)}
    <label>{c.message}<textarea name="message" /></label>
-   <label className="offmarket-consent"><input type="checkbox" required />{c.consent}</label>
+   <label className="offmarket-consent"><input type="checkbox" required /><span>{c.consent} <PrivacyConsent language={language} /></span></label>
    <button type="submit">{c.send}</button>
   </fieldset></form>}
   <button type="button" className="outline-button" onClick={onClose}>{c.cancel}</button>

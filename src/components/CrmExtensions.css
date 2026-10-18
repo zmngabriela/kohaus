@@ -1,24 +1,13 @@
-.offmarket-page { padding:140px 5vw 70px; background:var(--paper); color:var(--ink); min-height:70vh; }
-.offmarket-page h1 { font-size:clamp(2rem,4vw,3.5rem); max-width:800px; }
-.offmarket-intro { max-width:650px; line-height:1.8; margin-bottom:30px; }
-.offmarket-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:30px; margin-top:32px; }
-.offmarket-grid article { border:1px solid var(--line); max-width:620px; }
-.offmarket-image { position:relative; }
-.offmarket-image img { width:100%; height:240px; object-fit:cover; filter:brightness(.65); }
-.offmarket-image span { position:absolute; bottom:20px; left:20px; color:var(--paper); }
-.offmarket-card-copy { padding:24px; }
-.offmarket-card-copy button { display:block; margin-top:20px; }
 .crm-extension-form fieldset { border:0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
 .crm-extension-form label { display:grid; gap:8px; min-width:0; }
 .crm-extension-form input,.crm-extension-form select,.crm-extension-form textarea { min-width:0; padding:12px; background:var(--field); border:1px solid var(--line-strong); color:var(--ink); font:inherit; border-radius:0; }
 .crm-extension-form textarea { min-height:90px; }
-.crm-extension-form button,.offmarket-page button,.invoice-list button { padding:12px 20px; min-height:44px; border:1px solid var(--line-strong); border-radius:0; background:var(--copy); color:var(--paper); font:inherit; cursor:pointer; }
 .crm-extension-form button:disabled { opacity:.6; cursor:wait; }
 .offmarket-request { padding:30px; margin-top:30px; border:1px solid var(--line); }
 .invoice-preview { width:100%; height:650px; border:1px solid var(--line); margin-top:24px; }
 .invoice-list { display:grid; gap:10px; margin-top:24px; }
 .invoice-list article { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid var(--line); }
-@media(max-width:650px) { .crm-extension-form fieldset { grid-template-columns:1fr; } .offmarket-page { padding:110px 20px 40px; } .offmarket-grid { grid-template-columns:1fr; } .invoice-preview { height:460px; } }
+@media(max-width:650px) { .crm-extension-form fieldset { grid-template-columns:1fr; }   .invoice-preview { height:460px; } }
 .dashboard-property-form .offmarket-toggle { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:14px 0; }
 .dashboard-property-form .offmarket-toggle input[type="checkbox"] { width:16px; height:16px; min-height:0; margin:0; padding:0; accent-color:var(--copy); }
 .dashboard-property-form .offmarket-toggle span { margin:0; }
@@ -29,3 +18,5 @@
 .offmarket-request > .outline-button { margin-top:16px; }
 .invoice-preview { height:auto; max-height:850px; overflow:auto; padding:20px; background:#e9e7df; }
 .invoice-preview canvas { display:block; width:100%; max-width:800px; height:auto; margin:0 auto 16px; background:white; box-shadow:0 2px 12px #0001; }
+
+.crm-extension-form button,.invoice-list button { padding:12px 20px; min-height:44px; border:1px solid var(--line-strong); border-radius:0; background:var(--copy); color:var(--paper); font:inherit; cursor:pointer; }
