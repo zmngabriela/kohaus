@@ -5,7 +5,8 @@ React/Vite com Supabase para autenticação, banco e arquivos.
 ## Processo oficial
 Leia [docs/AMBIENTES.md](docs/AMBIENTES.md) para criar produção, configurar a Vercel e seguir o fluxo de desenvolvimento, testes e publicação.
 
-- DEV: projeto Supabase atual, preservado com os dados de teste.
+- Branch dev: trabalho e Preview com Supabase DEV, preservado com os dados de teste.
+- Branch main: versão aprovada; merge dispara novo build Production na Vercel quando configurada.
 - PROD: projeto independente a criar/configurar; não copiar dados de DEV.
 - Instalação inicial: [supabase/schema.sql](supabase/schema.sql).
 - Alterações futuras de banco: migrações incrementais em supabase/migrations e atualização do schema consolidado.

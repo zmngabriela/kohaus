@@ -43,7 +43,7 @@ VERCEL_ENV é fornecida pela Vercel; não cadastrar manualmente.
 Na configuração atual são suportados projetos Supabase hospedados com URL padrão supabase.co.
 
 Framework: Vite. Build: npm run build. Output: dist. Instalação: npm ci.
-Production Branch: main. Branches de trabalho geram Preview usando DEV.
+Production Branch: main. A branch permanente dev gera Preview usando o Supabase DEV. Trabalhar na dev por padrão; publicar na main somente após aprovação.
 Depois de alterar variáveis, gerar um NOVO build de produção. Não promover um artefato Preview compilado com DEV para produção.
 A proteção no build falha se Production apontar ao DEV, Preview apontar ao PROD ou faltar configuração. Não remover essa proteção para fazer o deploy passar.
 
@@ -60,14 +60,14 @@ A proteção no build falha se Production apontar ao DEV, Preview apontar ao PRO
 Fora dos testes automatizados, ausência de configuração deve falhar; nunca simular um CRM funcional em localStorage em produção.
 
 ## 4. Mudanças futuras
-1. Criar branch codex/nome-da-alteracao a partir da main atualizada.
+1. Trabalhar na branch permanente dev, atualizada com o remoto. Branches temporárias codex/nome-da-alteracao são opcionais para trabalhos paralelos e retornam à dev.
 2. Implementar e testar no DEV. Nunca copiar dados reais para DEV para reproduzir problemas.
 3. Executar npm test, npm run lint, npm run build e, quando afetar banco/acesso, npm run test:integration.
 4. Conferir o Preview em computador e celular.
-5. Fazer commits por assunto e revisão/PR.
+5. Fazer commits por assunto na dev e push para origin/dev. Abrir PR de dev para main para revisão; aguardar aprovação antes do merge.
 6. Aplicar migrações de banco no PROD apenas após aprovação/revisão e backup adequado.
-7. Fazer merge na main para publicar; verificar o resultado em produção.
-8. Em falha do frontend, voltar ao deploy anterior. Rollback do site não desfaz alterações no banco.
+7. Após aprovação, fazer merge de dev na main. A Vercel deve executar um NOVO build da main com variáveis Production e Supabase PROD; verificar o resultado em produção. Não promover o build Preview diretamente.
+8. Manter dev após o merge e sincronizá-la com main quando necessário, preservando alterações pendentes. Em falha do frontend, voltar ao deploy anterior. Rollback do site não desfaz alterações no banco.
 
 ## 5. SQL e migrações
 - supabase/schema.sql é o estado consolidado para instalar um projeto novo.
