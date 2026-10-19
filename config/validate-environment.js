@@ -21,6 +21,9 @@ export function validateEnvironment(env, { command = 'build', test = false } = {
   if (environment === 'development' && ref !== environments.developmentProjectRef) throw new Error('Development must use the registered development project.')
   if (environment === 'production' && (ref === environments.developmentProjectRef || ref !== env.KOHAUS_EXPECTED_SUPABASE_REF)) throw new Error('Production requires its own project and matching KOHAUS_EXPECTED_SUPABASE_REF.')
   if (command === 'serve' && environment === 'production') throw new Error('Local development must not connect to production.')
-  if (env.VERCEL_ENV === 'production' && environment !== 'production') throw new Error('Vercel Production cannot use the development database.')
-  if (env.VERCEL_ENV === 'preview' && environment !== 'development') throw new Error('Vercel Preview must use the development database.')
+  if (env.CF_PAGES === '1') {
+    if (!env.CF_PAGES_BRANCH) throw new Error('Cloudflare Pages must provide CF_PAGES_BRANCH.')
+    const expected = env.CF_PAGES_BRANCH === environments.productionBranch ? 'production' : 'development'
+    if (environment !== expected) throw new Error(`Cloudflare branch requires VITE_APP_ENV=${expected}. See docs/AMBIENTES.md.`)
+  }
 }

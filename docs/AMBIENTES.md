@@ -9,7 +9,7 @@
 - Supabase Auth, tabelas, Storage e chaves são independentes em cada projeto.
 
 ## 1. Criar o Supabase de produção
-1. Acessar https://supabase.com/dashboard com a conta/organização que será responsável pela KOHAUS.
+1. Guilherme cria/acessa sua conta em https://supabase.com/dashboard e cria a organização KOHAUS. Ele permanece Owner. Em Organization Settings > Team, convida Gabriela com sua própria conta (Administrator para configurar o projeto). Não compartilhar senhas. Acesso à organização Supabase é separado dos usuários do CRM.
 2. Identificar o projeto atual como KOHAUS DEV (renomear é opcional; não muda sua URL).
 3. Escolher New project, na organização desejada; nome sugerido: KOHAUS PROD.
 4. Escolher uma região europeia próxima dos usuários e uma senha forte para o banco. Guardar a senha em um gerenciador; não enviar ao chat nem ao Git.
@@ -23,13 +23,13 @@
 10. Conferir Storage: bucket property-media. Não copiar as fotos de DEV.
 11. No diálogo Connect / Settings > API Keys, obter Project URL, publishable key (ou chave anon legada) e Project ID.
     NUNCA usar secret key, service_role ou senha do banco no frontend.
-12. Em Authentication > URL Configuration, configurar Site URL com o endereço HTTPS oficial e somente os redirects necessários para os fluxos de autenticação usados.
+12. Em Authentication > URL Configuration, configurar Site URL com o endereço HTTPS de produção do Pages (depois, o domínio oficial) e somente os redirects necessários para os fluxos de autenticação usados. No DEV, manter localhost e o endereço estável do preview dev; não autorizar previews no projeto PROD. Se usar convites/recuperação por e-mail, configurar SMTP próprio e validar esses fluxos antes de liberar acesso.
 13. Revisar Security Advisor e as políticas RLS. O schema foi inspecionado no repositório; uma instalação limpa só estará validada depois de executada e conferida no novo projeto.
 
-## 2. Variáveis da Vercel
-Settings > Environment Variables. Criar valores diferentes por ambiente; não marcar os mesmos valores para todos os ambientes.
+## 2. Cloudflare Pages e variáveis
+Workers & Pages > projeto Pages > Settings > Variables and Secrets. Criar valores diferentes por ambiente; não marcar os mesmos valores para todos os ambientes.
 
-| Variável | Development e Preview | Production |
+| Variável | Local e Preview | Production |
 | --- | --- | --- |
 | VITE_APP_ENV | development | production |
 | VITE_SUPABASE_URL | URL do projeto atual DEV | URL do novo PROD |
@@ -39,10 +39,16 @@ Settings > Environment Variables. Criar valores diferentes por ambiente; não ma
 
 A URL normalmente é https://PROJECT_ID.supabase.co. KOHAUS_EXPECTED_SUPABASE_REF recebe somente PROJECT_ID.
 VITE_* fica visível no navegador. Apenas configuração pública pode usar esse prefixo.
-VERCEL_ENV é fornecida pela Vercel; não cadastrar manualmente.
+CF_PAGES e CF_PAGES_BRANCH são fornecidas pelo Cloudflare; não cadastrar manualmente. A branch de produção registrada em config/environments.json é main e deve coincidir com a configuração do painel.
 Na configuração atual são suportados projetos Supabase hospedados com URL padrão supabase.co.
 
-Framework: Vite. Build: npm run build. Output: dist. Instalação: npm ci.
+Conectar somente o repositório zmngabriela/kohaus em Workers & Pages > Create application > Pages > Connect to Git (não criar um Worker). Antes do primeiro deploy, preencher Production com os dados do PROD; depois preencher Preview com DEV.
+
+Framework: React (Vite), ou configuração manual. Build: npm run build. Output: dist. Root: raiz do repositório. Node: 22.16.0 (variável NODE_VERSION nos dois ambientes; compatível com Vite 8). O Pages instala dependências usando package-lock.json; localmente usar npm ci.
+
+Configurar previews apenas para dev inicialmente. Habilitar proteção de previews com Cloudflare Access para restringir o site de teste à equipe. Um endereço de preview não é privado por si só.
+
+O Pages oferece fallback de SPA quando não há 404.html na raiz; este projeto não precisa de regras de redirecionamento adicionais. Não há dependência de Vercel Functions.
 Production Branch: main. A branch permanente dev gera Preview usando o Supabase DEV. Trabalhar na dev por padrão; publicar na main somente após aprovação.
 Depois de alterar variáveis, gerar um NOVO build de produção. Não promover um artefato Preview compilado com DEV para produção.
 A proteção no build falha se Production apontar ao DEV, Preview apontar ao PROD ou faltar configuração. Não remover essa proteção para fazer o deploy passar.
@@ -63,10 +69,10 @@ Fora dos testes automatizados, ausência de configuração deve falhar; nunca si
 1. Trabalhar na branch permanente dev, atualizada com o remoto. Branches temporárias codex/nome-da-alteracao são opcionais para trabalhos paralelos e retornam à dev.
 2. Implementar e testar no DEV. Nunca copiar dados reais para DEV para reproduzir problemas.
 3. Executar npm test, npm run lint, npm run build e, quando afetar banco/acesso, npm run test:integration.
-4. Conferir o Preview em computador e celular.
-5. Fazer commits por assunto na dev e push para origin/dev. Abrir PR de dev para main para revisão; aguardar aprovação antes do merge.
+4. Fazer commits por assunto na dev e push para origin/dev para gerar o Preview.
+5. Conferir o Preview em computador e celular. Abrir PR de dev para main para revisão; aguardar aprovação antes do merge.
 6. Aplicar migrações de banco no PROD apenas após aprovação/revisão e backup adequado.
-7. Após aprovação, fazer merge de dev na main. A Vercel deve executar um NOVO build da main com variáveis Production e Supabase PROD; verificar o resultado em produção. Não promover o build Preview diretamente.
+7. Após aprovação, fazer merge de dev na main. O Cloudflare Pages deve executar um NOVO build da main com variáveis Production e Supabase PROD; verificar o resultado em produção. Não promover o build Preview diretamente.
 8. Manter dev após o merge e sincronizá-la com main quando necessário, preservando alterações pendentes. Em falha do frontend, voltar ao deploy anterior. Rollback do site não desfaz alterações no banco.
 
 ## 5. SQL e migrações
@@ -94,4 +100,12 @@ Fora dos testes automatizados, ausência de configuração deve falhar; nunca si
 - https://supabase.com/docs/guides/deployment/managing-environments
 - https://supabase.com/docs/guides/deployment/going-into-prod
 - https://supabase.com/docs/guides/getting-started/api-keys
-- https://vercel.com/docs/environment-variables
+- https://developers.cloudflare.com/pages/configuration/build-configuration/
+- https://developers.cloudflare.com/pages/configuration/branch-build-controls/
+- https://supabase.com/docs/guides/platform/access-control
+
+## Registro desta preparação
+- 2026-10-19: configuração migrada de Vercel para Cloudflare Pages; bloqueio por branch no build.
+- SQL de instalação único: supabase/schema.sql. Nenhum dado foi apagado ou copiado.
+- Execução real no novo Supabase PROD pendente: preencher data, Project ID, responsável e resultado após executar. O banco local Docker não estava disponível para ensaio de instalação.
+- Antes de conectar o repositório, publicar estes ajustes na branch correspondente: alterações apenas locais não chegam ao Cloudflare.

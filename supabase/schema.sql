@@ -1,5 +1,10 @@
 -- KOHAUS: canonical schema and compatibility upgrades.
--- Run this single file in the Supabase SQL Editor. Safe to repeat.
+-- INSTALAÇÃO PROD: executar este arquivo inteiro no SQL Editor do NOVO projeto.
+-- Não copia dados de DEV e não cria imóveis, clientes, visitas, tarefas ou faturas.
+-- Cria somente a estrutura, bucket e configuração vazia do emissor de faturas.
+-- Usuários são criados separadamente em Authentication > Users; não inserir senhas via SQL.
+-- Passo a passo e configuração de acesso: docs/AMBIENTES.md.
+-- Repeatable compatibility bootstrap; use incremental migrations after installation.
 -- Preserves existing data; ambiguous legacy prices abort the transaction.
 -- Keep public Auth signups disabled: Auth users receive CRM access.
 begin;

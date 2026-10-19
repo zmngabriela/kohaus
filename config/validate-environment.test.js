@@ -6,15 +6,19 @@ const production = { ...development, VITE_APP_ENV:'production', VITE_SUPABASE_UR
 describe('environment separation', () => {
  it('accepts correctly configured development and production', () => {
   expect(() => validateEnvironment(development)).not.toThrow()
-  expect(() => validateEnvironment({...production, VERCEL_ENV:'production'})).not.toThrow()
+  expect(() => validateEnvironment({...production, CF_PAGES:'1', CF_PAGES_BRANCH:'main'})).not.toThrow()
+  expect(() => validateEnvironment({...development, CF_PAGES:'1', CF_PAGES_BRANCH:'dev'})).not.toThrow()
+  expect(() => validateEnvironment({...development, CF_PAGES:'1', CF_PAGES_BRANCH:'codex/example'})).not.toThrow()
  })
  it('blocks missing configuration outside isolated tests', () => {
   expect(() => validateEnvironment({})).toThrow()
   expect(() => validateEnvironment({}, {test:true})).not.toThrow()
  })
  it('blocks crossed environments and local access to production', () => {
-  expect(() => validateEnvironment({...development, VERCEL_ENV:'production'})).toThrow()
-  expect(() => validateEnvironment({...production, VERCEL_ENV:'preview'})).toThrow()
+  expect(() => validateEnvironment({...development, CF_PAGES:'1', CF_PAGES_BRANCH:'main'})).toThrow()
+  expect(() => validateEnvironment({...production, CF_PAGES:'1', CF_PAGES_BRANCH:'dev'})).toThrow()
+  expect(() => validateEnvironment({...production, CF_PAGES:'1', CF_PAGES_BRANCH:'codex/example'})).toThrow()
+  expect(() => validateEnvironment({...development, CF_PAGES:'1'})).toThrow()
   expect(() => validateEnvironment(production, {command:'serve'})).toThrow()
   expect(() => validateEnvironment({...production, VITE_SUPABASE_URL:development.VITE_SUPABASE_URL})).toThrow()
   expect(() => validateEnvironment({...production, KOHAUS_EXPECTED_SUPABASE_REF:'wrong'})).toThrow()
