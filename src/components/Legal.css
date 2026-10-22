@@ -10,3 +10,16 @@
 @media(max-width:720px) { .privacy-notice { padding: 22px 24px; flex-direction: column; align-items: flex-start; gap: 12px; } .legal-page { padding-top: 36px; } }
 
 .privacy-notice button:focus-visible, .privacy-notice a:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+
+.privacy-notice { position:fixed; bottom:0; left:0; right:0; z-index:50; max-height:55dvh; overflow:auto; box-shadow:0 -4px 24px #00000015; }
+.cookie-actions { display:flex; flex-wrap:wrap; gap:10px; flex-shrink:0; }
+.cookie-actions button { min-height:44px; padding:10px 16px; border:1px solid currentColor; background:transparent; color:inherit; cursor:pointer; font:inherit; font-size:.85rem; }
+.cookie-settings-footer { padding:16px 24px; background:#242424; color:#fdfbed; text-align:center; }
+.cookie-settings-footer button { background:none; border:0; color:inherit; cursor:pointer; font:inherit; font-size:.85rem; }
+.cookie-preferences { max-width:640px; margin:auto; }
+.cookie-preferences label { display:flex; align-items:flex-start; gap:14px; padding:20px 0; border-bottom:1px solid #655c4f40; }
+.cookie-preferences input { width:18px; height:18px; flex:0 0 18px; margin-top:4px; accent-color:var(--accent); }
+.cookie-preferences p { font-size:.9rem; line-height:1.6; }
+.cookie-preferences .cookie-actions { margin-top:24px; }
+.cookie-actions button:focus-visible, .cookie-settings-footer button:focus-visible { outline:2px solid currentColor; outline-offset:4px; }
+@media(max-width:1000px) { .privacy-notice { flex-direction:column; align-items:flex-start; gap:12px; padding:18px 24px; } }

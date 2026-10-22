@@ -6,7 +6,8 @@ import { propertyTranslations } from './lib/propertyTranslations'
 import PrivacyConsent from './components/PrivacyConsent'
 import { isPublishedListing, belongsInCatalog, listingLabels, closedListingsLast } from './lib/publicListings'
 import { AboutPage, ContactPage, companyContact, companyCopy } from './components/CompanyPages'
-import { LegalPage, PrivacyNotice } from './components/Legal'
+import { LegalPage } from './components/Legal'
+import CookieConsent from './components/CookieConsent'
 import OffMarket from './components/OffMarket'
 import offMarketImage from './assets/kohaus-intro-concept-mirrorless-v3.png'
 import { preferredLanguage, recipientLanguage, visitRecipient } from './lib/language'
@@ -6207,7 +6208,7 @@ export default function App() {
       ) : null}
 
       <Footer copy={copy} language={language} />
-      <PrivacyNotice language={language} />
+      <CookieConsent language={language} view={route.view} />
     </div>
   )
 }

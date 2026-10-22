@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { cookieCopy } from '../lib/cookie-copy'
 import './Legal.css'
 
 const content = {
@@ -17,13 +17,7 @@ const content = {
       ['Serviços utilizados', 'Os registros e as imagens são armazenados no Supabase. O site também carrega a fonte Manrope pelo Google Fonts. Esses serviços recebem os dados técnicos necessários para atender às conexões. Links de calendário, e-mail e redes sociais abrem serviços externos somente quando selecionados.'],
       ['Retenção e seus direitos', 'Antes do lançamento, serão definidos os prazos de conservação, as bases legais, os destinatários e eventuais transferências internacionais, além do canal para exercer os direitos de acesso, retificação, exclusão, oposição, limitação e portabilidade. Você também pode recorrer à autoridade de proteção de dados competente.'],
     ],
-    cookies: [
-      ['Como funciona hoje', 'Esta versão não instala ferramentas de análise de audiência nem pixels de publicidade. O CRM utiliza armazenamento local para manter a sessão de quem faz login. O aviso abaixo registra apenas que foi lido, neste navegador.'],
-      ['Armazenamento necessário', 'A sessão é gerida pelo Supabase e pode permanecer no navegador até o encerramento da sessão ou a limpeza dos dados. A chave kohaus-privacy-notice-v1 guarda a leitura deste aviso até que você limpe os dados do site. No modo local de demonstração, os registros do CRM também ficam neste navegador.'],
-      ['Seu controle', 'Você pode apagar os dados do site nas configurações do navegador; isso pode encerrar a sessão do CRM e apagar registros do modo local. Não há cookies opcionais para ativar nesta versão.'],
-      ['Próximas integrações', 'Antes de ativar estatísticas ou campanhas, esta política e o mecanismo de consentimento serão atualizados. Os recursos opcionais deverão permanecer desativados até a escolha do visitante, com opções claras para aceitar, recusar e alterar essa escolha.'],
-    ],
-    notice: 'Usamos armazenamento necessário para a sessão do CRM. Sem cookies de publicidade ou análise nesta versão.',
+    cookies: [],
     details: 'Saiba mais', dismiss: 'Entendi', home: 'Voltar ao início',
   },
   es: {
@@ -41,13 +35,7 @@ const content = {
       ['Servicios utilizados', 'Los registros y las imágenes se almacenan en Supabase. El sitio también carga la fuente Manrope mediante Google Fonts. Estos servicios reciben los datos técnicos necesarios para atender las conexiones. Los enlaces de calendario, correo y redes sociales abren servicios externos solo al seleccionarlos.'],
       ['Conservación y derechos', 'Antes del lanzamiento se concretarán los plazos de conservación, las bases jurídicas, los destinatarios y posibles transferencias internacionales, así como el canal para ejercer los derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad. También puedes acudir a la autoridad de protección de datos competente.'],
     ],
-    cookies: [
-      ['Funcionamiento actual', 'Esta versión no instala herramientas de analítica ni píxeles publicitarios. El CRM utiliza almacenamiento local para mantener la sesión de quienes inician sesión. El aviso inferior solo registra que se ha leído en este navegador.'],
-      ['Almacenamiento necesario', 'Supabase gestiona la sesión, que puede permanecer en el navegador hasta que se cierre o se borren los datos. La clave kohaus-privacy-notice-v1 guarda la lectura del aviso hasta que borres los datos del sitio. En el modo local de demostración, los registros del CRM también se guardan en este navegador.'],
-      ['Tu control', 'Puedes borrar los datos del sitio en los ajustes del navegador; esto puede cerrar la sesión del CRM y borrar los registros del modo local. No hay cookies opcionales que activar en esta versión.'],
-      ['Próximas integraciones', 'Antes de activar estadísticas o campañas se actualizarán esta política y el mecanismo de consentimiento. Las funciones opcionales deberán permanecer desactivadas hasta la elección del visitante, con opciones claras para aceptar, rechazar y modificar esa elección.'],
-    ],
-    notice: 'Usamos almacenamiento necesario para la sesión del CRM. Sin cookies publicitarias ni analíticas en esta versión.',
+    cookies: [],
     details: 'Más información', dismiss: 'Entendido', home: 'Volver al inicio',
   },
   en: {
@@ -65,40 +53,20 @@ const content = {
       ['Services used', 'Records and images are stored in Supabase. The site also loads the Manrope typeface through Google Fonts. These services receive the technical data needed to serve connections. Calendar, email and social links open external services only when selected.'],
       ['Retention and your rights', 'Before launch we will specify retention periods, legal bases, recipients and any international transfers, as well as a contact for access, rectification, erasure, objection, restriction and portability requests. You may also contact the competent data protection authority.'],
     ],
-    cookies: [
-      ['How it works today', 'This version installs no audience analytics tools or advertising pixels. The CRM uses local storage to keep signed-in users authenticated. The notice below only records that it has been read in this browser.'],
-      ['Necessary storage', 'Supabase manages the session, which may remain in the browser until sign-out or data removal. The kohaus-privacy-notice-v1 key stores acknowledgement until you clear site data. In local demo mode, CRM records are also stored in this browser.'],
-      ['Your control', 'You can clear site data in your browser settings; this may sign you out of the CRM and delete local demo records. There are no optional cookies to enable in this version.'],
-      ['Future integrations', 'Before enabling statistics or campaigns, this policy and the consent mechanism will be updated. Optional features must remain disabled until the visitor chooses, with clear options to accept, reject and change that choice.'],
-    ],
-    notice: 'We use necessary storage for the CRM session. No advertising or analytics cookies in this version.',
+    cookies: [],
     details: 'Learn more', dismiss: 'Understood', home: 'Back to home',
   },
 }
 
 export function LegalPage({ page, language }) {
   const c = content[language] || content.es
+  const cookies = cookieCopy[language] || cookieCopy.es
+  const sections = page === 'cookies' ? [[cookies.necessary, cookies.necessaryText], [cookies.analytics, cookies.analyticsText], [cookies.policy, cookies.storage], [cookies.settings, cookies.control]] : page === 'privacy' ? [...c[page], [cookies.analytics, cookies.text + ' ' + cookies.control]] : c[page]
   return <main className="legal-page">
     <a href={`?lang=${language}`}>{c.home}</a>
     <p className="legal-draft">{c.draft}</p>
     <h1>{c.titles[page]}</h1>
     <p>{c.intro}</p>
-    {c[page].map(([heading, text]) => <section key={heading}><h2>{heading}</h2><p>{text}</p></section>)}
+    {sections.map(([heading, text]) => <section key={heading}><h2>{heading}</h2><p>{text}</p></section>)}
   </main>
-}
-
-export function PrivacyNotice({ language }) {
-  const c = content[language] || content.es
-  const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem('kohaus-privacy-notice-v1') === 'read' } catch { return false }
-  })
-  if (dismissed) return null
-  function dismiss() {
-    try { localStorage.setItem('kohaus-privacy-notice-v1', 'read') } catch { /* Browsing remains available when storage is blocked. */ }
-    setDismissed(true)
-  }
-  return <aside className="privacy-notice" aria-label={c.titles.cookies}>
-    <p>{c.notice} <a href={`?view=cookies&lang=${language}`}>{c.details}</a></p>
-    <button type="button" onClick={dismiss}>{c.dismiss}</button>
-  </aside>
 }

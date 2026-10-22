@@ -110,3 +110,13 @@ Fora dos testes automatizados, ausência de configuração deve falhar; nunca si
 - 2026-10-22: Gabriela informou ter executado o SQL no KOHAUS PROD. Validação remota do PROD pendente de Project URL e publishable key; ainda não confirmado por testes neste projeto. O banco local Docker não estava disponível para ensaio de instalação.
 - 2026-10-22: 66 testes passaram, build passou e integração anônima no DEV passou. Lint sem erros, com avisos existentes. Node fixado em .nvmrc para o build remoto.
 - Antes de conectar o repositório, publicar estes ajustes na branch correspondente: alterações apenas locais não chegam ao Cloudflare.
+
+## Cookies e Google Analytics
+- ID de medição: G-YZZQDVVQLX. ID público, sem chave secreta.
+- Coleta desligada por padrão. Habilitar VITE_ANALYTICS_ENABLED=true somente em Production após aprovação; Preview/local permanecem false.
+- A tag só carrega com consentimento de análise, em ambiente production e em páginas públicas. Dashboard e editor não são medidos.
+- No fluxo Web do GA4, DESATIVAR a medição otimizada automática antes de ativar: o código controla os pageviews, evitando duplicações e captura automática de formulários/URLs. Manter Google Signals e personalização publicitária desligados.
+- Esta primeira versão mede páginas por tipo e idioma; não envia nomes, mensagens, contatos, busca livre ou identificadores do CRM. Também não envia parâmetros de campanhas nem o referrer nesta versão.
+- Escolhas guardadas por 180 dias em kohaus-cookie-consent-v1. A retirada bloqueia a medição, remove cookies _ga acessíveis e recarrega para descarregar a tag. Não apaga dados anteriormente enviados ao Google.
+- Testar primeiro a interface no localhost. Para testar entrega real, usar propriedade GA4 separada de teste; não habilitar a coleta de produção no DEV.
+- Antes do lançamento, completar a identificação do responsável e revisar retenção, cookies e privacidade. Os textos legais continuam preliminares.
