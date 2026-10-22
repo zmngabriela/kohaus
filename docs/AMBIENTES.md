@@ -120,3 +120,9 @@ Fora dos testes automatizados, ausência de configuração deve falhar; nunca si
 - Escolhas guardadas por 180 dias em kohaus-cookie-consent-v1. A retirada bloqueia a medição, remove cookies _ga acessíveis e recarrega para descarregar a tag. Não apaga dados anteriormente enviados ao Google.
 - Testar primeiro a interface no localhost. Para testar entrega real, usar propriedade GA4 separada de teste; não habilitar a coleta de produção no DEV.
 - Antes do lançamento, completar a identificação do responsável e revisar retenção, cookies e privacidade. Os textos legais continuam preliminares.
+
+### Categorias do aviso
+- Necessários: sessão do CRM e escolha de consentimento.
+- Preferências e funcionalidades: opção independente `preferences`; guarda apenas o idioma em `kohaus-preferred-language`. Sem consentimento, usa URL/idioma do navegador; a recusa ou expiração detectada remove o idioma guardado. Não armazena favoritos ou buscas.
+- Análise de visitas: opção independente `analytics`, sujeita também às proteções de ambiente acima.
+- Registros antigos sem `preferences` não autorizam essa categoria. O idioma explícito da URL tem prioridade sobre o idioma lembrado.

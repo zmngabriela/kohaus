@@ -61,7 +61,7 @@ const content = {
 export function LegalPage({ page, language }) {
   const c = content[language] || content.es
   const cookies = cookieCopy[language] || cookieCopy.es
-  const sections = page === 'cookies' ? [[cookies.necessary, cookies.necessaryText], [cookies.analytics, cookies.analyticsText], [cookies.policy, cookies.storage], [cookies.settings, cookies.control]] : page === 'privacy' ? [...c[page], [cookies.analytics, cookies.text + ' ' + cookies.control]] : c[page]
+  const sections = page === 'cookies' ? [[cookies.necessary, cookies.necessaryText], [cookies.preferences, cookies.preferencesText], [cookies.analytics, cookies.analyticsText], [cookies.policy, cookies.storage], [cookies.settings, cookies.control]] : page === 'privacy' ? [...c[page], [cookies.analytics, cookies.text + ' ' + cookies.control]] : c[page]
   return <main className="legal-page">
     <a href={`?lang=${language}`}>{c.home}</a>
     <p className="legal-draft">{c.draft}</p>

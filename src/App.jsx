@@ -1,3 +1,4 @@
+import { readPreferredLanguage } from './lib/analytics'
 import EditorDialog from './components/EditorDialog'
 import CrmRecord from './components/CrmRecord'
 import { useVisibleDropdown } from './lib/useVisibleDropdown'
@@ -1829,6 +1830,8 @@ function parseRoute() {
 }
 
 function detectLanguage() {
+  const remembered = readPreferredLanguage()
+  if (LANGUAGES.includes(remembered)) return remembered
   return preferredLanguage(navigator.languages?.length ? navigator.languages : [navigator.language])
 }
 

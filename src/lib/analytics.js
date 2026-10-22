@@ -10,8 +10,8 @@ export function readConsent() {
     return value?.version === 1 && typeof value.analytics === 'boolean' && Number.isFinite(value.at) && value.at <= Date.now() && Date.now() - value.at < CONSENT_TTL ? value : null
   } catch { return null }
 }
-export function storeConsent(analytics) {
-  const value = { version: 1, analytics, at: Date.now() }
+export function storeConsent(analytics, preferences = false) {
+  const value = { version: 1, analytics, preferences, at: Date.now() }
   try { localStorage.setItem(CONSENT_KEY, JSON.stringify(value)) } catch { /* Session-only choice when storage is unavailable. */ }
   return value
 }
@@ -52,4 +52,15 @@ export function syncAnalytics(allowed, view, language, enabled = import.meta.env
     window.gtag('event', 'page_view', { page_location: page, page_referrer: '', page_title: `KOHAUS · ${view}`, send_to: MEASUREMENT_ID })
     lastPage = page
   }
+}
+
+export const LANGUAGE_KEY = 'kohaus-preferred-language'
+export function readPreferredLanguage() {
+  try { return readConsent()?.preferences === true ? localStorage.getItem(LANGUAGE_KEY) : null } catch { return null }
+}
+export function syncPreferences(allowed, language) {
+  try {
+    if (allowed && ['pt', 'es', 'en'].includes(language)) localStorage.setItem(LANGUAGE_KEY, language)
+    else localStorage.removeItem(LANGUAGE_KEY)
+  } catch { /* Storage may be unavailable. */ }
 }
