@@ -44,7 +44,7 @@ Na configuração atual são suportados projetos Supabase hospedados com URL pad
 
 Conectar somente o repositório zmngabriela/kohaus em Workers & Pages > Create application > Pages > Connect to Git (não criar um Worker). Antes do primeiro deploy, preencher Production com os dados do PROD; depois preencher Preview com DEV.
 
-Framework: React (Vite), ou configuração manual. Build: npm run build. Output: dist. Root: raiz do repositório. Node: 22.16.0 (variável NODE_VERSION nos dois ambientes; compatível com Vite 8). O Pages instala dependências usando package-lock.json; localmente usar npm ci.
+Framework: React (Vite), ou configuração manual. Build: npm run build. Output: dist. Root: raiz do repositório. Node: 22.16.0, fixado em .nvmrc (se definir NODE_VERSION no painel, usar o mesmo valor nos dois ambientes). O Pages instala dependências usando package-lock.json; localmente usar npm ci.
 
 Configurar previews apenas para dev inicialmente. Habilitar proteção de previews com Cloudflare Access para restringir o site de teste à equipe. Um endereço de preview não é privado por si só.
 
@@ -107,5 +107,6 @@ Fora dos testes automatizados, ausência de configuração deve falhar; nunca si
 ## Registro desta preparação
 - 2026-10-19: configuração migrada de Vercel para Cloudflare Pages; bloqueio por branch no build.
 - SQL de instalação único: supabase/schema.sql. Nenhum dado foi apagado ou copiado.
-- Execução real no novo Supabase PROD pendente: preencher data, Project ID, responsável e resultado após executar. O banco local Docker não estava disponível para ensaio de instalação.
+- 2026-10-22: Gabriela informou ter executado o SQL no KOHAUS PROD. Validação remota do PROD pendente de Project URL e publishable key; ainda não confirmado por testes neste projeto. O banco local Docker não estava disponível para ensaio de instalação.
+- 2026-10-22: 66 testes passaram, build passou e integração anônima no DEV passou. Lint sem erros, com avisos existentes. Node fixado em .nvmrc para o build remoto.
 - Antes de conectar o repositório, publicar estes ajustes na branch correspondente: alterações apenas locais não chegam ao Cloudflare.
