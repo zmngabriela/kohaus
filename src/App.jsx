@@ -1,3 +1,6 @@
+import PasswordRecovery from './components/PasswordRecovery'
+import PasswordSetup from './components/PasswordSetup'
+import { initialAuthCallback } from './lib/authCallback'
 import { readPreferredLanguage } from './lib/analytics'
 import EditorDialog from './components/EditorDialog'
 import CrmRecord from './components/CrmRecord'
@@ -3132,6 +3135,7 @@ function Footer({ copy, language }) {
 }
 
 function DashboardAuthGate({
+  language,
   copy,
   authLoading,
   authSession,
@@ -3143,6 +3147,7 @@ function DashboardAuthGate({
   onAuthSubmit,
   onSignOut,
 }) {
+  const [recovering, setRecovering] = useState(false)
   const signedInEmail = authSession?.user?.email ?? ''
 
   return (
@@ -3171,7 +3176,7 @@ function DashboardAuthGate({
                 {copy.nav.signOut}
               </button>
             </div>
-          ) : (
+          ) : recovering ? <PasswordRecovery language={language} client={supabase} initialEmail={authForm.email} onBack={() => setRecovering(false)} /> : (
             <form className="dashboard-auth-form" onSubmit={onAuthSubmit}>
               <label>
                 <span>{copy.auth.email}</span>
@@ -3194,9 +3199,12 @@ function DashboardAuthGate({
                 />
               </label>
               {authError ? <p className="dashboard-auth-error">{authError}</p> : null}
+              <div className="dashboard-auth-actions">
               <button type="submit" className="dashboard-auth-submit" disabled={authSubmitting}>
                 {authSubmitting ? copy.auth.loading : copy.auth.submit}
               </button>
+              <button type="button" className="outline-button" onClick={() => setRecovering(true)}>{language === 'pt' ? 'Esqueci minha senha' : language === 'en' ? 'Forgot my password' : 'Olvidé mi contraseña'}</button>
+              </div>
             </form>
           )}
         </div>
@@ -3213,6 +3221,7 @@ export default function App() {
   }, [route.view, route.destination, route.propertyId])
   const [language, setLanguage] = useState(() => parseRoute().language)
   const propertyPhotoItemsRef = useRef([])
+  const [passwordSetup, setPasswordSetup] = useState(initialAuthCallback.active)
   const requiresDashboardAuth = hasSupabaseConfig
   const [homeSearch, setHomeSearch] = useState(() => ({
     ...HOME_SEARCH_DEFAULTS,
@@ -3388,7 +3397,8 @@ export default function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordSetup(true)
       setAuthError('')
       void syncAccess(session)
     })
@@ -4236,10 +4246,16 @@ export default function App() {
         onSignOut={handleSignOut}
       />
 
+      {passwordSetup ? <PasswordSetup language={language} client={supabase} session={authSession} loading={authLoading} invalid={initialAuthCallback.invalid} onContinue={() => {
+        setPasswordSetup(false)
+        window.history.replaceState({}, '', `?view=dashboard&lang=${language}`)
+        syncRoute({ ...route, view: 'dashboard', language })
+      }} /> : <>
       {dataError || publicDataError ? <div className="database-error" role="alert">{dataError || publicDataError}</div> : null}
 
       {showDashboardAuthGate ? (
         <DashboardAuthGate
+          language={language}
           copy={copy}
           authLoading={authLoading}
           authSession={authSession}
@@ -6210,8 +6226,9 @@ export default function App() {
         </main>
       ) : null}
 
+      </>}
       <Footer copy={copy} language={language} />
-      <CookieConsent language={language} view={route.view} />
+      <CookieConsent language={language} view={passwordSetup ? 'auth' : route.view} />
     </div>
   )
 }

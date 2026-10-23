@@ -3346,3 +3346,6 @@
 
 .hero-video-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .hero-video-media video { position: absolute; inset: 0; }
+
+.dashboard-auth-actions { display:flex; align-items:stretch; gap:12px; }
+.dashboard-auth-actions > button { min-width:0; }

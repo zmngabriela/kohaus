@@ -126,3 +126,12 @@ Fora dos testes automatizados, ausência de configuração deve falhar; nunca si
 - Preferências e funcionalidades: opção independente `preferences`; guarda apenas o idioma em `kohaus-preferred-language`. Sem consentimento, usa URL/idioma do navegador; a recusa ou expiração detectada remove o idioma guardado. Não armazena favoritos ou buscas.
 - Análise de visitas: opção independente `analytics`, sujeita também às proteções de ambiente acima.
 - Registros antigos sem `preferences` não autorizam essa categoria. O idioma explícito da URL tem prioridade sobre o idioma lembrado.
+
+### Convites e definição de senha
+- Site URL de PROD: https://kohaus.pages.dev/. Convites de PROD devem voltar a esse site, nunca ao preview/localhost.
+- O frontend reconhece callbacks Supabase do tipo invite/recovery e mostra a criação de senha com confirmação. O SDK valida a sessão e `updateUser` define a senha; tokens não são armazenados por código próprio.
+- Links inválidos/expirados mostram orientação. Alterar Site URL não revalida um link já usado ou expirado: solicitar um novo convite ou link de recuperação conforme o estado do usuário.
+- Após publicar, validar com um convite novo: abrir, definir senha, sair e entrar novamente. Isso exige interação do titular; não registrar senhas nem tokens em logs/chat.
+- Recuperação: no login, “Esqueci minha senha” solicita o e-mail via Supabase e usa a mesma tela de definição ao voltar pelo link recovery. A confirmação não revela se o e-mail está cadastrado.
+- Em Authentication > URL Configuration > Redirect URLs, autorizar exatamente https://kohaus.pages.dev/?view=dashboard&lang=pt e as variantes lang=es e lang=en no PROD. No DEV autorizar as URLs equivalentes do localhost/preview, somente no projeto DEV. Sem autorização, Supabase usa Site URL como fallback.
+- Teste final: solicitar e-mail de recuperação, abrir link novo, definir senha, sair e verificar login com a nova senha. Conferir SMTP/limites se o envio falhar.
