@@ -29,8 +29,10 @@ export default function PasswordRecovery({ language, client, initialEmail = '', 
   {sent ? <p role="status">{c.sent}</p> : <>
    <label><span>{c.email}</span><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required /></label>
    {error && <p className="dashboard-auth-error" role="alert">{c.error}</p>}
-   <button className="dashboard-auth-submit" type="submit" disabled={busy}>{busy ? c.sending : c.send}</button>
   </>}
-  <button type="button" className="outline-button" onClick={onBack}>{c.back}</button>
+  <div className="dashboard-auth-actions">
+  {!sent && <button className="dashboard-auth-submit" type="submit" disabled={busy}>{busy ? c.sending : c.send}</button>}
+  <button type="button" className="outline-button" onClick={onBack} disabled={busy}>{c.back}</button>
+  </div>
  </form>
 }

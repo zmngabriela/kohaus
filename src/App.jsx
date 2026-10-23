@@ -4246,7 +4246,12 @@ export default function App() {
         onSignOut={handleSignOut}
       />
 
-      {passwordSetup ? <PasswordSetup language={language} client={supabase} session={authSession} loading={authLoading} invalid={initialAuthCallback.invalid} onContinue={() => {
+      {passwordSetup ? <PasswordSetup language={language} client={supabase} session={authSession} loading={authLoading} invalid={initialAuthCallback.invalid} onBack={async () => {
+        await handleSignOut()
+        setPasswordSetup(false)
+        window.history.replaceState({}, '', `?view=dashboard&lang=${language}`)
+        syncRoute({ ...route, view: 'dashboard', language })
+      }} onContinue={() => {
         setPasswordSetup(false)
         window.history.replaceState({}, '', `?view=dashboard&lang=${language}`)
         syncRoute({ ...route, view: 'dashboard', language })
