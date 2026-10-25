@@ -3349,3 +3349,20 @@
 
 .dashboard-auth-actions { display:flex; align-items:stretch; gap:12px; }
 .dashboard-auth-actions > button { min-width:0; }
+
+.bot-check { background:var(--paper); color:var(--ink); border:1px solid var(--line); padding:24px; max-width:calc(100vw - 32px); }
+.bot-check::backdrop { background:#0008; }
+.bot-check > button { margin-top:16px; }
+
+.property-ai { border-block: 1px solid var(--line, #d5d1c4); padding-block: 1rem; }
+.property-ai-preview { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.property-owner-row { display: flex; align-items: flex-end; gap: 1.25rem; flex-wrap: wrap; }
+.property-owner-row > label { flex: 1 1 16rem; min-width: 0; }
+.property-owner-row > button { flex: 0 0 auto; }
+.property-owner-page { padding: clamp(1.5rem, 4vw, 4rem); max-width: 1440px; margin-inline: auto; }
+
+.property-editor-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
+.property-editor-toolbar > p { margin: 0; }
+.property-editor-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 1rem; margin-inline-start: auto; }
+.property-editor-actions > button { width: auto; }

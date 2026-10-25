@@ -15,11 +15,11 @@
 4. Escolher uma região europeia próxima dos usuários e uma senha forte para o banco. Guardar a senha em um gerenciador; não enviar ao chat nem ao Git.
 5. Conferir o plano e eventuais custos apresentados antes de criar.
 6. Esperar o projeto ficar pronto. Em Authentication, nas configurações de cadastro/provedores, DESATIVAR a opção que permite novos cadastros públicos. Manter login por e-mail habilitado.
-   IMPORTANTE: o schema atual provisiona usuários Auth como administradores do CRM. Só criar contas internas autorizadas pelo painel administrativo.
+   IMPORTANTE: o schema reforçado não concede acesso ao CRM automaticamente. Criar contas internas no Auth e conceder membership explicitamente conforme docs/SEGURANCA.md.
 7. No SQL Editor do projeto NOVO, executar supabase/schema.sql inteiro. Confirmar o nome/ID do projeto antes de executar.
    Esse arquivo instala tabelas, políticas, funções e bucket. Não contém imóveis/clientes de demonstração. Cria uma configuração vazia de emissor de faturas.
 8. Em Authentication > Users, criar as contas internas autorizadas. Cada pessoa deve definir/receber sua senha por um processo seguro. As senhas e IDs do DEV não são copiados.
-9. Conferir public.dashboard_users: cada conta criada deve possuir o acesso esperado. O provisionamento atual começa em admin; revisar os papéis antes de liberar acesso.
+9. Conferir public.dashboard_users: conceder explicitamente somente o papel necessário; uma conta Auth sem membership não entra no CRM.
 10. Conferir Storage: bucket property-media. Não copiar as fotos de DEV.
 11. No diálogo Connect / Settings > API Keys, obter Project URL, publishable key (ou chave anon legada) e Project ID.
     NUNCA usar secret key, service_role ou senha do banco no frontend.
@@ -44,7 +44,7 @@ Na configuração atual são suportados projetos Supabase hospedados com URL pad
 
 Conectar somente o repositório zmngabriela/kohaus em Workers & Pages > Create application > Pages > Connect to Git (não criar um Worker). Antes do primeiro deploy, preencher Production com os dados do PROD; depois preencher Preview com DEV.
 
-Framework: React (Vite), ou configuração manual. Build: npm run build. Output: dist. Root: raiz do repositório. Node: 22.16.0, fixado em .nvmrc (se definir NODE_VERSION no painel, usar o mesmo valor nos dois ambientes). O Pages instala dependências usando package-lock.json; localmente usar npm ci.
+Framework: React (Vite), ou configuração manual. Build: npm run build. Output: dist. Root: raiz do repositório. Node: 22.23.4, fixado em .nvmrc (se definir NODE_VERSION no painel, usar o mesmo valor nos dois ambientes). O Pages instala dependências usando package-lock.json; localmente usar npm ci.
 
 Configurar previews apenas para dev inicialmente. Habilitar proteção de previews com Cloudflare Access para restringir o site de teste à equipe. Um endereço de preview não é privado por si só.
 
@@ -135,3 +135,6 @@ Fora dos testes automatizados, ausência de configuração deve falhar; nunca si
 - Recuperação: no login, “Esqueci minha senha” solicita o e-mail via Supabase e usa a mesma tela de definição ao voltar pelo link recovery. A confirmação não revela se o e-mail está cadastrado.
 - Em Authentication > URL Configuration > Redirect URLs, autorizar exatamente https://kohaus.pages.dev/?view=dashboard&lang=pt e as variantes lang=es e lang=en no PROD. No DEV autorizar as URLs equivalentes do localhost/preview, somente no projeto DEV. Sem autorização, Supabase usa Site URL como fallback.
 - Teste final: solicitar e-mail de recuperação, abrir link novo, definir senha, sair e verificar login com a nova senha. Conferir SMTP/limites se o envio falhar.
+
+## Revisão de segurança de 24/10/2026
+Antes do próximo deploy, seguir docs/SEGURANCA.md: novo gateway de formulários exige bindings/secrets, bucket privado exige frontend de URLs assinadas e migrações incrementais. Backups/alertas preparados, ainda não ativados.

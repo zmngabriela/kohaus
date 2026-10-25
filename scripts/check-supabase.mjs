@@ -2,8 +2,8 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL
 const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 if (!supabaseUrl || !publishableKey) throw new Error('Supabase integration check requires the configured URL and publishable key.')
 const headers={apikey:publishableKey,Authorization:`Bearer ${publishableKey}`}
-async function read(path){const response=await fetch(`${supabaseUrl}/rest/v1/${path}`,{headers});if(!response.ok)throw new Error(`Query failed (${response.status}): ${path}: ${await response.text()}`);return response.json()}
-const properties=await read('public_properties?select=*')
+async function read(path, privateTable=false){const response=await fetch(`${supabaseUrl}/rest/v1/${path}`,{headers,signal:AbortSignal.timeout(15000)});if(privateTable && [401,403].includes(response.status)) return [];if(!response.ok)throw new Error(`Query failed (${response.status}): ${path}`);return response.json()}
+const properties=await read('public_properties?select=*&limit=1000')
 if(!Array.isArray(properties))throw new Error('Invalid public catalogue response')
 for(const property of properties){
  if(!['active','closed'].includes(property.status))throw new Error('Unpublished status exposed in public catalogue')
@@ -13,7 +13,7 @@ for(const property of properties){
  if(['address','street','streetNumber','contactEmail','contactPhone'].some(key=>key in property.portal_data))throw new Error('Private portal field exposed')
 }
 for(const table of ['dashboard_properties?select=id,property_private(address)','property_private?select=property_id,address','dashboard_clients?select=id,language','dashboard_visits?select=id','owner_leads?select=id','dashboard_tasks?select=id','dashboard_users?select=user_id','dashboard_invoices?select=id','dashboard_invoice_settings?select=id']){
- const rows=await read(table)
+ const rows=await read(`${table}&limit=1`,true)
  if(rows.length)throw new Error(`Private CRM rows publicly readable: ${table}`)
 }
 console.log(`Supabase integration check passed: ${properties.length} published properties (${properties.filter(p=>p.status==='closed').length} closed); anonymous queries returned no private CRM rows (an empty database alone cannot prove RLS isolation).`)

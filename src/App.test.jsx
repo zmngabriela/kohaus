@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import App, { fetchPublishedProperties, saveDashboardProperty, updateDashboardProperty } from './App'
@@ -37,6 +37,19 @@ beforeEach(() => {
 })
 
 describe('KOHAUS app regressions', () => {
+  it('shows properties from custom cities when opening buy without a destination', async () => {
+    window.localStorage.setItem('kohaus-dashboard-properties-v1', JSON.stringify([...PROPERTY_FIXTURES, {...PROPERTY_FIXTURES[0],id:'hospitalet',reference:'KH0115',destination:'Hospitalet',title:'Hospitalet property'}]))
+    const {container}=renderApp('/?view=catalogo&lang=en&op=comprar')
+    await waitFor(()=>expect(getListingCards(container)).toHaveLength(3))
+    expect(screen.getByText('Hospitalet property')).toBeInTheDocument()
+  })
+  it('filters a custom city without restricting it to the original destination list', async () => {
+    window.localStorage.setItem('kohaus-dashboard-properties-v1', JSON.stringify([...PROPERTY_FIXTURES, {...PROPERTY_FIXTURES[0],id:'hospitalet',reference:'KH0115',destination:'Hospitalet',title:'Hospitalet property'}]))
+    const {container}=renderApp('/?view=catalogo&lang=en&op=comprar&dest=hospitalet')
+    await waitFor(()=>expect(getListingCards(container)).toHaveLength(1))
+    expect(screen.getByText('Hospitalet property')).toBeInTheDocument()
+  })
+
   it('shows the site footer on every page', () => {
     const routes = [
       '/?lang=en',
@@ -199,11 +212,15 @@ describe('KOHAUS app regressions', () => {
     await user.type(roomsInput, '3')
     await user.type(bathroomsInput, '2')
     await user.type(observationsInput, 'Created from the dashboard test flow.')
-    await user.click(screen.getByRole('button', { name: 'Add new property' }))
+    const propertyFormElement = screen.getAllByRole('button', { name: 'Add new property' })[0].closest('form')
+    fireEvent.submit(propertyFormElement)
+    fireEvent.submit(propertyFormElement)
+    fireEvent.submit(propertyFormElement)
 
     expect(await screen.findByText('Barcelona penthouse for investor matching')).toBeInTheDocument()
+    expect(screen.getAllByText('Barcelona penthouse for investor matching')).toHaveLength(1)
     const createdPropertyCard = screen.getByText('Barcelona penthouse for investor matching').closest('.dashboard-property-card')
-    expect(createdPropertyCard?.querySelector('.crm-record-copy > p')).toHaveTextContent(/^KH-/)
+    expect(createdPropertyCard?.querySelector('.crm-record-copy > p')).toHaveTextContent(/^KH[0-9]{4,}/)
 
     await user.click(screen.getAllByRole('button', { name: 'Edit' }).find((button) =>
       button.closest('.dashboard-property-card')?.textContent?.includes('Barcelona penthouse for investor matching'),
@@ -218,9 +235,12 @@ describe('KOHAUS app regressions', () => {
     await user.type(editTitleInput, 'Barcelona penthouse updated from dashboard')
     await user.clear(editObservationsInput)
     await user.type(editObservationsInput, 'Updated from the dashboard test flow.')
-    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[0])
 
     expect(await screen.findByText('Barcelona penthouse updated from dashboard')).toBeInTheDocument()
+    expect(await screen.findByText('Property updated successfully.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Dismiss notification' }))
+    expect(screen.queryByText('Property updated successfully.')).not.toBeInTheDocument()
     expect(screen.queryByText('Updated from the dashboard test flow.')).not.toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Edit' }).find(button => button.closest('.dashboard-property-card')?.textContent?.includes('Barcelona penthouse updated from dashboard')))
     expect(screen.getByLabelText('Notes')).toHaveValue('Updated from the dashboard test flow.')
@@ -296,7 +316,7 @@ describe('KOHAUS app regressions', () => {
     await user.click(removeButton)
 
     expect(screen.queryByRole('button', { name: 'Remove photo: living-room.jpg' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[0])
 
     await screen.findByText(propertyWithPhoto.title)
     const savedProperties = JSON.parse(window.localStorage.getItem('kohaus-dashboard-properties-v1'))
@@ -316,7 +336,7 @@ describe('KOHAUS app regressions', () => {
     await user.type(screen.getByLabelText('Bathrooms'), '1')
     await user.click(screen.getByText('Publish to portals'))
     await user.click(screen.getByRole('checkbox', { name: /Fotocasa/ }))
-    await user.click(screen.getByRole('button', { name: 'Add new property' }))
+    await user.click(screen.getAllByRole('button', { name: 'Add new property' })[0])
 
     expect(await screen.findByText('Portal-ready townhouse')).toBeInTheDocument()
 

@@ -1,0 +1,43 @@
+import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react'
+import {it,expect,vi,afterEach} from 'vitest'
+import PropertyAI from './PropertyAI'
+import {publicFacts,validateInput,validateResult,messages} from '../../supabase/functions/property-ai/core.js'
+afterEach(cleanup)
+const form={title:'Apartamento',observations:'Dois quartos.',type:'piso',destination:'barcelona',surface:'80',privateAddress:'SECRET',portalData:{contactEmail:'PRIVATE',extras:['terraza'],translations:{}}}
+it('allows only public facts and excludes notes, private address and contacts',()=>{
+ const facts=publicFacts({...form,notes:'SECRET',photos:[{url:'PRIVATE'}]})
+ expect(JSON.stringify(facts)).not.toMatch(/SECRET|PRIVATE/)
+ expect(facts.extras).toEqual(['terraza'])
+ expect(publicFacts(facts)).toEqual(facts)
+})
+it('requires source material and validates all three translation outputs',()=>{
+ expect(()=>validateInput({action:'generate',language:'pt',property:{}})).toThrow()
+ expect(()=>validateInput({action:'translate',language:'pt',title:'x',description:''})).toThrow()
+ expect(()=>validateResult({translations:{pt:{title:'x',description:'y'}}},'translate')).toThrow()
+ expect(messages({action:'generate',language:'pt',property:{}})[0].content).toContain('NUNCA trasladarlos')
+})
+it('does not save or apply automatically; applying only updates the draft',async()=>{
+ const setForm=vi.fn(),invoke=vi.fn().mockResolvedValue({data:{description:'Apartamento de 80 m².'}})
+ render(<PropertyAI form={form} setForm={setForm} language="pt" client={{functions:{invoke}}} />)
+ fireEvent.click(screen.getByText('Gerar descrição'))
+ await screen.findByText('Apartamento de 80 m².')
+ expect(setForm).not.toHaveBeenCalled()
+ expect(JSON.stringify(invoke.mock.calls)).not.toContain('SECRET')
+ fireEvent.click(screen.getByText('Aplicar ao rascunho'))
+ expect(setForm.mock.calls[0][0](form).observations).toBe('Apartamento de 80 m².')
+})
+it('preserves edits made while a suggestion was being prepared',async()=>{
+ const setForm=vi.fn(),client={functions:{invoke:vi.fn().mockResolvedValue({data:{description:'Suggestion'}})}}
+ const {rerender}=render(<PropertyAI form={form} setForm={setForm} language="pt" client={client}/> )
+ fireEvent.click(screen.getByText('Gerar descrição'));await screen.findByText('Suggestion')
+ rerender(<PropertyAI form={{...form,title:'Changed'}} setForm={setForm} language="pt" client={client}/> )
+ fireEvent.click(screen.getByText('Aplicar ao rascunho'))
+ expect(setForm).not.toHaveBeenCalled();expect(screen.getByRole('alert')).toHaveTextContent('campos foram alterados')
+})
+it('keeps originals on provider failure',async()=>{
+ const setForm=vi.fn()
+ render(<PropertyAI form={form} setForm={setForm} language="pt" client={{functions:{invoke:vi.fn().mockResolvedValue({error:{context:{status:429}}})}}}/> )
+ fireEvent.click(screen.getByText('Traduzir título e descrição'))
+ await waitFor(()=>expect(screen.getByRole('alert')).toHaveTextContent('Limite'))
+ expect(setForm).not.toHaveBeenCalled()
+})

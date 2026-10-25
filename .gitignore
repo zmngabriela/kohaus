@@ -29,3 +29,14 @@ dist-ssr
 !.env.example
 tmp/
 output/
+
+# Never commit database exports, key material or backup credentials.
+*.dump
+*.backup
+*.sql.gz
+*.age
+*.pem
+*.key
+.dev.vars
+.dev.vars.*
+backups/

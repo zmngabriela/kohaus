@@ -6,7 +6,7 @@
 -- Passo a passo e configuração de acesso: docs/AMBIENTES.md.
 -- Repeatable compatibility bootstrap; use incremental migrations after installation.
 -- Preserves existing data; ambiguous legacy prices abort the transaction.
--- Keep public Auth signups disabled: Auth users receive CRM access.
+-- Keep public Auth signups disabled. Explicit CRM membership is required.
 begin;
 
 create extension if not exists "pgcrypto";
@@ -17,36 +17,6 @@ language plpgsql
 as $$
 begin
   new.updated_at = now();
-  return new;
-end;
-$$;
-
-create or replace function public.handle_dashboard_user_signup()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.dashboard_users (user_id, email, display_name, role)
-  values (
-    new.id,
-    coalesce(new.email, ''),
-    coalesce(
-      nullif(new.raw_user_meta_data ->> 'display_name', ''),
-      nullif(new.raw_user_meta_data ->> 'name', ''),
-      split_part(coalesce(new.email, ''), '@', 1),
-      'KOHAUS Admin'
-    ),
-    'admin'
-  )
-  on conflict (user_id) do update
-  set
-    email = excluded.email,
-    display_name = excluded.display_name,
-    role = 'admin',
-    updated_at = now();
-
   return new;
 end;
 $$;
@@ -214,7 +184,7 @@ create table if not exists public.dashboard_users (
   updated_at timestamptz not null default now(),
   email text not null check (btrim(email) <> ''),
   display_name text not null default '',
-  role text not null default 'admin' check (role in ('admin', 'editor', 'viewer'))
+  role text not null default 'viewer' check (role in ('admin', 'editor', 'viewer'))
 );
 
 drop trigger if exists set_owner_leads_updated_at on public.owner_leads;
@@ -247,30 +217,9 @@ before update on public.dashboard_users
 for each row
 execute function public.set_updated_at();
 
+-- Auth identity does not grant CRM membership. Membership is assigned explicitly in SQL.
 drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-after insert on auth.users
-for each row
-execute function public.handle_dashboard_user_signup();
-
--- Provision users that existed before the signup trigger was installed.
-insert into public.dashboard_users (user_id, email, display_name, role)
-select
-  users.id,
-  coalesce(users.email, ''),
-  coalesce(
-    nullif(users.raw_user_meta_data ->> 'display_name', ''),
-    nullif(users.raw_user_meta_data ->> 'name', ''),
-    split_part(coalesce(users.email, ''), '@', 1),
-    'KOHAUS Admin'
-  ),
-  'admin'
-from auth.users as users
-on conflict (user_id) do update
-set
-  email = excluded.email,
-  display_name = excluded.display_name,
-  updated_at = now();
+drop function if exists public.handle_dashboard_user_signup();
 
 create unique index if not exists dashboard_properties_reference_unique_idx
 on public.dashboard_properties (lower(reference));
@@ -709,4 +658,179 @@ begin
  end loop;
 end $$;
 
+
+-- Security baseline (also available as incremental migration).
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_dashboard_user_signup();
+alter table public.dashboard_users alter column role set default 'viewer';
+-- No browser can grant itself membership, change roles or invoke service-only provisioning.
+revoke all on public.dashboard_users from anon, authenticated;
+grant select on public.dashboard_users to authenticated;
+
+-- Restrictive guards also protect installations with permissive legacy policies.
+do $$
+declare t text;
+begin
+ foreach t in array array['dashboard_properties','dashboard_clients','dashboard_visits','dashboard_tasks','property_private','dashboard_invoices','dashboard_invoice_settings','owner_leads'] loop
+  execute format('alter table public.%I enable row level security', t);
+  if t <> 'owner_leads' then
+   execute format('revoke all on public.%I from anon', t);
+  end if;
+  execute format('drop policy if exists "security member read" on public.%I',t);
+  execute format('create policy "security member read" on public.%I as restrictive for select to anon, authenticated using (exists(select 1 from public.dashboard_users where user_id=auth.uid()))',t);
+  execute format('drop policy if exists "security editor update" on public.%I',t);
+  execute format('create policy "security editor update" on public.%I as restrictive for update to authenticated using (exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in (''admin'',''editor''))) with check (exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in (''admin'',''editor'')))',t);
+  execute format('drop policy if exists "security editor delete" on public.%I',t);
+  execute format('create policy "security editor delete" on public.%I as restrictive for delete to authenticated using (exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in (''admin'',''editor'')))',t);
+  if t <> 'owner_leads' then
+   execute format('drop policy if exists "security editor insert" on public.%I',t);
+   execute format('create policy "security editor insert" on public.%I as restrictive for insert to authenticated with check (exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in (''admin'',''editor'')))',t);
+  end if;
+ end loop;
+end $$;
+
+-- Browser submissions are constrained even before the protected form gateway is deployed.
+drop policy if exists "security valid public lead" on public.owner_leads;
+create policy "security valid public lead" on public.owner_leads as restrictive for insert to anon, authenticated
+with check (
+ legal_accepted is true and status='nuevo'
+ and length(name) between 1 and 150 and length(surname) between 1 and 150
+ and length(email) between 3 and 254 and length(phone) between 1 and 40
+ and length(city) between 1 and 200 and length(operation) between 1 and 40
+ and length(source) between 1 and 100 and length(coalesce(address,''))<=500
+ and length(coalesce(comments,''))<=10000
+ and language in ('pt','es','en')
+);
+revoke select, update, delete on public.owner_leads from anon;
+
+-- The browser validates too; enforce upload type/size at Storage.
+update storage.buckets set file_size_limit=20971520,
+ allowed_mime_types=array['image/jpeg','image/png','image/webp'] where id='property-media';
+drop policy if exists "security media insert" on storage.objects;
+create policy "security media insert" on storage.objects as restrictive for insert to authenticated
+with check (bucket_id<>'property-media' or exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in ('admin','editor')));
+drop policy if exists "security media update" on storage.objects;
+create policy "security media update" on storage.objects as restrictive for update to authenticated
+using (bucket_id<>'property-media' or exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in ('admin','editor')))
+with check (bucket_id<>'property-media' or exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in ('admin','editor')));
+drop policy if exists "security media delete" on storage.objects;
+create policy "security media delete" on storage.objects as restrictive for delete to authenticated
+using (bucket_id<>'property-media' or exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in ('admin','editor')));
+
+alter function public.set_updated_at() set search_path = public;
+
+
+create index if not exists dashboard_properties_photos_gin on public.dashboard_properties using gin(photos jsonb_path_ops);
+create or replace function public.is_published_property_photo(object_name text)
+returns boolean language sql stable security definer set search_path = '' as $$
+ select exists(select 1 from public.dashboard_properties p
+ where p.status in ('active','closed') and not p.off_market
+ and p.photos @> jsonb_build_array(jsonb_build_object('path',object_name)))
+$$;
+revoke all on function public.is_published_property_photo(text) from public;
+grant execute on function public.is_published_property_photo(text) to anon, authenticated;
+drop policy if exists "published property media read" on storage.objects;
+create policy "published property media read" on storage.objects for select to anon, authenticated
+using (bucket_id='property-media' and public.is_published_property_photo(name));
+drop policy if exists "property media read boundary" on storage.objects;
+create policy "property media read boundary" on storage.objects as restrictive for select to authenticated
+using (bucket_id<>'property-media' or public.is_published_property_photo(name)
+ or exists(select 1 from public.dashboard_users where user_id=auth.uid()));
+drop policy if exists "anonymous media read boundary" on storage.objects;
+create policy "anonymous media read boundary" on storage.objects as restrictive for select to anon
+using (bucket_id<>'property-media' or public.is_published_property_photo(name));
+update storage.buckets set public=false where id='property-media';
+
+
+-- Public form submissions are mediated by the protected Pages Function.
+drop policy if exists "public insert owner_leads" on public.owner_leads;
+revoke insert on public.owner_leads from anon, authenticated;
+commit;
+
+-- Optional property copy assistant; authenticated editors only.
+begin;
+create table if not exists public.property_ai_usage (
+ user_id uuid primary key references auth.users(id) on delete cascade,
+ window_start timestamptz not null,
+ calls integer not null
+);
+alter table public.property_ai_usage enable row level security;
+revoke all on public.property_ai_usage from public, anon, authenticated;
+create or replace function public.consume_property_ai_quota() returns boolean
+language plpgsql security definer set search_path = '' as $$
+declare n integer;
+begin
+ if auth.uid() is null or not exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in ('admin','editor')) then
+  raise insufficient_privilege;
+ end if;
+ insert into public.property_ai_usage as u(user_id,window_start,calls)
+ values(auth.uid(),date_trunc('hour',now()),1)
+ on conflict(user_id) do update set
+ calls=case when u.window_start=date_trunc('hour',now()) then u.calls+1 else 1 end,
+ window_start=date_trunc('hour',now()) returning calls into n;
+ return n<=20;
+end $$;
+revoke all on function public.consume_property_ai_quota() from public,anon;
+grant execute on function public.consume_property_ai_quota() to authenticated;
+commit;
+
+-- DEV first. Existing references remain unchanged. No existing duplicate listing is deleted.
+begin;
+alter table public.property_private add column if not exists owner_client_id text references public.dashboard_clients(id) on delete set null;
+create sequence if not exists public.property_kh_reference_seq start with 115;
+select setval('public.property_kh_reference_seq',greatest(115,(select last_value + case when is_called then 1 else 0 end from public.property_kh_reference_seq),coalesce((select max(substring(reference from 3)::bigint)+1 from public.dashboard_properties where reference ~ '^KH[0-9]{4,}$'),115)),false);
+create or replace function public.assign_dashboard_property_identity() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare n text;
+begin
+ if new.id is null or btrim(new.id)='' then new.id:='property-'||gen_random_uuid()::text; end if;
+ if new.reference is null or btrim(new.reference)='' then
+  loop
+   n:=nextval('public.property_kh_reference_seq')::text;
+   new.reference:='KH'||lpad(n,greatest(4,length(n)),'0');
+   exit when not exists(select 1 from public.dashboard_properties where lower(reference)=lower(new.reference));
+  end loop;
+ else new.reference:=btrim(new.reference);
+ end if;
+ return new;
+end $$;
+create or replace function public.save_property_with_address(p_property jsonb, p_address text, p_id text default null)
+returns text language plpgsql security invoker set search_path = public as $$
+declare saved_id text; current_row public.dashboard_properties;
+begin
+ if p_id is null then
+  insert into public.dashboard_properties(id,title,reference,operation,destination,type,price_value,currency,
+   surface,rooms,bathrooms,status,observations,history,photos,portal_publications,portal_data,off_market)
+  values(p_property->>'id',p_property->>'title',p_property->>'reference',p_property->>'operation',p_property->>'destination',
+   p_property->>'type',(p_property->>'price_value')::numeric,p_property->>'currency',
+   (p_property->>'surface')::numeric,(p_property->>'rooms')::numeric,(p_property->>'bathrooms')::numeric,
+   p_property->>'status',coalesce(p_property->>'observations',''),coalesce(p_property->'history','[]'),
+   coalesce(p_property->'photos','[]'),coalesce(p_property->'portal_publications','[]'),coalesce(p_property->'portal_data','{}'),
+   coalesce((p_property->>'off_market')::boolean,false)) on conflict(id) do nothing returning id into saved_id;
+  if saved_id is null then
+   select id into saved_id from public.dashboard_properties where id=p_property->>'id';
+   if saved_id is null then raise exception 'Property create denied'; end if;
+   return saved_id;
+  end if;
+ else
+  select * into current_row from public.dashboard_properties where id=p_id for update;
+  if not found then raise exception 'Property not found or access denied'; end if;
+  current_row := jsonb_populate_record(current_row,p_property - 'id' - 'created_at');
+  update public.dashboard_properties set title=current_row.title,reference=current_row.reference,
+   operation=current_row.operation,destination=current_row.destination,type=current_row.type,
+   price_value=current_row.price_value,currency=current_row.currency,surface=current_row.surface,
+   rooms=current_row.rooms,bathrooms=current_row.bathrooms,status=current_row.status,
+   observations=current_row.observations,history=current_row.history,photos=current_row.photos,
+   portal_publications=current_row.portal_publications,portal_data=current_row.portal_data,off_market=current_row.off_market
+   where id=p_id returning id into saved_id;
+  if saved_id is null then raise exception 'Property update denied'; end if;
+ end if;
+ insert into public.property_private(property_id,address,owner_client_id)
+ values(saved_id,coalesce(p_address,''),nullif(p_property->>'owner_client_id',''))
+ on conflict(property_id) do update set address=excluded.address,
+ owner_client_id=case when p_property ? 'owner_client_id' then excluded.owner_client_id else property_private.owner_client_id end;
+ return saved_id;
+end $$;
+revoke all on function public.save_property_with_address(jsonb,text,text) from public;
+grant execute on function public.save_property_with_address(jsonb,text,text) to authenticated;
 commit;

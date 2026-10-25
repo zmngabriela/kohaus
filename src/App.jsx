@@ -1,3 +1,9 @@
+import PropertyEditorActions from './components/PropertyEditorActions'
+import { capitalizeCity, normalizeCity, cityKey, cityOptions } from './lib/propertyCities'
+import PropertyOwner from './components/PropertyOwner'
+import PropertyAI from './components/PropertyAI'
+import { botCheck } from './lib/botCheck'
+import { safeExternalUrl, validatePhoto, validatePhotoContent, signPropertyPhotos, photosForStorage } from './lib/mediaSecurity'
 import PasswordRecovery from './components/PasswordRecovery'
 import PasswordSetup from './components/PasswordSetup'
 import { initialAuthCallback } from './lib/authCallback'
@@ -39,7 +45,7 @@ const PROPERTY_TYPE_OPTIONS = ['piso', 'apartamento', 'atico', 'loft', 'casa', '
 
 const HOME_SEARCH_DEFAULTS = {
   operation: 'comprar',
-  destination: 'barcelona',
+  destination: 'todos',
   reference: '',
 }
 
@@ -88,6 +94,7 @@ const PROPERTY_FORM_DEFAULTS = {
   destination: 'barcelona',
   type: 'piso',
   priceLabel: '',
+  ownerClientId: '',
   privateAddress: '',
   offMarket: false,
   priceValue: '',
@@ -350,6 +357,19 @@ const COPY = {
       openPropertyEditor: 'Nuevo inmueble',
       editProperty: 'Editar',
       updateProperty: 'Guardar cambios',
+      saving: 'Guardando…',
+      propertySaved: 'Inmueble actualizado correctamente.',
+      propertyCreated: 'Inmueble guardado correctamente.',
+      propertyDeleted: 'Inmueble eliminado.',
+      clientSaved: 'Cliente actualizado correctamente.',
+      clientCreated: 'Cliente guardado correctamente.',
+      visitSaved: 'Visita actualizada correctamente.',
+      visitCreated: 'Visita guardada correctamente.',
+      portalSaved: 'Publicación actualizada correctamente.',
+      leadSaved: 'Lead actualizado correctamente.',
+      taskSaved: 'Tarea actualizada correctamente.',
+      invoiceSaved: 'Factura guardada correctamente.',
+      invoiceIssuerSaved: 'Datos del emisor guardados correctamente.',
       closeEditor: 'Cerrar',
       backToProperties: 'Volver a inmuebles',
       editorCreateEyebrow: 'Nuevo inmueble',
@@ -753,6 +773,19 @@ const COPY = {
       openPropertyEditor: 'New property',
       editProperty: 'Edit',
       updateProperty: 'Save changes',
+      saving: 'Saving…',
+      propertySaved: 'Property updated successfully.',
+      propertyCreated: 'Property saved successfully.',
+      propertyDeleted: 'Property deleted.',
+      clientSaved: 'Client updated successfully.',
+      clientCreated: 'Client saved successfully.',
+      visitSaved: 'Visit updated successfully.',
+      visitCreated: 'Visit saved successfully.',
+      portalSaved: 'Publication updated successfully.',
+      leadSaved: 'Lead updated successfully.',
+      taskSaved: 'Task updated successfully.',
+      invoiceSaved: 'Invoice saved successfully.',
+      invoiceIssuerSaved: 'Issuer details saved successfully.',
       closeEditor: 'Close',
       backToProperties: 'Back to properties',
       editorCreateEyebrow: 'New property',
@@ -1156,6 +1189,19 @@ const COPY = {
       openPropertyEditor: 'Novo imóvel',
       editProperty: 'Editar',
       updateProperty: 'Salvar alterações',
+      saving: 'Salvando…',
+      propertySaved: 'Imóvel atualizado com sucesso.',
+      propertyCreated: 'Imóvel salvo com sucesso.',
+      propertyDeleted: 'Imóvel excluído.',
+      clientSaved: 'Cliente atualizado com sucesso.',
+      clientCreated: 'Cliente salvo com sucesso.',
+      visitSaved: 'Visita atualizada com sucesso.',
+      visitCreated: 'Visita salva com sucesso.',
+      portalSaved: 'Publicação atualizada com sucesso.',
+      leadSaved: 'Lead atualizado com sucesso.',
+      taskSaved: 'Tarefa atualizada com sucesso.',
+      invoiceSaved: 'Fatura salva com sucesso.',
+      invoiceIssuerSaved: 'Dados do emissor salvos com sucesso.',
       closeEditor: 'Fechar',
       backToProperties: 'Voltar para imóveis',
       editorCreateEyebrow: 'Novo imóvel',
@@ -1450,8 +1496,11 @@ function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`
 }
 
-function createFallbackPropertyReference(propertyId) {
-  return `KH-${propertyId.replace(/^property-/, '').toUpperCase()}`
+function createFallbackPropertyReference() {
+  const existing = readLocalStorage(PROPERTIES_STORAGE_KEY)
+  const max = Math.max(114, ...existing.map(p => /^KH[0-9]{4,}$/.test(p.reference) ? Number(p.reference.slice(2)) : 0), Number(localStorage.getItem('kohaus-reference-counter') || 114))
+  localStorage.setItem('kohaus-reference-counter', String(max + 1))
+  return `KH${String(max + 1).padStart(4, '0')}`
 }
 
 function moveItem(items, fromIndex, toIndex) {
@@ -1473,7 +1522,7 @@ function normalizePortalPublication(item) {
   return {
     portalId: item?.portalId || '',
     status: item?.status || 'draft',
-    listingUrl: item?.listingUrl || '',
+    listingUrl: safeExternalUrl(item?.listingUrl),
     externalReference: item?.externalReference || '',
     notes: item?.notes || '',
     publishedAt: item?.publishedAt || '',
@@ -1539,6 +1588,7 @@ function buildPortalPublications(formState, currentPublications = []) {
 
 function mapPropertyToForm(property) {
   return {
+    ownerClientId: property.ownerClientId || '',
     privateAddress: property.privateAddress || '',
     offMarket: Boolean(property.offMarket),
     title: property.title,
@@ -1782,7 +1832,7 @@ function getDestinationMeta(slug, language) {
     },
   }
 
-  return content[slug]?.[language] ?? content.barcelona[language]
+  return content[normalizeCity(slug)]?.[language] ?? { name: capitalizeCity(slug), description: '' }
 }
 
 function getOperationLabel(operation, language) {
@@ -1948,10 +1998,9 @@ async function saveOwnerLead(payload) {
     status: 'nuevo',
   }
 
-  const { error } = await supabase.from('owner_leads').insert(insertPayload)
-  if (error) {
-    throw error
-  }
+  const token = await botCheck(insertPayload.language)
+  const response = await fetch('/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead: insertPayload, token }) })
+  if (!response.ok) throw new Error(response.status === 429 ? 'Muitas tentativas. Aguarde um minuto e tente novamente.' : 'Não foi possível enviar. Tente novamente ou entre em contato por e-mail.')
 
   // Public submissions must not require read access to the private leads table.
   return [mapLeadFromSupabase({ ...insertPayload, created_at: new Date().toISOString() })]
@@ -1977,16 +2026,22 @@ async function fetchDashboardProperties(database = supabase, databaseEnabled = h
     return getLocalDashboardProperties()
   }
 
-  const { data, error } = await database
+  let { data, error } = await database
     .from('dashboard_properties')
-    .select('*,property_private(address)')
+    .select('*,property_private(address,owner_client_id)')
     .order('created_at', { ascending: false })
 
-  if (error) {
-    throw error
+  // Keep existing records readable while the additive owner migration is pending.
+  // Do not suppress permission, network or unrelated schema errors.
+  if (error?.code === '42703' && error.message?.includes('owner_client_id')) {
+    const legacy = await database.from('dashboard_properties')
+      .select('*,property_private(address)').order('created_at', { ascending: false })
+    data = legacy.data
+    error = legacy.error
   }
+  if (error) throw error
 
-  return data.map(mapPropertyFromSupabase)
+  return signPropertyPhotos(data.map(mapPropertyFromSupabase), database, getPropertyMediaBucket())
 }
 
 function publicProperty(property) {
@@ -2009,7 +2064,7 @@ async function fetchPublishedProperties(database = supabase, databaseEnabled = h
     throw error
   }
 
-  return data.map(mapPropertyFromSupabase)
+  return signPropertyPhotos(data.map(mapPropertyFromSupabase), database, getPropertyMediaBucket())
 }
 
 async function uploadPhotos(files) {
@@ -2025,8 +2080,8 @@ async function uploadPhotos(files) {
   const uploaded = []
 
   for (const file of files) {
-    const extension = file.name.split('.').pop() || 'jpg'
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
+    const extension = await validatePhotoContent(file)
+    const path = `${crypto.randomUUID()}.${extension}`
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
       cacheControl: '3600',
       upsert: false,
@@ -2065,16 +2120,17 @@ async function resolvePropertyPhotos(photoItems) {
 }
 
 async function saveDashboardProperty(formState, orderedPhotos, database = supabase, databaseEnabled = hasSupabaseConfig) {
-  const propertyId = createId('property')
+  const propertyId = formState.requestId || createId('property')
   const nextProperty = {
     id: propertyId,
     createdAt: new Date().toISOString(),
+    ownerClientId: formState.ownerClientId || '',
     privateAddress: formState.privateAddress || '',
     offMarket: Boolean(formState.offMarket),
     title: formState.title,
     reference: formState.reference.trim(),
     operation: formState.operation,
-    destination: formState.destination,
+    destination: normalizeCity(formState.destination),
     type: formState.type,
     ...priceFields(formState.priceValue, formState.currency || 'EUR'),
     currency: formState.currency || 'EUR',
@@ -2090,7 +2146,8 @@ async function saveDashboardProperty(formState, orderedPhotos, database = supaba
   }
 
   if (!databaseEnabled || !database) {
-    nextProperty.reference ||= createFallbackPropertyReference(propertyId)
+    if (readLocalStorage(PROPERTIES_STORAGE_KEY).some(p=>p.id===propertyId)) return readLocalStorage(PROPERTIES_STORAGE_KEY)
+    nextProperty.reference ||= createFallbackPropertyReference()
     const next = [nextProperty, ...readLocalStorage(PROPERTIES_STORAGE_KEY)]
     writeLocalStorage(PROPERTIES_STORAGE_KEY, next)
     return next
@@ -2098,6 +2155,7 @@ async function saveDashboardProperty(formState, orderedPhotos, database = supaba
 
   const insertPayload = {
     id: propertyId,
+    owner_client_id: nextProperty.ownerClientId,
     off_market: nextProperty.offMarket,
     title: nextProperty.title,
     operation: nextProperty.operation,
@@ -2111,7 +2169,7 @@ async function saveDashboardProperty(formState, orderedPhotos, database = supaba
     status: nextProperty.status,
     observations: nextProperty.observations,
     history: nextProperty.history,
-    photos: nextProperty.photos,
+    photos: photosForStorage(nextProperty.photos, database, getPropertyMediaBucket()),
     portal_publications: nextProperty.portalPublications,
     portal_data: nextProperty.portalData,
   }
@@ -2178,7 +2236,7 @@ async function updateDashboardProperty(id, patch, database = supabase, databaseE
     supabasePatch.history = patch.history
   }
   if (patch.photos !== undefined) {
-    supabasePatch.photos = patch.photos
+    supabasePatch.photos = photosForStorage(patch.photos, database, getPropertyMediaBucket())
   }
   if (patch.portalPublications !== undefined) {
     supabasePatch.portal_publications = patch.portalPublications
@@ -2187,6 +2245,7 @@ async function updateDashboardProperty(id, patch, database = supabase, databaseE
     supabasePatch.portal_data = patch.portalData
   }
 
+  if (patch.ownerClientId !== undefined) supabasePatch.owner_client_id = patch.ownerClientId
   const { error } = patch.privateAddress !== undefined
     ? await database.rpc('save_property_with_address', { p_id: id, p_property: supabasePatch, p_address: patch.privateAddress })
     : await database.from('dashboard_properties').update(supabasePatch).eq('id', id)
@@ -2210,7 +2269,7 @@ async function fetchDashboardClients() {
 
 async function saveDashboardClient(formState) {
   const nextClient = {
-    id: createId('client'),
+    id: formState.requestId || createId('client'),
     createdAt: new Date().toISOString(),
     language: formState.language || 'es',
     name: formState.name,
@@ -2233,6 +2292,7 @@ async function saveDashboardClient(formState) {
   }
 
   if (!hasSupabaseConfig || !supabase) {
+    if (readLocalStorage(CLIENTS_STORAGE_KEY).some(c=>c.id===nextClient.id)) return readLocalStorage(CLIENTS_STORAGE_KEY)
     const next = [nextClient, ...readLocalStorage(CLIENTS_STORAGE_KEY)]
     writeLocalStorage(CLIENTS_STORAGE_KEY, next)
     return next
@@ -2261,6 +2321,10 @@ async function saveDashboardClient(formState) {
   })
 
   if (error) {
+    if (formState.requestId && error.code === '23505') {
+      const existing = await fetchDashboardClients()
+      if(existing.some(c=>c.id===nextClient.id)) return existing
+    }
     throw error
   }
 
@@ -2470,6 +2534,7 @@ function mapLeadFromSupabase(row) {
 
 function mapPropertyFromSupabase(row) {
   return {
+    ownerClientId: row.property_private?.owner_client_id || '',
     privateAddress: row.property_private?.address || '',
     offMarket: Boolean(row.off_market),
     id: row.id,
@@ -2554,7 +2619,7 @@ function fileToLocalPhoto(file) {
 function filterCatalogProperties(properties, filters) {
   return properties
     .filter((property) => filters.operation === 'all' || property.operation === filters.operation)
-    .filter((property) => filters.destination === 'todos' || property.destination === filters.destination)
+    .filter((property) => filters.destination === 'todos' || cityKey(property.destination) === cityKey(filters.destination))
     .filter((property) => {
       if (!filters.reference) {
         return true
@@ -2629,7 +2694,7 @@ function sortCatalogProperties(left, right, order) {
 function filterDashboardProperties(properties, filters) {
   return properties.filter((property) => {
     const matchesOperation = filters.operation === 'all' || property.operation === filters.operation
-    const matchesDestination = filters.destination === 'all' || property.destination === filters.destination
+    const matchesDestination = filters.destination === 'all' || cityKey(property.destination) === cityKey(filters.destination)
     const matchesStatus = filters.status === 'all' || property.status === filters.status
     const search = filters.search.trim().toLowerCase()
     const matchesSearch =
@@ -2739,6 +2804,7 @@ function CustomSelect({
   className = '',
   ariaLabel,
   light = false,
+  disabled = false,
   triggerClassName = '',
   menuClassName = '',
   optionClassName = '',
@@ -2770,6 +2836,7 @@ function CustomSelect({
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
+        disabled={disabled}
         onClick={() => setOpen((current) => !current)}
       >
         {leadingIcon}
@@ -2782,6 +2849,7 @@ function CustomSelect({
               key={option.value}
               type="button"
               className={`custom-select-option ${optionClassName} ${option.value === value ? 'is-active' : ''}`.trim()}
+              disabled={disabled}
               onClick={() => {
                 onChange(option.value)
                 setOpen(false)
@@ -3249,6 +3317,10 @@ export default function App() {
   const [dashboardClients, setDashboardClients] = useState([])
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(true)
   const [dashboardVisits, setDashboardVisits] = useState([])
+  const propertySaveLock = useRef(false)
+  const propertyRequestId = useRef(null)
+  const [propertySaving, setPropertySaving] = useState(false)
+  const [dashboardNotice, setDashboardNotice] = useState('')
   const [propertyForm, setPropertyForm] = useState(PROPERTY_FORM_DEFAULTS)
   const [propertyPhotoItems, setPropertyPhotoItems] = useState([])
   const [propertyFilters, setPropertyFilters] = useState(PROPERTY_FILTER_DEFAULTS)
@@ -3256,7 +3328,16 @@ export default function App() {
   const [clientForm, setClientForm] = useState(CLIENT_FORM_DEFAULTS)
   const [clientFilters, setClientFilters] = useState(CLIENT_FILTER_DEFAULTS)
   const [visitForm, setVisitForm] = useState(VISIT_FORM_DEFAULTS)
+  const [visitSaving, setVisitSaving] = useState(false)
+  const visitSaveLock = useRef(false)
+  const [portalSavingId, setPortalSavingId] = useState('')
+  const [leadSavingId, setLeadSavingId] = useState('')
   const [visitFilters, setVisitFilters] = useState(VISIT_FILTER_DEFAULTS)
+  const [creatingPropertyOwner, setCreatingPropertyOwner] = useState(false)
+  const ownerFlowRef = useRef(false)
+  useEffect(()=>{ownerFlowRef.current=creatingPropertyOwner},[creatingPropertyOwner])
+  const clientSaveLock = useRef(false)
+  const [clientSaving, setClientSaving] = useState(false)
   const [clientEditor, setClientEditor] = useState(CLIENT_EDITOR_DEFAULT)
   const [propertyEditor, setPropertyEditor] = useState(PROPERTY_EDITOR_DEFAULT)
   const [visitEditorId, setVisitEditorId] = useState(null)
@@ -3499,7 +3580,7 @@ export default function App() {
     }
 
     function handleKeydown(event) {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !ownerFlowRef.current && !propertySaveLock.current) {
         closePropertyEditor()
       }
     }
@@ -3599,10 +3680,7 @@ export default function App() {
     value,
     label,
   }))
-  const destinationOptions = DESTINATIONS.map((destination) => ({
-    value: destination.slug,
-    label: getDestinationMeta(destination.slug, language).name,
-  }))
+  const destinationOptions = cityOptions(route.view === 'dashboard' ? dashboardProperties : publishedProperties.filter(property => belongsInCatalog(property, route.view === 'off-market') && ((route.view === 'home' ? homeSearch.operation : catalogFilters.operation) === 'all' || property.operation === (route.view === 'home' ? homeSearch.operation : catalogFilters.operation))), value => getDestinationMeta(value, language).name)
   const visitStatusOptions = Object.entries(copy.dashboard.visitStatusOptions).map(([value, label]) => ({
     value,
     label,
@@ -3663,6 +3741,14 @@ export default function App() {
       .sort(closedListingsLast)
       .slice(0, 2)
   : []
+  useEffect(() => {
+    if (!supabase) return undefined
+    const timer = setInterval(() => {
+      void fetchPublishedProperties().then(setPublishedProperties).catch(() => {})
+      if (authAccess) void fetchDashboardProperties().then(setDashboardProperties).catch(() => {})
+    }, 30 * 60 * 1000)
+    return () => clearInterval(timer)
+  }, [authAccess])
   const canOpenDashboard = !requiresDashboardAuth || Boolean(authAccess)
   const isDashboardRoute = route.view === 'dashboard' || route.view === 'property-editor'
   const showDashboardAuthGate = isDashboardRoute && requiresDashboardAuth && !canOpenDashboard
@@ -3692,7 +3778,7 @@ export default function App() {
     })
   }
 
-  function goCatalog(operation, destination = 'todos', reference = '') {
+  function goCatalog(operation, destination = 'todos', reference = '', preserveFilters = false) {
     setHomeSearch((current) => ({
       ...current,
       operation,
@@ -3700,7 +3786,7 @@ export default function App() {
       reference,
     }))
     setCatalogFilters((current) => ({
-      ...current,
+      ...(preserveFilters ? current : CATALOG_FILTER_DEFAULTS),
       operation,
       destination,
       reference,
@@ -3868,12 +3954,44 @@ export default function App() {
   }
 
   async function handleLeadStatusChange(id, status) {
-    const next = await updateLeadStatus(id, status)
-    setLeads(next)
+    setLeadSavingId(id)
+    setDashboardNotice('')
+    try {
+      const next = await updateLeadStatus(id, status)
+      setLeads(next)
+      setDashboardNotice(copy.dashboard.leadSaved)
+      setDataError('')
+    } catch (error) {
+      console.error(error)
+      setDataError(error.message || 'Não foi possível atualizar o lead.')
+    } finally {
+      setLeadSavingId('')
+    }
+  }
+
+  async function handleDeleteProperty() {
+    if (propertySaveLock.current) return
+    if (!window.confirm(language === 'pt' ? 'Excluir este imóvel definitivamente? As visitas e tarefas serão mantidas sem o vínculo. As fotos não serão apagadas do armazenamento.' : language === 'es' ? '¿Eliminar este inmueble definitivamente? Las visitas y tareas se conservarán sin vínculo. Las fotos permanecerán en almacenamiento.' : 'Permanently delete this property? Viewings and tasks will remain unlinked. Stored photos will be retained.')) return
+    setDashboardNotice('')
+    propertySaveLock.current=true;setPropertySaving(true)
+    try {
+      if (hasSupabaseConfig && supabase) {
+        const {data,error}=await supabase.from('dashboard_properties').delete().eq('id',propertyEditor.propertyId).select('id')
+        if(error || !data?.length)throw error || new Error('Não foi possível excluir o imóvel.')
+      } else writeLocalStorage(PROPERTIES_STORAGE_KEY,dashboardProperties.filter(p=>p.id!==propertyEditor.propertyId))
+      const next=dashboardProperties.filter(p=>p.id!==propertyEditor.propertyId)
+      setDashboardProperties(next);setPublishedProperties(next.filter(isPublishedListing).map(publicProperty));setDataError('');closePropertyEditor()
+      setDashboardNotice(copy.dashboard.propertyDeleted)
+    } catch(error){setDataError(error.message)} finally{propertySaveLock.current=false;setPropertySaving(false)}
   }
 
   async function handlePropertySubmit(event) {
     event.preventDefault()
+    if (propertySaveLock.current) return
+    propertySaveLock.current = true
+    setPropertySaving(true)
+    setDashboardNotice('')
+    setDataError('')
     try {
       const orderedPhotos = propertyForm.offMarket ? propertyPhotoItems.filter(item => item.source === 'existing').map(item => item.photo) : await resolvePropertyPhotos(propertyPhotoItems)
       const currentProperty = propertyEditor.propertyId
@@ -3885,28 +4003,34 @@ export default function App() {
       if (propertyEditor.mode === 'edit' && propertyEditor.propertyId) {
         const nextHistory = [createHistoryEntry('Property updated from dashboard editor.'), ...(currentProperty?.history || [])]
         next = await updateDashboardProperty(propertyEditor.propertyId, {
-          privateAddress: propertyForm.privateAddress, offMarket: propertyForm.offMarket, title: propertyForm.title, operation: propertyForm.operation,
-          destination: propertyForm.destination, type: propertyForm.type, ...priceFields(propertyForm.priceValue, propertyForm.currency), currency: propertyForm.currency, surface: Number(propertyForm.surface || 0),
+          ownerClientId: propertyForm.ownerClientId, privateAddress: propertyForm.privateAddress, offMarket: propertyForm.offMarket, title: propertyForm.title, operation: propertyForm.operation,
+          destination: normalizeCity(propertyForm.destination), type: propertyForm.type, ...priceFields(propertyForm.priceValue, propertyForm.currency), currency: propertyForm.currency, surface: Number(propertyForm.surface || 0),
           rooms: Number(propertyForm.rooms || 0), bathrooms: Number(propertyForm.bathrooms || 0), status: propertyForm.status,
           observations: propertyForm.observations, portalData: propertyForm.portalData,
           history: nextHistory, photos: orderedPhotos, portalPublications,
         })
       } else {
-        next = await saveDashboardProperty(propertyForm, orderedPhotos)
+        propertyRequestId.current ||= createId('property')
+        next = await saveDashboardProperty({ ...propertyForm, requestId: propertyRequestId.current }, orderedPhotos)
       }
 
       setDashboardProperties(next)
       setPublishedProperties(next.filter(isPublishedListing).map(publicProperty))
       setDataError('')
       closePropertyEditor()
+      setDashboardNotice(propertyEditor.mode === 'edit' ? copy.dashboard.propertySaved : copy.dashboard.propertyCreated)
     } catch (error) {
       console.error(error)
       setDataError(error.message || 'Não foi possível salvar o imóvel no banco de dados.')
-    }
+    } finally { propertySaveLock.current = false; setPropertySaving(false) }
   }
 
   async function handleClientSubmit(event) {
     event.preventDefault()
+    if (clientSaveLock.current) return
+    clientSaveLock.current = true
+    setClientSaving(true)
+    setDashboardNotice('')
     try {
       let next
       if (clientEditor.mode === 'edit' && clientEditor.clientId) {
@@ -3925,17 +4049,26 @@ export default function App() {
       }
 
       setDashboardClients(next)
+      if (creatingPropertyOwner) {
+        setPropertyForm(current=>({...current,ownerClientId:clientForm.requestId}))
+        setCreatingPropertyOwner(false)
+      }
       setClientForm(CLIENT_FORM_DEFAULTS)
       setClientEditor(CLIENT_EDITOR_DEFAULT)
       setDataError('')
+      setDashboardNotice(clientEditor.mode === 'edit' ? copy.dashboard.clientSaved : copy.dashboard.clientCreated)
     } catch (error) {
       console.error(error)
       setDataError(error.message || 'Não foi possível salvar o cliente no banco de dados.')
-    }
+    } finally { clientSaveLock.current=false;setClientSaving(false) }
   }
 
   async function handleVisitSubmit(event) {
     event.preventDefault()
+    if (visitSaveLock.current) return
+    visitSaveLock.current = true
+    setVisitSaving(true)
+    setDashboardNotice('')
     try {
       let next
       if (visitEditorId) {
@@ -3960,10 +4093,14 @@ export default function App() {
       setVisitEditorOpen(false)
       setVisitEditorId(null)
       setDataError('')
+      setDashboardNotice(visitEditorId ? copy.dashboard.visitSaved : copy.dashboard.visitCreated)
       goDashboard('visits')
     } catch (error) {
       console.error(error)
       setDataError(error.message || 'Não foi possível salvar a visita no banco de dados.')
+    } finally {
+      visitSaveLock.current = false
+      setVisitSaving(false)
     }
   }
 
@@ -4101,6 +4238,8 @@ export default function App() {
   }
 
   function closeClientEditor() {
+    if(clientSaveLock.current)return
+    setCreatingPropertyOwner(false)
     setClientForm(CLIENT_FORM_DEFAULTS)
     setClientEditor(CLIENT_EDITOR_DEFAULT)
   }
@@ -4124,6 +4263,8 @@ export default function App() {
   }
 
   function openCreatePropertyEditor() {
+    propertyRequestId.current = null
+    setDashboardNotice('')
     setPropertyForm(PROPERTY_FORM_DEFAULTS)
     revokeEditorItemUrls(propertyPhotoItems)
     setPropertyPhotoItems([])
@@ -4155,6 +4296,7 @@ export default function App() {
       return
     }
 
+    try { nextFiles.forEach(validatePhoto) } catch (error) { setDataError(error.message); event.target.value = ''; return }
     setPropertyPhotoItems((current) => [...current, ...createEditorItemsFromFiles(nextFiles)])
     event.target.value = ''
   }
@@ -4213,11 +4355,23 @@ export default function App() {
 
   async function handlePortalSave(property, portalId) {
     const definition = getPortalDefinition(portalId)
-    const next = await updateDashboardProperty(property.id, {
-      portalPublications: property.portalPublications || [],
-      history: [createHistoryEntry(`Portal ${definition?.name || portalId} details updated.`), ...property.history],
-    })
-    setDashboardProperties(next)
+    const savingId = `${property.id}:${portalId}`
+    setPortalSavingId(savingId)
+    setDashboardNotice('')
+    try {
+      const next = await updateDashboardProperty(property.id, {
+        portalPublications: property.portalPublications || [],
+        history: [createHistoryEntry(`Portal ${definition?.name || portalId} details updated.`), ...property.history],
+      })
+      setDashboardProperties(next)
+      setDataError('')
+      setDashboardNotice(copy.dashboard.portalSaved)
+    } catch (error) {
+      console.error(error)
+      setDataError(error.message || 'Não foi possível atualizar a publicação.')
+    } finally {
+      setPortalSavingId('')
+    }
   }
 
   async function copyToClipboard(value) {
@@ -4256,6 +4410,10 @@ export default function App() {
         window.history.replaceState({}, '', `?view=dashboard&lang=${language}`)
         syncRoute({ ...route, view: 'dashboard', language })
       }} /> : <>
+      {dashboardNotice && isDashboardRoute && <aside className="privacy-notice dashboard-notice" role="status" aria-live="polite">
+        <span>{dashboardNotice}</span>
+        <button type="button" className="dashboard-notice-close" aria-label={language === 'pt' ? 'Fechar aviso' : language === 'es' ? 'Cerrar aviso' : 'Dismiss notification'} onClick={() => setDashboardNotice('')}><span aria-hidden="true">×</span></button>
+      </aside>}
       {dataError || publicDataError ? <div className="database-error" role="alert">{dataError || publicDataError}</div> : null}
 
       {showDashboardAuthGate ? (
@@ -4408,6 +4566,7 @@ export default function App() {
                             options={leadStatusOptions}
                             className="dashboard-status-select"
                             ariaLabel={copy.dashboard.columns.status}
+                            disabled={Boolean(leadSavingId)}
                             light
                           />
                         </div>
@@ -4715,8 +4874,8 @@ export default function App() {
                                   </div>
 
                                   <div className="dashboard-portal-footer">
-                                    <button type="button" className="dashboard-property-submit" onClick={() => handlePortalSave(liveProperty, publication.portalId)}>
-                                      {copy.dashboard.savePortal}
+                                    <button type="button" className="dashboard-property-submit" disabled={Boolean(portalSavingId)} onClick={() => handlePortalSave(liveProperty, publication.portalId)}>
+                                      {portalSavingId === `${property.id}:${publication.portalId}` ? copy.dashboard.saving : copy.dashboard.savePortal}
                                     </button>
                                   </div>
                                 </section>
@@ -4737,11 +4896,11 @@ export default function App() {
               </section>
             ) : null}
 
-            {dashboardSection === 'invoices' ? <Suspense fallback={<p>…</p>}><Invoices clients={dashboardClients} properties={dashboardProperties} language={language} /></Suspense> : null}
+            {dashboardSection === 'invoices' ? <Suspense fallback={<p>…</p>}><Invoices clients={dashboardClients} properties={dashboardProperties} language={language} onSaving={() => setDashboardNotice('')} onSaved={(kind) => setDashboardNotice(kind === 'issuer' ? copy.dashboard.invoiceIssuerSaved : copy.dashboard.invoiceSaved)} /></Suspense> : null}
 
             {dashboardSection === 'opportunities' ? <Opportunities clients={dashboardClients} properties={dashboardProperties} language={language} copy={copy} onClient={openClientEditor} onProperty={goProperty} loading={opportunitiesLoading} error={dataError} /> : null}
 
-            {dashboardSection === 'tasks' ? <Tasks language={language} clients={dashboardClients} leads={leads} properties={dashboardProperties} /> : null}
+            {dashboardSection === 'tasks' ? <Tasks language={language} clients={dashboardClients} leads={leads} properties={dashboardProperties} onSaving={() => setDashboardNotice('')} onSaved={() => setDashboardNotice(copy.dashboard.taskSaved)} /> : null}
 
             {dashboardSection === 'visits' ? (
               <section className="dashboard-visits-section dashboard-section">
@@ -4857,8 +5016,8 @@ export default function App() {
                     />
                   </label>
                   <div className="dashboard-editor-actions dashboard-property-form-full">
-                    <button type="submit" className="dashboard-property-submit">
-                      {visitEditorId ? copy.dashboard.updateVisit : copy.dashboard.addVisit}
+                    <button type="submit" className="dashboard-property-submit" disabled={visitSaving}>
+                      {visitSaving ? copy.dashboard.saving : visitEditorId ? copy.dashboard.updateVisit : copy.dashboard.addVisit}
                     </button>
                   </div>
                 </form>
@@ -5007,7 +5166,7 @@ export default function App() {
         </main>
       ) : null}
 
-      {route.view === 'property-editor' && canOpenDashboard && propertyEditor.isOpen ? (
+      {route.view === 'property-editor' && canOpenDashboard && propertyEditor.isOpen && !creatingPropertyOwner ? (
         <main className="dashboard-page">
           <section className="dashboard-shell">
             <div className="dashboard-editor-page-head">
@@ -5021,12 +5180,17 @@ export default function App() {
                   </>
                 )}
               </div>
-              <button type="button" className="dashboard-editor-secondary" onClick={closePropertyEditor}>
+              <button type="button" className="dashboard-editor-secondary" disabled={propertySaving} onClick={closePropertyEditor}>
                 {copy.dashboard.backToProperties}
               </button>
             </div>
 
             <form className="dashboard-property-form dashboard-property-editor-page" onSubmit={handlePropertySubmit}>
+              <div className="property-editor-toolbar dashboard-property-form-full">
+                <p>{propertyForm.reference || (language === 'pt' ? 'Referência automática: KH0115 em diante.' : language === 'es' ? 'Referencia automática: desde KH0115.' : 'Automatic reference: KH0115 onwards.')}</p>
+                <PropertyEditorActions editing={propertyEditor.mode === 'edit'} busy={propertySaving} language={language} saveLabel={propertyEditor.mode === 'edit' ? copy.dashboard.updateProperty : copy.dashboard.addProperty} savingLabel={copy.dashboard.saving} onDelete={handleDeleteProperty} />
+              </div>
+              <PropertyOwner Select={CustomSelect} value={propertyForm.ownerClientId} clients={dashboardClients} language={language} onChange={ownerClientId=>setPropertyForm(current=>({...current,ownerClientId}))} onCreate={()=>{setClientForm({...CLIENT_FORM_DEFAULTS,language,requestId:createId('client')});setClientEditor({isOpen:true,mode:'create',clientId:null});setCreatingPropertyOwner(true);window.scrollTo(0,0)}} />
               <label>
                 <span>{copy.dashboard.propertyFields.title}</span>
                 <input
@@ -5052,14 +5216,7 @@ export default function App() {
               </label>
               <label>
                 <span>{copy.dashboard.propertyFields.destination}</span>
-                <CustomSelect
-                  value={propertyForm.destination}
-                  onChange={(value) => setPropertyForm((current) => ({ ...current, destination: value }))}
-                  options={destinationOptions}
-                  className="dashboard-form-select"
-                  ariaLabel={copy.dashboard.propertyFields.destination}
-                  light
-                />
+                <input required value={capitalizeCity(propertyForm.destination)} onChange={event => setPropertyForm(current => ({...current,destination:capitalizeCity(event.target.value)}))} />
               </label>
               <label>
                 <span>{copy.dashboard.propertyFields.type}</span>
@@ -5138,6 +5295,7 @@ export default function App() {
                   onChange={(event) => setPropertyForm((current) => ({ ...current, observations: event.target.value }))}
                 />
               </label>
+              <PropertyAI key={`${propertyEditor.mode}:${propertyEditor.propertyId}`} form={propertyForm} setForm={setPropertyForm} language={language} />
               <div className="dashboard-property-form-full">
                 <p>{language === 'pt' ? 'Traduções do anúncio' : language === 'es' ? 'Traducciones del anuncio' : 'Listing translations'}</p>
                 <p className="dashboard-property-help">{language === 'pt' ? 'Campos opcionais. Quando vazios, o site usa o título e a descrição originais acima.' : language === 'es' ? 'Campos opcionales. Si están vacíos, se utiliza el título y la descripción originales.' : 'Optional fields. Empty fields use the original title and description above.'}</p>
@@ -5152,7 +5310,7 @@ export default function App() {
               </div>)}
               <label className="dashboard-property-form-full">
                 <span>{copy.dashboard.propertyFields.photos}</span>
-                <input type="file" accept="image/*" multiple disabled={propertyForm.offMarket} onChange={handlePropertyPhotoFilesChange} />
+                <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={propertyForm.offMarket} onChange={handlePropertyPhotoFilesChange} />
                 {propertyForm.offMarket && <small>{language === 'pt' ? 'Off-market usa apenas a imagem ilustrativa no site.' : language === 'es' ? 'Off-market utiliza solo la imagen ilustrativa en la web.' : 'Off-market uses only the illustrative image on the website.'}</small>}
                 <small className="dashboard-property-help">{copy.dashboard.photoHelp}</small>
               </label>
@@ -5288,23 +5446,16 @@ export default function App() {
                   ))}
                 </div>
               </details>
-              <div className="dashboard-editor-actions dashboard-property-form-full">
-                <button type="button" className="dashboard-editor-secondary" onClick={closePropertyEditor}>
-                  {copy.dashboard.closeEditor}
-                </button>
-                <button type="submit" className="dashboard-property-submit">
-                  {propertyEditor.mode === 'edit' ? copy.dashboard.updateProperty : copy.dashboard.addProperty}
-                </button>
-              </div>
+              <div className="dashboard-property-form-full"><PropertyEditorActions editing={propertyEditor.mode === 'edit'} busy={propertySaving} language={language} saveLabel={propertyEditor.mode === 'edit' ? copy.dashboard.updateProperty : copy.dashboard.addProperty} savingLabel={copy.dashboard.saving} onDelete={handleDeleteProperty} /></div>
             </form>
           </section>
         </main>
       ) : null}
 
-      {route.view === 'dashboard' && canOpenDashboard && ['clients', 'opportunities', 'leads'].includes(dashboardSection) && clientEditor.isOpen ? (
-        <div className="dashboard-editor-overlay" role="dialog" aria-modal="true" aria-label={copy.dashboard.editClient}>
-          <div className="dashboard-editor-backdrop" onClick={closeClientEditor} />
-          <section className="dashboard-editor-sheet">
+      {canOpenDashboard && clientEditor.isOpen && ((route.view === 'dashboard' && ['clients', 'opportunities', 'leads'].includes(dashboardSection)) || (route.view === 'property-editor' && creatingPropertyOwner)) ? (
+        <div className={creatingPropertyOwner ? 'property-owner-page' : 'dashboard-editor-overlay'} role={creatingPropertyOwner ? undefined : 'dialog'} aria-modal={creatingPropertyOwner ? undefined : true} aria-label={copy.dashboard.editClient}>
+          {!creatingPropertyOwner && <div className="dashboard-editor-backdrop" onClick={closeClientEditor} />}
+          <section className={creatingPropertyOwner ? 'dashboard-property-editor-page' : 'dashboard-editor-sheet'}>
             <div className="dashboard-editor-head">
               <div>
                 <p className="section-label dashboard-label">
@@ -5450,8 +5601,8 @@ export default function App() {
                 />
               </label>
               <div className="dashboard-editor-actions dashboard-property-form-full">
-                <button type="submit" className="dashboard-property-submit">
-                  {clientEditor.mode === 'edit' ? copy.dashboard.updateClient : copy.dashboard.addClient}
+                <button type="submit" className="dashboard-property-submit" disabled={clientSaving}>
+                  {clientSaving ? copy.dashboard.saving : clientEditor.mode === 'edit' ? copy.dashboard.updateClient : copy.dashboard.addClient}
                 </button>
               </div>
             </form>
@@ -5472,7 +5623,7 @@ export default function App() {
               onSubmit={(event) => {
                 event.preventDefault()
                 if (route.view === 'off-market') syncRoute({ ...route, ...catalogFilters })
-                else goCatalog(catalogFilters.operation, catalogFilters.destination, catalogFilters.reference)
+                else goCatalog(catalogFilters.operation, catalogFilters.destination, catalogFilters.reference, true)
               }}
             >
               <label className="catalog-search-field">
@@ -6110,7 +6261,7 @@ export default function App() {
                   <CustomSelect
                     value={homeSearch.destination}
                     onChange={(value) => setHomeSearch((current) => ({ ...current, destination: value }))}
-                    options={destinationOptions}
+                    options={[{value:'todos',label:copy.catalog.all},...destinationOptions]}
                     className="hero-custom-select"
                     ariaLabel={copy.home.destination}
                     light

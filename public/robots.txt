@@ -1,0 +1,13 @@
+# Courtesy rules for compliant crawlers. NOT access control or protection against malicious bots.
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: Bytespider
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: *
+Disallow: /?view=dashboard
+Disallow: /?view=property-editor
+Disallow: /api/

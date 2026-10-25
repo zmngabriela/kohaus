@@ -1,0 +1,49 @@
+name: Encrypted daily backup
+on:
+  schedule:
+    - cron: '37 3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kohaus-backup
+  cancel-in-progress: false
+jobs:
+  backup:
+    # Disabled until the owner chooses an independent destination and validates restoration.
+    if: vars.KOHAUS_BACKUP_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: backup
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install backup tools
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client age rclone
+      - name: Configure provider CA
+        env:
+          DATABASE_CA: ${{ secrets.DATABASE_CA }}
+        run: |
+          umask 077
+          printf '%s' "$DATABASE_CA" > "$RUNNER_TEMP/database-ca.crt"
+      - name: Back up encrypted database, site history and Storage
+        env:
+          PGHOST: ${{ secrets.PGHOST }}
+          PGPORT: ${{ secrets.PGPORT }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGSSLROOTCERT: ${{ runner.temp }}/database-ca.crt
+          AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
+          RCLONE_CONFIG_TEXT: ${{ secrets.RCLONE_CONFIG_TEXT }}
+        run: scripts/security/backup.sh
+      - name: Notify backup failure
+        if: failure()
+        env:
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: python3 scripts/security/notify-failure.py

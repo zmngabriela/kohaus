@@ -13,6 +13,8 @@
  font-size:.8rem; line-height:1.7;
 }
 .privacy-notice > strong { font-size:.95rem; line-height:1.4; }
+.dashboard-notice { left:auto; right:24px; padding-right:56px; }
+.dashboard-notice-close { position:absolute; top:10px; right:10px; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:0; background:transparent; color:inherit; font:inherit; font-size:1.35rem; line-height:1; cursor:pointer; }
 .privacy-notice p { margin:0; font-size:inherit; line-height:inherit; color:inherit; }
 .privacy-notice a { white-space:normal; }
 .cookie-actions { display:flex; flex-wrap:wrap; gap:10px; }
@@ -23,5 +25,7 @@
 .cookie-preferences label { display:flex; align-items:center; gap:10px; min-height:32px; cursor:pointer; }
 .cookie-preferences input { width:16px; height:16px; flex:0 0 16px; margin:0; accent-color:#242424; }
 .privacy-notice button:focus-visible, .privacy-notice a:focus-visible, .cookie-settings-footer button:focus-visible { outline:2px solid currentColor; outline-offset:4px; }
-@media(max-width:480px) { .privacy-notice { left:12px; bottom:12px; width:calc(100vw - 24px); max-width:none; max-height:calc(100dvh - 24px); padding:18px; } }
+@media(max-width:480px) { .privacy-notice { left:12px; bottom:12px; width:calc(100vw - 24px); max-width:none; max-height:calc(100dvh - 24px); padding:18px; } .dashboard-notice { top:12px; bottom:auto; left:12px; right:12px; padding-right:52px; } .dashboard-notice-close { top:8px; right:8px; } }
 @media(max-width:720px) { .legal-page { padding-top:36px; } }
+
+.legal-pending { background:#fff1a8; color:#323232; padding:2px 4px; box-decoration-break:clone; }

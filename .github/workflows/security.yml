@@ -1,0 +1,27 @@
+name: Security and regression checks
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+  schedule:
+    - cron: '19 6 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
+      - run: python3 scripts/security/scan-secrets.py
+      - run: npm run test:security
+      - run: npm test
+      - run: npm run lint

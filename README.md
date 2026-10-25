@@ -10,7 +10,7 @@ Leia [docs/AMBIENTES.md](docs/AMBIENTES.md) para criar produção, configurar o 
 - PROD: projeto independente a criar/configurar; não copiar dados de DEV.
 - Instalação inicial: [supabase/schema.sql](supabase/schema.sql).
 - Alterações futuras de banco: migrações incrementais em supabase/migrations e atualização do schema consolidado.
-- Contas Auth são provisionadas como administradores pelo schema atual. Cadastro público de usuários deve ficar desativado.
+- Contas Auth não recebem acesso ao CRM automaticamente. Um administrador deve autorizar cada conta em `dashboard_users`. Cadastro público deve ficar desativado.
 
 ## Local
 Copie .env.example para .env.local e configure somente o Supabase DEV.
@@ -27,3 +27,6 @@ Copie .env.example para .env.local e configure somente o Supabase DEV.
 Vitest usa dados isolados; o teste de integração faz apenas leituras no DEV configurado.
 O build exige configuração válida e impede mistura de ambientes no Cloudflare Pages.
 .env.local e segredos não entram no Git.
+
+## Segurança
+Antes de publicar este pacote, siga [a ordem de ativação](docs/SEGURANCA.md): Turnstile, função de leads, D1 e migrações. Alertas e backups exigem configuração; os arquivos sozinhos não os ativam.
