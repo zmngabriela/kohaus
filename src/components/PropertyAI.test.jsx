@@ -41,3 +41,18 @@ it('keeps originals on provider failure',async()=>{
  await waitFor(()=>expect(screen.getByRole('alert')).toHaveTextContent('Limite'))
  expect(setForm).not.toHaveBeenCalled()
 })
+it('explains when the Supabase AI function is not configured',async()=>{
+ const setForm=vi.fn()
+ const failure={context:Response.json({error:'not_configured'},{status:503})}
+ render(<PropertyAI form={form} setForm={setForm} language="pt" client={{functions:{invoke:vi.fn().mockResolvedValue({error:failure})}}}/> )
+ fireEvent.click(screen.getByText('Traduzir título e descrição'))
+ await waitFor(()=>expect(screen.getByRole('alert').textContent).toMatch(/cadastre os secrets necessários/i))
+ expect(setForm).not.toHaveBeenCalled()
+})
+it('explains when the function cannot be reached',async()=>{
+ const setForm=vi.fn()
+ render(<PropertyAI form={form} setForm={setForm} language="pt" client={{functions:{invoke:vi.fn().mockResolvedValue({error:{context:new TypeError('Failed to fetch')}})}}}/> )
+ fireEvent.click(screen.getByText('Traduzir título e descrição'))
+ await waitFor(()=>expect(screen.getByRole('alert').textContent).toMatch(/confirme se ela foi publicada/i))
+ expect(setForm).not.toHaveBeenCalled()
+})

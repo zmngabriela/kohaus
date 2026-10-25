@@ -39,4 +39,5 @@ output/
 *.key
 .dev.vars
 .dev.vars.*
+supabase/.temp/
 backups/
