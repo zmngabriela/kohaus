@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import Invoices from './Invoices'
@@ -28,4 +28,24 @@ it('previews and generates a PDF in the client language with an editable prefill
  await waitFor(()=>expect(JSON.parse(localStorage.getItem('kohaus-invoices'))).toHaveLength(1))
  expect(createInvoicePdf).toHaveBeenLastCalledWith(expect.objectContaining({language:'es',description:'Servicio editado: Calle Ejemplo 12'}),'test-logo')
  expect(screen.getByRole('link',{name:/Baixar PDF/})).toHaveAttribute('download','KOHAUS-TEST-1.pdf')
+})
+
+it('confirms invoice deletion and removes it from local history',async()=>{
+ const user=userEvent.setup()
+ const invoice={id:'invoice-1',number:'KH-2026-1',snapshot:{client:{name:'Ana Cliente'},date:'2026-10-25'}}
+ localStorage.setItem('kohaus-invoices',JSON.stringify([invoice]))
+ const confirm=vi.spyOn(window,'confirm').mockReturnValue(true)
+ const onSaved=vi.fn()
+ render(<Invoices language="pt" clients={[]} properties={[]} databaseEnabled={false} onSaved={onSaved}/>)
+ expect(await screen.findByText(/KH-2026-1/)).toBeInTheDocument()
+ const invoiceRow=screen.getByText(/KH-2026-1/).closest('article')
+ const rowButtons=within(invoiceRow).getAllByRole('button')
+ expect(rowButtons.map(button=>button.textContent)).toEqual(['Excluir fatura','Baixar PDF'])
+ expect(rowButtons[0]).toHaveClass('invoice-delete-button')
+ await user.click(rowButtons[0])
+ await waitFor(()=>expect(screen.queryByText(/KH-2026-1/)).not.toBeInTheDocument())
+ expect(JSON.parse(localStorage.getItem('kohaus-invoices'))).toEqual([])
+ expect(onSaved).toHaveBeenCalledWith('deleted')
+ expect(confirm).toHaveBeenCalled()
+ confirm.mockRestore()
 })

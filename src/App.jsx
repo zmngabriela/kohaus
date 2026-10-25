@@ -30,6 +30,7 @@ const Invoices = lazy(() => import('./components/Invoices'))
 import './App.css'
 import './components/Dropdown.css'
 import Tasks from './components/Tasks'
+import { unlinkLocalTaskReference } from './lib/tasks'
 import Opportunities from './components/Opportunities'
 import { opportunityCopy } from './lib/opportunityCopy'
 import { propertyExtras } from './lib/opportunities'
@@ -363,13 +364,24 @@ const COPY = {
       propertyDeleted: 'Inmueble eliminado.',
       clientSaved: 'Cliente actualizado correctamente.',
       clientCreated: 'Cliente guardado correctamente.',
+      clientDeleted: 'Cliente eliminado.',
       visitSaved: 'Visita actualizada correctamente.',
       visitCreated: 'Visita guardada correctamente.',
+      visitDeleted: 'Visita eliminada.',
       portalSaved: 'Publicación actualizada correctamente.',
       leadSaved: 'Lead actualizado correctamente.',
+      leadDeleted: 'Lead eliminado.',
       taskSaved: 'Tarea actualizada correctamente.',
+      taskDeleted: 'Tarea eliminada.',
       invoiceSaved: 'Factura guardada correctamente.',
       invoiceIssuerSaved: 'Datos del emisor guardados correctamente.',
+      invoiceDeleted: 'Factura eliminada.',
+      deleteClient: 'Eliminar cliente',
+      deleteLead: 'Eliminar lead',
+      deleteVisit: 'Eliminar visita',
+      deleteTask: 'Eliminar tarea',
+      deleteInvoice: 'Eliminar factura',
+      confirmDelete: '¿Eliminar definitivamente “{name}”? Esta acción no se puede deshacer.',
       closeEditor: 'Cerrar',
       backToProperties: 'Volver a inmuebles',
       editorCreateEyebrow: 'Nuevo inmueble',
@@ -779,13 +791,24 @@ const COPY = {
       propertyDeleted: 'Property deleted.',
       clientSaved: 'Client updated successfully.',
       clientCreated: 'Client saved successfully.',
+      clientDeleted: 'Client deleted.',
       visitSaved: 'Visit updated successfully.',
       visitCreated: 'Visit saved successfully.',
+      visitDeleted: 'Visit deleted.',
       portalSaved: 'Publication updated successfully.',
       leadSaved: 'Lead updated successfully.',
+      leadDeleted: 'Lead deleted.',
       taskSaved: 'Task updated successfully.',
+      taskDeleted: 'Task deleted.',
       invoiceSaved: 'Invoice saved successfully.',
       invoiceIssuerSaved: 'Issuer details saved successfully.',
+      invoiceDeleted: 'Invoice deleted.',
+      deleteClient: 'Delete client',
+      deleteLead: 'Delete lead',
+      deleteVisit: 'Delete visit',
+      deleteTask: 'Delete task',
+      deleteInvoice: 'Delete invoice',
+      confirmDelete: 'Permanently delete “{name}”? This action cannot be undone.',
       closeEditor: 'Close',
       backToProperties: 'Back to properties',
       editorCreateEyebrow: 'New property',
@@ -1195,13 +1218,24 @@ const COPY = {
       propertyDeleted: 'Imóvel excluído.',
       clientSaved: 'Cliente atualizado com sucesso.',
       clientCreated: 'Cliente salvo com sucesso.',
+      clientDeleted: 'Cliente excluído.',
       visitSaved: 'Visita atualizada com sucesso.',
       visitCreated: 'Visita salva com sucesso.',
+      visitDeleted: 'Visita excluída.',
       portalSaved: 'Publicação atualizada com sucesso.',
       leadSaved: 'Lead atualizado com sucesso.',
+      leadDeleted: 'Lead excluído.',
       taskSaved: 'Tarefa atualizada com sucesso.',
+      taskDeleted: 'Tarefa excluída.',
       invoiceSaved: 'Fatura salva com sucesso.',
       invoiceIssuerSaved: 'Dados do emissor salvos com sucesso.',
+      invoiceDeleted: 'Fatura excluída.',
+      deleteClient: 'Excluir cliente',
+      deleteLead: 'Excluir lead',
+      deleteVisit: 'Excluir visita',
+      deleteTask: 'Excluir tarefa',
+      deleteInvoice: 'Excluir fatura',
+      confirmDelete: 'Excluir “{name}” definitivamente? Esta ação não pode ser desfeita.',
       closeEditor: 'Fechar',
       backToProperties: 'Voltar para imóveis',
       editorCreateEyebrow: 'Novo imóvel',
@@ -2019,6 +2053,14 @@ async function updateLeadStatus(id, status) {
   }
 
   return fetchOwnerLeads()
+}
+
+async function deleteDashboardRecord(table, id, database = supabase, databaseEnabled = hasSupabaseConfig) {
+  if (!databaseEnabled || !database) return
+
+  const { data, error } = await database.from(table).delete().eq('id', id).select('id')
+  if (error) throw error
+  if (!data?.some((record) => record.id === id)) throw new Error('O registro não foi encontrado ou não pode ser excluído.')
 }
 
 async function fetchDashboardProperties(database = supabase, databaseEnabled = hasSupabaseConfig) {
@@ -3953,6 +3995,10 @@ export default function App() {
     }
   }
 
+  function confirmDashboardDelete(name) {
+    return window.confirm(copy.dashboard.confirmDelete.replace('{name}', name))
+  }
+
   async function handleLeadStatusChange(id, status) {
     setLeadSavingId(id)
     setDashboardNotice('')
@@ -3969,6 +4015,29 @@ export default function App() {
     }
   }
 
+  async function handleDeleteLead(lead) {
+    if (leadSavingId || !confirmDashboardDelete(`${lead.name} ${lead.surname}`.trim())) return
+    setLeadSavingId(lead.id)
+    setDashboardNotice('')
+    setDataError('')
+    try {
+      await deleteDashboardRecord('owner_leads', lead.id)
+      if (!hasSupabaseConfig || !supabase) {
+        writeLocalStorage(LEADS_STORAGE_KEY, readLocalStorage(LEADS_STORAGE_KEY).filter((item) => item.id !== lead.id))
+        writeLocalStorage(VISITS_STORAGE_KEY, readLocalStorage(VISITS_STORAGE_KEY).map((visit) => visit.leadId === lead.id ? { ...visit, leadId: '' } : visit))
+        unlinkLocalTaskReference('lead_id', lead.id, false)
+      }
+      setLeads((current) => current.filter((item) => item.id !== lead.id))
+      setDashboardVisits((current) => current.map((visit) => visit.leadId === lead.id ? { ...visit, leadId: '' } : visit))
+      setDashboardNotice(copy.dashboard.leadDeleted)
+    } catch (error) {
+      console.error(error)
+      setDataError(error.message || 'Não foi possível excluir o lead.')
+    } finally {
+      setLeadSavingId('')
+    }
+  }
+
   async function handleDeleteProperty() {
     if (propertySaveLock.current) return
     if (!window.confirm(language === 'pt' ? 'Excluir este imóvel definitivamente? As visitas e tarefas serão mantidas sem o vínculo. As fotos não serão apagadas do armazenamento.' : language === 'es' ? '¿Eliminar este inmueble definitivamente? Las visitas y tareas se conservarán sin vínculo. Las fotos permanecerán en almacenamiento.' : 'Permanently delete this property? Viewings and tasks will remain unlinked. Stored photos will be retained.')) return
@@ -3978,7 +4047,13 @@ export default function App() {
       if (hasSupabaseConfig && supabase) {
         const {data,error}=await supabase.from('dashboard_properties').delete().eq('id',propertyEditor.propertyId).select('id')
         if(error || !data?.length)throw error || new Error('Não foi possível excluir o imóvel.')
-      } else writeLocalStorage(PROPERTIES_STORAGE_KEY,dashboardProperties.filter(p=>p.id!==propertyEditor.propertyId))
+      } else {
+        writeLocalStorage(PROPERTIES_STORAGE_KEY, dashboardProperties.filter((property) => property.id !== propertyEditor.propertyId))
+        const nextVisits = dashboardVisits.map((visit) => visit.propertyId === propertyEditor.propertyId ? { ...visit, propertyId: '' } : visit)
+        writeLocalStorage(VISITS_STORAGE_KEY, nextVisits)
+        setDashboardVisits(nextVisits)
+        unlinkLocalTaskReference('property_id', propertyEditor.propertyId, false)
+      }
       const next=dashboardProperties.filter(p=>p.id!==propertyEditor.propertyId)
       setDashboardProperties(next);setPublishedProperties(next.filter(isPublishedListing).map(publicProperty));setDataError('');closePropertyEditor()
       setDashboardNotice(copy.dashboard.propertyDeleted)
@@ -4063,6 +4138,43 @@ export default function App() {
     } finally { clientSaveLock.current=false;setClientSaving(false) }
   }
 
+  async function handleDeleteClient() {
+    const client = dashboardClients.find((item) => item.id === clientEditor.clientId)
+    if (!client || clientSaveLock.current || !confirmDashboardDelete(`${client.name} ${client.surname}`.trim())) return
+    clientSaveLock.current = true
+    setClientSaving(true)
+    setDashboardNotice('')
+    setDataError('')
+    try {
+      await deleteDashboardRecord('dashboard_clients', client.id)
+      if (!hasSupabaseConfig || !supabase) {
+        const nextProperties = dashboardProperties.map((property) => property.ownerClientId === client.id ? { ...property, ownerClientId: '' } : property)
+        const nextVisits = dashboardVisits.map((visit) => visit.clientId === client.id ? { ...visit, clientId: '' } : visit)
+        writeLocalStorage(PROPERTIES_STORAGE_KEY, nextProperties)
+        writeLocalStorage(VISITS_STORAGE_KEY, nextVisits)
+        setDashboardProperties(nextProperties)
+        setDashboardVisits(nextVisits)
+        unlinkLocalTaskReference('client_id', client.id, false)
+      } else {
+        setDashboardProperties((current) => current.map((property) => property.ownerClientId === client.id ? { ...property, ownerClientId: '' } : property))
+        setDashboardVisits((current) => current.map((visit) => visit.clientId === client.id ? { ...visit, clientId: '' } : visit))
+      }
+      const nextClients = dashboardClients.filter((item) => item.id !== client.id)
+      if (!hasSupabaseConfig || !supabase) writeLocalStorage(CLIENTS_STORAGE_KEY, nextClients)
+      setDashboardClients(nextClients)
+      setCreatingPropertyOwner(false)
+      setClientForm(CLIENT_FORM_DEFAULTS)
+      setClientEditor(CLIENT_EDITOR_DEFAULT)
+      setDashboardNotice(copy.dashboard.clientDeleted)
+    } catch (error) {
+      console.error(error)
+      setDataError(error.message || 'Não foi possível excluir o cliente.')
+    } finally {
+      clientSaveLock.current = false
+      setClientSaving(false)
+    }
+  }
+
   async function handleVisitSubmit(event) {
     event.preventDefault()
     if (visitSaveLock.current) return
@@ -4098,6 +4210,29 @@ export default function App() {
     } catch (error) {
       console.error(error)
       setDataError(error.message || 'Não foi possível salvar a visita no banco de dados.')
+    } finally {
+      visitSaveLock.current = false
+      setVisitSaving(false)
+    }
+  }
+
+  async function handleDeleteVisit() {
+    const visit = dashboardVisits.find((item) => item.id === visitEditorId)
+    if (!visit || visitSaveLock.current || !confirmDashboardDelete(visit.contactName)) return
+    visitSaveLock.current = true
+    setVisitSaving(true)
+    setDashboardNotice('')
+    setDataError('')
+    try {
+      await deleteDashboardRecord('dashboard_visits', visit.id)
+      const next = dashboardVisits.filter((item) => item.id !== visit.id)
+      if (!hasSupabaseConfig || !supabase) writeLocalStorage(VISITS_STORAGE_KEY, next)
+      setDashboardVisits(next)
+      closeVisitEditor()
+      setDashboardNotice(copy.dashboard.visitDeleted)
+    } catch (error) {
+      console.error(error)
+      setDataError(error.message || 'Não foi possível excluir a visita.')
     } finally {
       visitSaveLock.current = false
       setVisitSaving(false)
@@ -4571,6 +4706,9 @@ export default function App() {
                           />
                         </div>
                         <div className="dashboard-lead-actions">
+                          <button type="button" className="dashboard-editor-secondary" disabled={Boolean(leadSavingId)} onClick={() => handleDeleteLead(lead)}>
+                            {copy.dashboard.deleteLead}
+                          </button>
                           <button type="button" className="dashboard-property-edit" onClick={() => openCreateClientFromLead(lead)}>
                             {copy.dashboard.leadToClient}
                           </button>
@@ -4896,11 +5034,11 @@ export default function App() {
               </section>
             ) : null}
 
-            {dashboardSection === 'invoices' ? <Suspense fallback={<p>…</p>}><Invoices clients={dashboardClients} properties={dashboardProperties} language={language} onSaving={() => setDashboardNotice('')} onSaved={(kind) => setDashboardNotice(kind === 'issuer' ? copy.dashboard.invoiceIssuerSaved : copy.dashboard.invoiceSaved)} /></Suspense> : null}
+            {dashboardSection === 'invoices' ? <Suspense fallback={<p>…</p>}><Invoices clients={dashboardClients} properties={dashboardProperties} language={language} onSaving={() => setDashboardNotice('')} onSaved={(kind) => setDashboardNotice(kind === 'issuer' ? copy.dashboard.invoiceIssuerSaved : kind === 'deleted' ? copy.dashboard.invoiceDeleted : copy.dashboard.invoiceSaved)} /></Suspense> : null}
 
             {dashboardSection === 'opportunities' ? <Opportunities clients={dashboardClients} properties={dashboardProperties} language={language} copy={copy} onClient={openClientEditor} onProperty={goProperty} loading={opportunitiesLoading} error={dataError} /> : null}
 
-            {dashboardSection === 'tasks' ? <Tasks language={language} clients={dashboardClients} leads={leads} properties={dashboardProperties} onSaving={() => setDashboardNotice('')} onSaved={() => setDashboardNotice(copy.dashboard.taskSaved)} /> : null}
+            {dashboardSection === 'tasks' ? <Tasks language={language} clients={dashboardClients} leads={leads} properties={dashboardProperties} onSaving={() => setDashboardNotice('')} onSaved={(kind) => setDashboardNotice(kind === 'deleted' ? copy.dashboard.taskDeleted : copy.dashboard.taskSaved)} /> : null}
 
             {dashboardSection === 'visits' ? (
               <section className="dashboard-visits-section dashboard-section">
@@ -4920,7 +5058,7 @@ export default function App() {
                   </button>
                 </div>
 
-                {visitEditorOpen && <EditorDialog title={visitEditorId ? copy.dashboard.editVisit : copy.dashboard.addVisit} closeLabel={copy.dashboard.closeEditor} onClose={closeVisitEditor}>
+                {visitEditorOpen && <EditorDialog title={visitEditorId ? copy.dashboard.editVisit : copy.dashboard.addVisit} closeLabel={copy.dashboard.closeEditor} busy={visitSaving} onClose={closeVisitEditor}>
                 {dataError && <p role="alert">{dataError}</p>}
                 <form className="dashboard-visit-form" onSubmit={handleVisitSubmit}>
                   <label>
@@ -5016,6 +5154,7 @@ export default function App() {
                     />
                   </label>
                   <div className="dashboard-editor-actions dashboard-property-form-full">
+                    {visitEditorId && <button type="button" className="dashboard-editor-secondary" disabled={visitSaving} onClick={handleDeleteVisit}>{copy.dashboard.deleteVisit}</button>}
                     <button type="submit" className="dashboard-property-submit" disabled={visitSaving}>
                       {visitSaving ? copy.dashboard.saving : visitEditorId ? copy.dashboard.updateVisit : copy.dashboard.addVisit}
                     </button>
@@ -5447,6 +5586,7 @@ export default function App() {
                 </div>
               </details>
               <div className="dashboard-property-form-full"><PropertyEditorActions editing={propertyEditor.mode === 'edit'} busy={propertySaving} language={language} saveLabel={propertyEditor.mode === 'edit' ? copy.dashboard.updateProperty : copy.dashboard.addProperty} savingLabel={copy.dashboard.saving} onDelete={handleDeleteProperty} /></div>
+              <div className="dashboard-property-form-full property-editor-bottom-back"><button type="button" className="dashboard-editor-secondary" disabled={propertySaving} onClick={closePropertyEditor}>{copy.dashboard.backToProperties}</button></div>
             </form>
           </section>
         </main>
@@ -5601,6 +5741,7 @@ export default function App() {
                 />
               </label>
               <div className="dashboard-editor-actions dashboard-property-form-full">
+                {clientEditor.mode === 'edit' && <button type="button" className="dashboard-editor-secondary" disabled={clientSaving} onClick={handleDeleteClient}>{copy.dashboard.deleteClient}</button>}
                 <button type="submit" className="dashboard-property-submit" disabled={clientSaving}>
                   {clientSaving ? copy.dashboard.saving : clientEditor.mode === 'edit' ? copy.dashboard.updateClient : copy.dashboard.addClient}
                 </button>

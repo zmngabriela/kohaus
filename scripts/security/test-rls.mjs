@@ -20,6 +20,7 @@ const schema=fs.readFileSync('supabase/schema.sql','utf8').replace('create exten
 await db.exec(schema)
 // Replay incremental migrations to catch non-repeatable statements.
 for(const file of fs.readdirSync('supabase/migrations').filter(x=>x.startsWith('2026102321')).sort()) await db.exec(fs.readFileSync(`supabase/migrations/${file}`,'utf8'))
+await db.exec(fs.readFileSync('supabase/migrations/202610252100_invoice_delete.sql','utf8'))
 await db.exec(`
  insert into auth.users(id,email) values ('00000000-0000-0000-0000-000000000001','owner@example.test'),('00000000-0000-0000-0000-000000000002','viewer@example.test'),('00000000-0000-0000-0000-000000000003','outsider@example.test');
 `)
@@ -65,5 +66,8 @@ assert.equal((await db.query("select owner_client_id from public.property_privat
 assert.ok(!JSON.stringify((await as('anon','','select * from public.public_properties')).rows).includes('owner_client_id'))
 await as('authenticated',owner,"delete from public.dashboard_properties where id='retry-property' returning id")
 assert.equal((await db.query("select count(*)::int n from public.property_private where property_id='retry-property'")).rows[0].n,0)
+await as('authenticated',owner,"insert into public.dashboard_invoices(number,snapshot) values('TEST-DELETE','{\"client\":{\"name\":\"Test\"}}') returning id")
+await denied('authenticated',viewer,"delete from public.dashboard_invoices where number='TEST-DELETE' returning id")
+assert.equal((await as('authenticated',owner,"delete from public.dashboard_invoices where number='TEST-DELETE' returning id")).rows.length,1)
 await db.close()
 console.log('PASS: explicit membership, anonymous/outsider isolation, viewer read-only, admin edit, private media and protected lead writes.')

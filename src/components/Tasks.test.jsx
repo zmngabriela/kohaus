@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { vi } from 'vitest'
 import Tasks from './Tasks'
 import { filterTasks, saveTask } from '../lib/tasks'
 
@@ -56,4 +57,20 @@ it('saves edits and completes a task opened from the calendar', async () => {
   expect(screen.getByRole('button', {name:'Updated calendar task Concluída'})).toBeVisible()
   await user.click(screen.getByRole('button', {name:/Concluídas/}))
   expect(screen.getByRole('heading', {name:'Updated calendar task'})).toBeVisible()
+})
+
+it('confirms task deletion and removes it from local storage and the dashboard', async () => {
+  const user = userEvent.setup()
+  await saveTask({ id: 'delete-task', title: 'Task to remove', due_date: '2026-10-25', priority: 'medium', status: 'pending' })
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+  render(<Tasks language="pt" clients={[]} leads={[]} properties={[]} />)
+  expect(await screen.findByRole('heading', { name: 'Task to remove' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Excluir tarefa' })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Editar tarefa' }))
+  const editor = screen.getByRole('dialog')
+  await user.click(within(editor).getByRole('button', { name: 'Excluir tarefa' }))
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Task to remove' })).not.toBeInTheDocument())
+  expect(JSON.parse(localStorage.getItem('kohaus-dashboard-tasks-v1'))).toEqual([])
+  expect(confirm).toHaveBeenCalled()
+  confirm.mockRestore()
 })

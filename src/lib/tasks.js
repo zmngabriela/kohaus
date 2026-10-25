@@ -27,3 +27,24 @@ export async function saveTask(task, database = supabase, enabled = hasSupabaseC
   if (error) throw error
   return data
 }
+
+export async function deleteTask(id, database = supabase, enabled = hasSupabaseConfig) {
+  if (!enabled) {
+    const tasks = await fetchTasks(database, false)
+    if (!tasks.some(task => task.id === id)) throw new Error('Task not found')
+    localStorage.setItem(KEY, JSON.stringify(tasks.filter(task => task.id !== id)))
+    return
+  }
+  const { data, error } = await database.from('dashboard_tasks').delete().eq('id', id).select('id')
+  if (error) throw error
+  if (!data?.some(task => task.id === id)) throw new Error('Task not found or deletion denied')
+}
+
+export function unlinkLocalTaskReference(field, id, databaseEnabled = hasSupabaseConfig) {
+  const columns = new Set(['client_id', 'lead_id', 'property_id'])
+  if (!columns.has(field)) throw new Error(`Unsupported task reference: ${field}`)
+  if (databaseEnabled) return
+  const tasks = JSON.parse(localStorage.getItem(KEY) || '[]')
+  const next = tasks.map(task => task[field] === id ? { ...task, [field]: null } : task)
+  localStorage.setItem(KEY, JSON.stringify(next))
+}

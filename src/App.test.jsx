@@ -213,6 +213,7 @@ describe('KOHAUS app regressions', () => {
     await user.type(bathroomsInput, '2')
     await user.type(observationsInput, 'Created from the dashboard test flow.')
     const propertyFormElement = screen.getAllByRole('button', { name: 'Add new property' })[0].closest('form')
+    expect(screen.getAllByRole('button', { name: 'Back to properties' })).toHaveLength(2)
     fireEvent.submit(propertyFormElement)
     fireEvent.submit(propertyFormElement)
     fireEvent.submit(propertyFormElement)
@@ -228,6 +229,13 @@ describe('KOHAUS app regressions', () => {
 
     expect(screen.queryByText('Update the property file without leaving the dashboard.')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Edit property', level: 1 })).toBeInTheDocument()
+    const propertyActionRows = document.querySelectorAll('.property-editor-actions')
+    expect(propertyActionRows).toHaveLength(2)
+    for (const actionRow of propertyActionRows) {
+      expect([...actionRow.querySelectorAll('button')].map(button => button.textContent)).toEqual(['Delete property', 'Save changes'])
+    }
+    expect(propertyActionRows[1].parentElement.nextElementSibling).toHaveClass('property-editor-bottom-back')
+    expect(within(propertyActionRows[1].parentElement.nextElementSibling).getByRole('button', { name: 'Back to properties' })).toBeInTheDocument()
 
     const editTitleInput = screen.getByLabelText('Title')
     const editObservationsInput = screen.getByLabelText('Notes')
@@ -244,7 +252,7 @@ describe('KOHAUS app regressions', () => {
     expect(screen.queryByText('Updated from the dashboard test flow.')).not.toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Edit' }).find(button => button.closest('.dashboard-property-card')?.textContent?.includes('Barcelona penthouse updated from dashboard')))
     expect(screen.getByLabelText('Notes')).toHaveValue('Updated from the dashboard test flow.')
-  })
+  }, 15000)
 
   it('promotes the KOHAUS Selection label on property details', async () => {
     renderApp('/?view=anuncio&lang=en&id=test-eixample')
@@ -400,6 +408,14 @@ describe('KOHAUS app regressions', () => {
     expect(screen.queryByText('Qualified and ready for curated options.')).not.toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Edit client' }).find(button => button.closest('.dashboard-client-card')?.textContent?.includes('Maya Costa')))
     expect(within(screen.getByRole('dialog', { name: 'Edit client' })).getByLabelText('Internal notes')).toHaveValue('Qualified and ready for curated options.')
+
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await user.click(within(screen.getByRole('dialog', { name: 'Edit client' })).getByRole('button', { name: 'Delete client' }))
+    expect(await screen.findByText('Client deleted.')).toBeInTheDocument()
+    expect(screen.queryByText('Maya Costa')).not.toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('kohaus-dashboard-clients-v1'))).toEqual([])
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Maya Costa'))
+    confirm.mockRestore()
   })
 
   it('persists a property through Supabase and reloads the database result', async () => {

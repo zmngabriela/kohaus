@@ -13,6 +13,8 @@ Migrações disponíveis:
 - `202610241000_property_ai.sql`: cria o limite de uso do assistente de texto de imóveis.
 - `202610251000_property_workflow.sql`: associa proprietários e garante gravação transacional
   do imóvel e do endereço privado.
+- `202610252100_invoice_delete.sql`: permite que editores/admins excluam faturas, mantendo
+  a permissão de somente leitura para viewers.
 
 A presença de um arquivo aqui não confirma se ele já foi aplicado em DEV ou PROD. Confira
 o registro de execução de cada ambiente antes de aplicar; não reaplique migrações já

@@ -3364,5 +3364,6 @@
 
 .property-editor-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
 .property-editor-toolbar > p { margin: 0; }
-.property-editor-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 1rem; margin-inline-start: auto; }
+.property-editor-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; width: 100%; }
 .property-editor-actions > button { width: auto; }
+.property-editor-bottom-back { display: flex; justify-content: flex-end; }

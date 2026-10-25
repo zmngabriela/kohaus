@@ -586,7 +586,7 @@ create table if not exists public.dashboard_invoices (
 alter table public.dashboard_invoice_settings enable row level security;
 alter table public.dashboard_invoices enable row level security;
 grant select,insert,update on public.dashboard_invoice_settings to authenticated;
-grant select,insert on public.dashboard_invoices to authenticated;
+grant select,insert,delete on public.dashboard_invoices to authenticated;
 drop policy if exists "CRM invoice settings" on public.dashboard_invoice_settings;
 create policy "CRM invoice settings" on public.dashboard_invoice_settings for all to authenticated
 using (exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in ('admin','editor')))
@@ -597,6 +597,9 @@ using (exists(select 1 from public.dashboard_users where user_id=auth.uid()));
 drop policy if exists "CRM invoice create" on public.dashboard_invoices;
 create policy "CRM invoice create" on public.dashboard_invoices for insert to authenticated
 with check (exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in ('admin','editor')));
+drop policy if exists "CRM invoice delete" on public.dashboard_invoices;
+create policy "CRM invoice delete" on public.dashboard_invoices for delete to authenticated
+using (exists(select 1 from public.dashboard_users where user_id=auth.uid() and role in ('admin','editor')));
 -- Configure issuer details privately in the CRM invoice screen.
 insert into public.dashboard_invoice_settings(id,issuer) values(true,'{}'::jsonb)
 on conflict(id) do nothing;
