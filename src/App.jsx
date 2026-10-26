@@ -1,3 +1,4 @@
+import { optimizePhoto } from './lib/optimizePhoto'
 import PropertyEditorActions from './components/PropertyEditorActions'
 import { capitalizeCity, normalizeCity, cityKey, cityOptions } from './lib/propertyCities'
 import PropertyOwner from './components/PropertyOwner'
@@ -2122,7 +2123,8 @@ async function uploadPhotos(files) {
   const bucket = getPropertyMediaBucket()
   const uploaded = []
 
-  for (const file of files) {
+  for (const original of files) {
+    const file = await optimizePhoto(original)
     const extension = await validatePhotoContent(file)
     const path = `${crypto.randomUUID()}.${extension}`
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
@@ -3145,7 +3147,7 @@ function Header({
           onHomeClick()
         }}
       >
-        <img src="/brand/kohaus-logo-transparent.png" alt="KOHAUS Real Estate" />
+        <img src="/brand/kohaus-logo.svg" alt="KOHAUS Real Estate" />
       </a>
 
       <div className="lang-switch">
@@ -3220,7 +3222,7 @@ function Footer({ copy, language }) {
   return (
     <footer className="site-footer" id="contacto">
       <div>
-        <div className="footer-logo-frame"><img className="footer-brand-logo" src="/brand/kohaus-logo-transparent.png" alt="KOHAUS Real Estate" /></div>
+        <div className="footer-logo-frame"><img className="footer-brand-logo" src="/brand/kohaus-logo.svg" alt="KOHAUS Real Estate" /></div>
         <p>{copy.footer.description}</p>
       </div>
       <div className="footer-contact">

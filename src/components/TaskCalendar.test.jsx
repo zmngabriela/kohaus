@@ -14,6 +14,8 @@ it('updates events from tasks and opens the selected task', async () => {
   expect(screen.queryByText('Call client')).toBeNull()
   expect(screen.getByRole('button', { name:'Updated call Completed' })).toBeVisible()
   await userEvent.click(screen.getByRole('button', { name:'Next month' }))
+  // Adjacent months share boundary days in the calendar grid.
+  await userEvent.click(screen.getByRole('button', { name:'Next month' }))
   expect(screen.queryByText('Updated call')).toBeNull()
   await userEvent.click(screen.getByRole('button', { name:'Today' }))
   expect(screen.getByText('Updated call')).toBeVisible()
