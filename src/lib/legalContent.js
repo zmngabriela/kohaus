@@ -4,9 +4,11 @@ export const legalOwner = { name: 'José Guilherme Coninch', city: 'Barcelona', 
 export const legalContent = {
  pt: {
   legalContact: 'Dúvidas sobre este aviso legal?',
+  privacyContact:'Dúvidas sobre privacidade ou exercício dos seus direitos?',
+  controllerLabel:'Responsável pelo tratamento: ',
   ownerDetails: 'Responsável: ', addressPending: 'Endereço completo para notificações: pendente de confirmação.', training: 'Formação em intermediação imobiliária concluída. A formação não equivale a inscrição profissional.',
   identity:'Identificação do responsável', name:'Nome informado pelo titular: Corhouse Real Estate — confirmar razão social e relação com a marca KOHAUS.', pending:['NIF/NIE/CIF do titular: PENDENTE DE CONFIRMAÇÃO.','Domicílio legal completo para notificações: PENDENTE. Barcelona, Espanha é somente a localização comercial.','Registro mercantil e registro profissional (incluindo AICAT, quando aplicável), habilitação e regras profissionais: PENDENTES DE VERIFICAÇÃO.'],
-  note:'Os dados destacados em amarelo precisam de confirmação pelo titular antes da validação final destes textos.',
+  note:'A identidade jurídica, os prazos de conservação e algumas configurações dos prestadores ainda precisam de confirmação pelo titular. As pendências estão indicadas nesta página.',
   legal:[
    ["1. Condições de utilização", "Este site apresenta os serviços imobiliários da KOHAUS. A utilização do site está sujeita a estas condições e à legislação aplicável. A navegação ou o envio de um pedido de informação não constitui, por si só, um contrato de compra, venda, arrendamento ou prestação de serviços. Os serviços contratados terão condições próprias."],
    ["2. Alteração das condições", "A KOHAUS poderá atualizar estas condições para refletir mudanças nos serviços ou requisitos legais. Recomendamos consultar esta página periodicamente. As alterações não eliminam direitos já adquiridos nem substituem as condições de contratos assinados."],
@@ -18,21 +20,110 @@ export const legalContent = {
    ["8. Marcas e sinais distintivos", "O nome KOHAUS, o logótipo e os restantes sinais distintivos pertencem aos respetivos titulares. A sua apresentação no site não concede autorização para os utilizar. A proteção aplicável decorre da legislação em vigor; este aviso não presume que todos os sinais estejam registados."],
    ["9. Legislação aplicável e contato", "Aplicam-se as normas espanholas e europeias pertinentes. Eventuais litígios serão submetidos aos tribunais competentes de acordo com a legislação aplicável, preservando as normas imperativas e os direitos dos consumidores. Para questões sobre estas condições: hola@thekohaus.com · +34 665 32 47 91."],
   ],
-  privacy:[
-   ['Dados e finalidades','Tratamos os dados de contato e as informações enviados nos formulários, o idioma, os critérios de busca e os dados necessários para organizar visitas, atendimento e, quando houver contratação, faturação. Evite enviar documentos ou informações sensíveis em campos livres.'],
-   ['Bases legais','Os pedidos relacionados a uma possível contratação são atendidos para adotar medidas pré-contratuais solicitadas pelo interessado. A execução de serviços e as obrigações legais fundamentam os tratamentos correspondentes. Comunicações comerciais opcionais e análise de visitas dependem de consentimento, que pode ser retirado sem afetar tratamentos anteriores lícitos.'],
-   ['Prestadores e destinatários','Cloudflare hospeda o site. A proteção dos formulários usa Turnstile e contadores temporários associados a um identificador derivado do IP para limitar abuso. Supabase fornece banco de dados, autenticação e armazenamento. Google Fonts entrega a tipografia e Google Analytics pode medir visitas mediante consentimento. Ao abrir links de calendário, e-mail ou redes sociais, você utiliza serviços externos. Não vendemos os contatos recebidos pelo site.'],
-   ['Conservação','Os dados devem ser limitados ao período necessário para atender à finalidade e cumprir obrigações aplicáveis. A política operacional de retenção será confirmada pelo responsável; os detalhes pendentes estão destacados abaixo.'],
-   ['Seus direitos','Você pode solicitar acesso, retificação, exclusão, oposição, limitação e portabilidade, quando aplicáveis, por hola@thekohaus.com. A identidade poderá ser verificada de forma proporcional. Você pode reclamar à Agencia Española de Protección de Datos (aepd.es).'],
-   ['Proteção e incidentes','O painel exige autenticação. As medidas de proteção devem ser mantidas e verificadas continuamente; nenhum sistema é infalível. Incidentes com dados pessoais serão avaliados e comunicados à autoridade e aos afetados quando a legislação exigir. Não há decisões exclusivamente automatizadas de concessão de imóveis neste site.'],
+  privacy: [
+  [
+    "Dados e finalidades",
+    [
+      {
+        "title": "Consultas e contatos",
+        "description": "Responder a pedidos de informação sobre imóveis e serviços pelos canais de contato disponíveis."
+      },
+      {
+        "title": "Serviços imobiliários e visitas",
+        "description": "Gerir pedidos, critérios de procura, visitas e o acompanhamento pré-contratual e contratual."
+      },
+      {
+        "title": "Comunicações comerciais",
+        "description": "Enviar novidades e oportunidades quando houver consentimento ou outra autorização legal aplicável, com possibilidade de oposição."
+      },
+      {
+        "title": "Qualidade e segurança",
+        "description": "Melhorar o atendimento e proteger o site contra acessos indevidos e uso abusivo."
+      },
+      {
+        "title": "Obrigações legais",
+        "description": "Tratar os dados necessários à faturação e às demais obrigações aplicáveis à operação."
+      },
+      {
+        "title": "Canais de comunicação",
+        "description": "Coordenar o atendimento e as visitas por e-mail, telefone ou, se o interessado optar, mensagens instantâneas."
+      }
+    ]
   ],
-  privacyPending:['Confirmar formalmente o responsável pelo tratamento e o canal hola@thekohaus.com para direitos e incidentes.','Definir e documentar os prazos de conservação de leads, clientes, visitas, faturas e logs; confirmar o uso de comunicações comerciais.','Verificar contratos com prestadores, regiões de armazenamento, suboperadores e transferências internacionais, incluindo suas garantias jurídicas.','Verificar a configuração efetivamente ativa de análise, proteção antibots e retenção antes da publicação definitiva.'],
- },
+  [
+    "Por que podemos utilizar os seus dados",
+    {
+      "paragraphs": [
+        "Quando você pede informações ou agenda uma visita, usamos os dados necessários para responder e organizar esse atendimento. Se o pedido estiver ligado a uma possível contratação, isso corresponde a medidas pré-contratuais; quando contrata um serviço, usamos os dados para cumprir o contrato.",
+        "Para finalidades opcionais, como receber novidades ou permitir a análise de visitas ao site, pedimos o seu consentimento. Pode retirá-lo a qualquer momento, sem afetar o uso anterior autorizado. Também tratamos dados quando a lei exige, por exemplo, para emitir e conservar faturas.",
+        "A proteção do site contra fraude e acessos indevidos pode apoiar-se no nosso interesse legítimo em manter o serviço seguro, desde que respeitados os seus direitos. Pode pedir esclarecimentos sobre qualquer uma dessas utilizações."
+      ]
+    }
+  ],
+  [
+    "Onde ficam os dados e quem os trata",
+    {
+      "paragraphs": [
+        "Os seus dados são guardados nos sistemas utilizados pela KOHAUS para gerir o atendimento e os serviços imobiliários. O acesso é limitado às pessoas autorizadas e aos prestadores que precisam desses dados para apoiar o armazenamento, a manutenção ou a comunicação, sujeitos às obrigações de confidencialidade e proteção de dados aplicáveis.",
+        "Pode solicitar informações sobre os locais de armazenamento e quem tem acesso aos seus dados por hola@thekohaus.com."
+      ]
+    }
+  ],
+  [
+    "Conservação",
+    [
+      "Mantemos os dados apenas pelo tempo necessário para a finalidade do tratamento.",
+      "Também cumprimos os prazos de conservação exigidos por lei."
+    ]
+  ],
+  [
+    "Segurança",
+    "Implementamos medidas técnicas e organizacionais para proteger os seus dados pessoais contra acessos não autorizados, perda, alteração ou uso indevido. Limitamos o acesso às pessoas autorizadas e revemos as medidas de proteção e as atualizações de segurança."
+  ],
+  [
+    "Transparência",
+    "Informamos de forma clara e acessível como e por que tratamos os seus dados pessoais. Se tiver dúvidas sobre algum uso, prestador ou prazo de conservação, pode escrever para hola@thekohaus.com. Alterações relevantes no tratamento serão refletidas nesta política."
+  ],
+  [
+    "Exercício dos direitos",
+    {
+      "intro": "Pode exercer os direitos abaixo, quando aplicáveis, enviando um e-mail para hola@thekohaus.com.",
+      "items": [
+        {
+          "title": "Acesso",
+          "description": "Consultar os seus dados pessoais e informações sobre o tratamento."
+        },
+        {
+          "title": "Retificação",
+          "description": "Corrigir dados inexatos ou incompletos."
+        },
+        {
+          "title": "Apagamento",
+          "description": "Solicitar a eliminação dos dados nos casos previstos por lei."
+        },
+        {
+          "title": "Limitação",
+          "description": "Solicitar a restrição do tratamento nas situações aplicáveis."
+        },
+        {
+          "title": "Portabilidade",
+          "description": "Receber os dados em formato estruturado e transmiti-los a outro responsável, quando aplicável."
+        },
+        {
+          "title": "Oposição",
+          "description": "Opor-se ao tratamento nas situações previstas por lei, incluindo marketing direto."
+        }
+      ]
+    }
+  ]
+] },
  es: {
   legalContact: '¿Tiene alguna consulta sobre este aviso legal?',
+  privacyContact:'¿Tiene dudas sobre privacidad o desea ejercer sus derechos?',
+  controllerLabel:'Responsable del tratamiento: ',
   ownerDetails: 'Titular: ', addressPending: 'Domicilio completo para notificaciones: pendiente de confirmación.', training: 'Formación en intermediación inmobiliaria completada. La formación no equivale a inscripción profesional.',
   identity:'Identificación del responsable', name:'Nombre facilitado por el titular: Corhouse Real Estate — confirmar denominación legal y relación con la marca KOHAUS.', pending:['NIF/NIE/CIF del titular: PENDIENTE DE CONFIRMACIÓN.','Domicilio legal completo para notificaciones: PENDIENTE. Barcelona, España es únicamente la ubicación comercial.','Datos registrales mercantiles y profesionales (incluido AICAT, cuando proceda), habilitación y normas profesionales: PENDIENTES DE VERIFICACIÓN.'],
-  note:'El titular debe confirmar los datos resaltados en amarillo antes de la validación final de estos textos.',
+  note:'El titular aún debe confirmar la identidad jurídica, los plazos de conservación y algunas configuraciones de los proveedores. Las cuestiones pendientes se indican en esta página.',
   legal:[
    ["1. Condiciones de uso", "Este sitio presenta los servicios inmobiliarios de KOHAUS. Su utilización está sujeta a estas condiciones y a la legislación aplicable. La navegación o el envío de una solicitud de información no constituye por sí solo un contrato de compraventa, arrendamiento o prestación de servicios. Los servicios contratados tendrán sus propias condiciones."],
    ["2. Modificación de las condiciones", "KOHAUS podrá actualizar estas condiciones por cambios en los servicios o requisitos legales. Recomendamos consultar esta página periódicamente. Los cambios no eliminan derechos adquiridos ni sustituyen las condiciones de contratos firmados."],
@@ -44,21 +135,109 @@ export const legalContent = {
    ["8. Marcas y signos distintivos", "El nombre KOHAUS, el logotipo y los demás signos distintivos pertenecen a sus respectivos titulares. Su presentación en el sitio no autoriza su utilización. La protección aplicable deriva de la legislación vigente; este aviso no presupone que todos los signos estén registrados."],
    ["9. Legislación aplicable y contacto", "Se aplica la normativa española y europea pertinente. Los litigios se someterán a los tribunales competentes conforme a la legislación aplicable, respetando las normas imperativas y los derechos de los consumidores. Para consultas sobre estas condiciones: hola@thekohaus.com · +34 665 32 47 91."],
   ],
-  privacy:[
-   ['Datos y finalidades','Tratamos los datos de contacto y la información enviada mediante formularios, el idioma, los criterios de búsqueda y los datos necesarios para organizar visitas, atención y, cuando exista contratación, facturación. Evite enviar documentos o información sensible en campos libres.'],
-   ['Bases jurídicas','Las solicitudes vinculadas a una posible contratación se atienden para adoptar medidas precontractuales solicitadas por el interesado. La ejecución del servicio y las obligaciones legales fundamentan los tratamientos correspondientes. Las comunicaciones comerciales opcionales y el análisis de visitas requieren consentimiento, revocable sin afectar al tratamiento lícito anterior.'],
-   ['Proveedores y destinatarios','Cloudflare aloja el sitio. La protección de formularios usa Turnstile y contadores temporales asociados a un identificador derivado de la IP para limitar abusos. Supabase proporciona base de datos, autenticación y almacenamiento. Google Fonts entrega la tipografía y Google Analytics puede medir visitas con consentimiento. Los enlaces de calendario, correo y redes sociales abren servicios externos. No vendemos los contactos recibidos mediante el sitio.'],
-   ['Conservación','Los datos deben limitarse al tiempo necesario para su finalidad y para cumplir las obligaciones aplicables. El responsable confirmará la política operativa de conservación; los detalles pendientes se indican abajo.'],
-   ['Sus derechos','Puede solicitar acceso, rectificación, supresión, oposición, limitación y portabilidad, cuando procedan, mediante hola@thekohaus.com. Podrá verificarse su identidad de forma proporcionada. Puede reclamar ante la Agencia Española de Protección de Datos (aepd.es).'],
-   ['Protección e incidentes','El panel requiere autenticación. Las medidas deben mantenerse y verificarse continuamente; ningún sistema es infalible. Las brechas de datos personales se evaluarán y comunicarán a la autoridad y a los afectados cuando la ley lo exija. Este sitio no toma decisiones exclusivamente automatizadas de adjudicación de inmuebles.'],
+  privacy: [
+  [
+    "Datos y finalidades",
+    [
+      {
+        "title": "Consultas y contactos",
+        "description": "Atender solicitudes de información sobre inmuebles y servicios a través de los canales disponibles."
+      },
+      {
+        "title": "Servicios inmobiliarios y visitas",
+        "description": "Gestionar solicitudes, criterios de búsqueda, visitas y el seguimiento precontractual y contractual."
+      },
+      {
+        "title": "Comunicaciones comerciales",
+        "description": "Enviar novedades y oportunidades cuando exista consentimiento u otra autorización legal aplicable, con posibilidad de oposición."
+      },
+      {
+        "title": "Calidad y seguridad",
+        "description": "Mejorar la atención y proteger el sitio frente a accesos no autorizados y usos abusivos."
+      },
+      {
+        "title": "Obligaciones legales",
+        "description": "Tratar los datos necesarios para la facturación y las demás obligaciones aplicables a la operación."
+      },
+      {
+        "title": "Canales de comunicación",
+        "description": "Coordinar la atención y las visitas por correo, teléfono o, si el interesado lo elige, mensajería instantánea."
+      }
+    ]
   ],
-  privacyPending:['Confirmar formalmente el responsable y el canal hola@thekohaus.com para derechos e incidentes.','Definir y documentar los plazos de conservación de leads, clientes, visitas, facturas y logs; confirmar el uso de comunicaciones comerciales.','Verificar contratos, regiones de almacenamiento, subencargados y transferencias internacionales, incluidas sus garantías jurídicas.','Verificar la configuración activa de análisis, protección antibots y conservación antes de la publicación definitiva.'],
- },
+  [
+    "Por qué podemos utilizar sus datos",
+    {
+      "paragraphs": [
+        "Cuando solicita información o una visita, utilizamos los datos necesarios para responder y organizar la atención. Si la solicitud está relacionada con una posible contratación, se trata de medidas precontractuales; cuando contrata un servicio, utilizamos los datos para cumplir el contrato.",
+        "Para finalidades opcionales, como recibir novedades o permitir el análisis de visitas al sitio, solicitamos su consentimiento. Puede retirarlo en cualquier momento, sin afectar al uso anterior autorizado. También tratamos datos cuando la ley lo exige, por ejemplo, para emitir y conservar facturas.",
+        "Proteger el sitio frente al fraude y los accesos indebidos puede basarse en nuestro interés legítimo en mantener un servicio seguro, siempre que se respeten sus derechos. Puede pedir aclaraciones sobre cualquiera de estos usos."
+      ]
+    }
+  ],
+  [
+    "Dónde se guardan los datos y quién los trata",
+    {
+      "paragraphs": [
+        "Sus datos se guardan en los sistemas utilizados por KOHAUS para gestionar la atención y los servicios inmobiliarios. El acceso está limitado a las personas autorizadas y a los proveedores que necesitan esos datos para apoyar el almacenamiento, el mantenimiento o la comunicación, sujetos a las obligaciones de confidencialidad y protección de datos aplicables. Puede solicitar información sobre los lugares de almacenamiento y quién tiene acceso a sus datos en hola@thekohaus.com."
+      ]
+    }
+  ],
+  [
+    "Conservación",
+    [
+      "Conservamos los datos solo durante el tiempo necesario para la finalidad del tratamiento.",
+      "También cumplimos los plazos de conservación exigidos por la ley."
+    ]
+  ],
+  [
+    "Seguridad",
+    "Implementamos medidas técnicas y organizativas para proteger sus datos personales frente a accesos no autorizados, pérdida, alteración o uso indebido. Limitamos el acceso a las personas autorizadas y revisamos las medidas de protección y las actualizaciones de seguridad."
+  ],
+  [
+    "Transparencia",
+    "Informamos de forma clara y accesible sobre cómo y por qué tratamos sus datos personales. Si tiene dudas sobre algún uso, proveedor o plazo de conservación, puede escribir a hola@thekohaus.com. Los cambios relevantes en el tratamiento se reflejarán en esta política."
+  ],
+  [
+    "Ejercicio de derechos",
+    {
+      "intro": "Puede ejercer los siguientes derechos, cuando procedan, enviando un correo a hola@thekohaus.com.",
+      "items": [
+        {
+          "title": "Acceso",
+          "description": "Consultar sus datos personales y la información sobre su tratamiento."
+        },
+        {
+          "title": "Rectificación",
+          "description": "Corregir datos inexactos o incompletos."
+        },
+        {
+          "title": "Supresión",
+          "description": "Solicitar la eliminación de los datos en los supuestos previstos por la ley."
+        },
+        {
+          "title": "Limitación",
+          "description": "Solicitar la restricción del tratamiento en los casos aplicables."
+        },
+        {
+          "title": "Portabilidad",
+          "description": "Recibir los datos en un formato estructurado y transmitirlos a otro responsable, cuando proceda."
+        },
+        {
+          "title": "Oposición",
+          "description": "Oponerse al tratamiento en los supuestos previstos por la ley, incluido el marketing directo."
+        }
+      ]
+    }
+  ]
+] },
  en: {
   legalContact: 'Questions about this legal notice?',
+  privacyContact:'Questions about privacy or exercising your rights?',
+  controllerLabel:'Data controller: ',
   ownerDetails: 'Website owner: ', addressPending: 'Full address for notices: awaiting confirmation.', training: 'Training in real estate brokerage completed. Training does not constitute professional registration.',
   identity:'Controller identification', name:'Name supplied by the owner: Corhouse Real Estate — confirm legal identity and relationship to the KOHAUS brand.', pending:['Owner’s tax identifier (NIF/NIE/CIF): TO BE CONFIRMED.','Full legal address for notices: PENDING. Barcelona, Spain is only the business location.','Company and professional registration (including AICAT where applicable), authorization and professional rules: TO BE VERIFIED.'],
-  note:'The owner must confirm the information highlighted in yellow before final validation of these texts.',
+  note:'The owner still needs to confirm the legal identity, retention periods and some provider settings. Outstanding items are listed on this page.',
   legal:[
    ["1. Terms of use", "This website presents KOHAUS real estate services. Its use is subject to these terms and applicable law. Browsing or submitting an enquiry does not itself establish a purchase, sale, rental or service contract. Contracted services will have their own terms."],
    ["2. Changes to these terms", "KOHAUS may update these terms to reflect changes in services or legal requirements. Please check this page periodically. Changes do not remove accrued rights or replace the terms of signed contracts."],
@@ -70,14 +249,101 @@ export const legalContent = {
    ["8. Trademarks and distinctive signs", "The KOHAUS name, logo and other distinctive signs belong to their respective owners. Their appearance on this website does not authorize their use. Applicable protection derives from current law; this notice does not assume that every sign is registered."],
    ["9. Applicable law and contact", "Relevant Spanish and European law applies. Disputes will be submitted to the competent courts under applicable law, preserving mandatory rules and consumer rights. For questions about these terms: hola@thekohaus.com · +34 665 32 47 91."],
   ],
-  privacy:[
-   ['Data and purposes','We process contact details and information submitted through forms, language, search criteria and information needed to arrange viewings, provide assistance and, where services are contracted, issue invoices. Avoid sending sensitive information or documents through free-text fields.'],
-   ['Legal bases','Enquiries related to a potential contract are handled to take pre-contractual steps requested by the individual. Service delivery and legal obligations support the corresponding processing. Optional marketing communications and visitor analytics require consent, which can be withdrawn without affecting earlier lawful processing.'],
-   ['Providers and recipients','Cloudflare hosts the website. Form protection uses Turnstile and temporary counters associated with an identifier derived from the IP address to limit abuse. Supabase provides database, authentication and storage services. Google Fonts delivers typography and Google Analytics may measure visits with consent. Calendar, email and social links open external services. We do not sell contacts received through the website.'],
-   ['Retention','Data must be limited to the period required for its purpose and applicable legal obligations. The controller will confirm the operational retention policy; outstanding details are highlighted below.'],
-   ['Your rights','You may request access, rectification, erasure, objection, restriction and portability where applicable at hola@thekohaus.com. Proportionate identity verification may be required. You may complain to the Spanish Data Protection Agency (aepd.es).'],
-   ['Protection and incidents','Dashboard access requires authentication. Safeguards need ongoing maintenance and verification; no system is infallible. Personal data breaches will be assessed and reported to the authority and affected people when legally required. This website does not make solely automated property allocation decisions.'],
+  privacy: [
+  [
+    "Data and purposes",
+    [
+      {
+        "title": "Enquiries and contacts",
+        "description": "Respond to requests for information about properties and services through the available contact channels."
+      },
+      {
+        "title": "Property services and viewings",
+        "description": "Manage enquiries, search criteria, viewings and pre-contractual and contractual follow-up."
+      },
+      {
+        "title": "Marketing communications",
+        "description": "Send news and opportunities with consent or other applicable legal authorization, with an option to object."
+      },
+      {
+        "title": "Quality and security",
+        "description": "Improve assistance and protect the website against unauthorized access and misuse."
+      },
+      {
+        "title": "Legal obligations",
+        "description": "Process the data required for invoicing and other obligations applicable to the transaction."
+      },
+      {
+        "title": "Communication channels",
+        "description": "Coordinate assistance and viewings by email, telephone or, if the individual chooses, instant messaging."
+      }
+    ]
   ],
-  privacyPending:['Formally confirm the controller and hola@thekohaus.com as the channel for rights and incidents.','Define and document retention periods for leads, clients, viewings, invoices and logs; confirm marketing use.','Verify provider agreements, storage regions, subprocessors and international transfers, including their legal safeguards.','Verify active analytics, bot protection and retention settings before final publication.'],
- },
+  [
+    "Why we can use your data",
+    {
+      "paragraphs": [
+        "When you request information or a viewing, we use the details needed to respond and arrange assistance. If the enquiry relates to a potential contract, these are pre-contractual steps; when you engage our services, we use the data to fulfil that contract.",
+        "For optional purposes, such as receiving news or allowing visitor analytics, we ask for your consent. You may withdraw it at any time without affecting previously authorized use. We also process data when required by law, for example to issue and retain invoices.",
+        "Protecting the website against fraud and unauthorized access may rely on our legitimate interest in keeping the service secure, provided your rights are respected. You can ask for clarification about any of these uses."
+      ]
+    }
+  ],
+  [
+    "Where data is stored and who processes it",
+    {
+      "paragraphs": [
+        "Your data is stored in the systems KOHAUS uses to manage enquiries and property services. Access is restricted to authorized people and providers that need the data to support storage, maintenance or communication, subject to applicable confidentiality and data protection obligations.",
+        "You can request information about storage locations and who has access to your data at hola@thekohaus.com."
+      ]
+    }
+  ],
+  [
+    "Retention",
+    [
+      "We keep data only for as long as necessary for its purpose.",
+      "We also comply with legally required retention periods."
+    ]
+  ],
+  [
+    "Security",
+    "We implement technical and organizational measures to protect your personal data against unauthorized access, loss, alteration or misuse. We restrict access to authorized people and review our safeguards and security updates."
+  ],
+  [
+    "Transparency",
+    "We explain clearly and accessibly how and why we process your personal data. If you have questions about a use, provider or retention period, you can write to hola@thekohaus.com. Relevant changes to processing will be reflected in this policy."
+  ],
+  [
+    "Exercising your rights",
+    {
+      "intro": "You may exercise the following rights, where applicable, by emailing hola@thekohaus.com.",
+      "items": [
+        {
+          "title": "Access",
+          "description": "View your personal data and information about its processing."
+        },
+        {
+          "title": "Rectification",
+          "description": "Correct inaccurate or incomplete data."
+        },
+        {
+          "title": "Erasure",
+          "description": "Request deletion in the circumstances provided by law."
+        },
+        {
+          "title": "Restriction",
+          "description": "Request that processing be restricted where applicable."
+        },
+        {
+          "title": "Portability",
+          "description": "Receive data in a structured format and transfer it to another controller where applicable."
+        },
+        {
+          "title": "Objection",
+          "description": "Object to processing in the circumstances provided by law, including direct marketing."
+        }
+      ]
+    }
+  ]
+] },
 }

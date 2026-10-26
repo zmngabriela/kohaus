@@ -16,3 +16,17 @@ it('shows compact owner details after the terms and a contact link without publi
  expect(screen.getByRole('link', {name:'+34 665 32 47 91'})).toHaveAttribute('href','tel:+34665324791')
  expect(screen.queryByText(/Formação em intermediação/)).not.toBeInTheDocument()
 })
+
+it.each(['pt','es','en'])('shows purposes and rights without the technology section in %s', language=>{
+ const {container}=render(<LegalPage page="privacy" language={language} />)
+ const lists=container.querySelectorAll('.legal-bullet-list')
+ expect(lists).toHaveLength(2)
+ expect(lists[0].querySelectorAll('li')).toHaveLength(6)
+ expect(lists[0].textContent).not.toMatch(/inteligência artificial|inteligencia artificial|artificial intelligence/i)
+ expect(lists[1].querySelectorAll('li')).toHaveLength(6)
+ expect(container.textContent).not.toMatch(/inteligência artificial|inteligencia artificial|artificial intelligence/i)
+ expect(container.textContent).toMatch(/pré-contratuais|precontractuales|pre-contractual/)
+ expect(container.textContent).not.toMatch(/cláusulas contratuais-tipo|cláusulas contractuales tipo|standard contractual clauses/)
+ expect(container.textContent).not.toMatch(/DILS|LUCAS FOX|info@walterhaus/)
+ expect(screen.getByRole('link',{name:'hola@thekohaus.com'})).toHaveAttribute('href','mailto:hola@thekohaus.com')
+})
