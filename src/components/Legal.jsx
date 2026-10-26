@@ -1,4 +1,4 @@
-import { cookieCopy } from '../lib/cookie-copy'
+import { getCookiePolicy } from '../lib/cookiePolicy'
 import { legalContent, legalOwner } from '../lib/legalContent'
 import './Legal.css'
 const labels = {
@@ -9,18 +9,11 @@ const labels = {
 export function LegalPage({ page, language }) {
  const c = legalContent[language] || legalContent.es
  const l = labels[language] || labels.es
- const cookies = cookieCopy[language] || cookieCopy.es
- const sections = page === 'cookies' ? [[cookies.necessary,cookies.necessaryText],[cookies.preferences,cookies.preferencesText],[cookies.analytics,cookies.analyticsText],[cookies.policy,cookies.storage],[cookies.settings,cookies.control]] : page === 'privacy' ? c.privacy : c.legal
+ const cookies = getCookiePolicy(language)
+ const sections = page === 'cookies' ? cookies.sections : page === 'privacy' ? c.privacy : c.legal
  return <main className="legal-page">
   <a href={`?lang=${language}`}>{l.home}</a>
   <h1 className="section-title">{l[page]}</h1>
-  {page === 'cookies' && <>
-  <p>{c.note}</p>
-  <section><h2>{c.identity}</h2><p><mark className="legal-pending">{c.name}</mark></p>
-   {c.pending.map(text=><p key={text}><mark className="legal-pending">{text}</mark></p>)}
-   <p><a href="mailto:hola@thekohaus.com">hola@thekohaus.com</a> · <a href="tel:+34665324791">+34 665 32 47 91</a></p>
-  </section>
-  </>}
   {sections.map(([heading,content])=>{
    const items = Array.isArray(content) && typeof content[0] === 'object' ? content : content?.items
    return <section key={heading}><h2>{heading}</h2>
@@ -32,10 +25,10 @@ export function LegalPage({ page, language }) {
    <p className="legal-owner-details">{c.ownerDetails}{legalOwner.name} · {legalOwner.city} · <a href={`mailto:${legalOwner.email}`}>{legalOwner.email}</a> · <a href="tel:+34665324791">+34 665 32 47 91</a></p>
    <p className="legal-contact">{c.legalContact} <a href="mailto:hola@thekohaus.com">hola@thekohaus.com</a></p>
   </section>}
-  {page === 'privacy' && <section>
+  {(page === 'privacy' || page === 'cookies') && <section>
    <h2>{c.identity}</h2>
    <p className="legal-owner-details">{c.controllerLabel}{legalOwner.name} · {legalOwner.city} · <a href={`mailto:${legalOwner.email}`}>{legalOwner.email}</a> · <a href="tel:+34665324791">+34 665 32 47 91</a></p>
-   <p className="legal-contact">{c.privacyContact} <a href="mailto:hola@thekohaus.com">hola@thekohaus.com</a></p>
+   <p className="legal-contact">{page === 'cookies' ? cookies.contact : c.privacyContact} <a href="mailto:hola@thekohaus.com">hola@thekohaus.com</a></p>
   </section>}
  </main>
 }

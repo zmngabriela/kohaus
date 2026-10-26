@@ -30,3 +30,15 @@ it.each(['pt','es','en'])('shows purposes and rights without the technology sect
  expect(container.textContent).not.toMatch(/DILS|LUCAS FOX|info@walterhaus/)
  expect(screen.getByRole('link',{name:'hola@thekohaus.com'})).toHaveAttribute('href','mailto:hola@thekohaus.com')
 })
+
+it.each(['pt','es','en'])('shows three cookie categories and places contact details last in %s', language=>{
+ const {container}=render(<LegalPage page="cookies" language={language} />)
+ const lists=container.querySelectorAll('.legal-bullet-list')
+ expect(lists).toHaveLength(2)
+ expect(lists[0].querySelectorAll('li')).toHaveLength(3)
+ expect(lists[1].querySelectorAll('li')).toHaveLength(4)
+ expect(container.textContent).toContain('180')
+ expect(container.querySelectorAll('mark')).toHaveLength(0)
+ expect(container.lastElementChild).toHaveTextContent('José Guilherme Coninch')
+ expect(container.lastElementChild.querySelector('.legal-contact a')).toHaveAttribute('href','mailto:hola@thekohaus.com')
+})
