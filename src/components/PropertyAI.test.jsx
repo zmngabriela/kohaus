@@ -56,3 +56,16 @@ it('explains when the function cannot be reached',async()=>{
  await waitFor(()=>expect(screen.getByRole('alert').textContent).toMatch(/confirme se ela foi publicada/i))
  expect(setForm).not.toHaveBeenCalled()
 })
+
+it('keeps translation edits when the panel is closed and reopened',()=>{
+ render(<PropertyAI form={form} setForm={vi.fn()} language="pt"><label>Translation<input defaultValue="Original" /></label></PropertyAI>)
+ const toggle=screen.getByRole('button',{name:/Editar traduções/})
+ expect(screen.getByLabelText('Translation')).not.toBeVisible()
+ fireEvent.click(toggle)
+ fireEvent.change(screen.getByLabelText('Translation'),{target:{value:'Edited'}})
+ fireEvent.click(toggle)
+ expect(screen.getByLabelText('Translation')).not.toBeVisible()
+ fireEvent.click(toggle)
+ expect(screen.getByLabelText('Translation')).toHaveValue('Edited')
+ expect(toggle).toHaveAttribute('aria-expanded','true')
+})

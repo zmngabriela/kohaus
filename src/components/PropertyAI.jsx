@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useId } from 'react'
 import { supabase } from '../lib/supabase'
 import { publicFacts, validateResult } from '../../supabase/functions/property-ai/core.js'
 const copy={
@@ -20,9 +20,12 @@ async function errorCode(error){
  }
  return context?.status===429?'rate_limited':context?.status===401?'unauthorized':context?.status===403?'forbidden':context?.status===503?'not_configured':context?.status>=500?'provider_unavailable':context?.status===404||!Number.isFinite(context?.status)?'function_unavailable':'error'
 }
-export default function PropertyAI({form,setForm,language,client=supabase}) {
+export default function PropertyAI({form,setForm,language,children,client=supabase}) {
  const c=copy[language] || copy.es
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[suggestion,setSuggestion]=useState(null)
+ const [translationsOpen,setTranslationsOpen]=useState(false)
+ const translationsId=useId()
+ const editTranslations=({pt:'Editar traduções',es:'Editar traducciones',en:'Edit translations'})[language] || 'Edit translations'
  const alive=useRef(true)
  useEffect(()=>{alive.current=true;return()=>{alive.current=false}},[])
  async function run(action){
@@ -45,7 +48,8 @@ export default function PropertyAI({form,setForm,language,client=supabase}) {
  }
  return <section className="dashboard-property-form-full property-ai" aria-label="KOHAUS AI">
   <p className="dashboard-property-help">{c.hint}</p>
-  <div className="dashboard-auth-actions"><button type="button" className="outline-button" disabled={busy} onClick={()=>run('generate')}>{busy?c.busy:c.generate}</button><button type="button" className="outline-button" disabled={busy} onClick={()=>run('translate')}>{c.translate}</button></div>
+  <div className="dashboard-auth-actions"><button type="button" className="outline-button" disabled={busy} onClick={()=>run('generate')}>{busy?c.busy:c.generate}</button><button type="button" className="outline-button" disabled={busy} onClick={()=>run('translate')}>{c.translate}</button>{children && <button type="button" className="outline-button" aria-expanded={translationsOpen} aria-controls={translationsId} onClick={()=>setTranslationsOpen(open=>!open)}>{editTranslations} {translationsOpen ? '−' : '+'}</button>}</div>
+  {children && <div className="property-translations" id={translationsId} hidden={!translationsOpen}>{children}</div>}
   {error && <p role="alert">{error}</p>}
   {suggestion && <div aria-live="polite"><p className="dashboard-property-help">{c.review}</p>{suggestion.action==='generate'?<p className="property-ai-preview">{suggestion.result.description}</p>:Object.entries(suggestion.result.translations).map(([lang,text])=><div key={lang}><strong>{({pt:'Português',es:'Español',en:'English'})[lang]}</strong><p>{text.title}</p><p className="property-ai-preview">{text.description}</p></div>)}<div className="dashboard-auth-actions"><button type="button" className="outline-button" onClick={apply}>{c.apply}</button><button type="button" className="outline-button" onClick={()=>setSuggestion(null)}>{c.discard}</button></div></div>}
  </section>

@@ -3376,3 +3376,13 @@
 .property-editor-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; width: 100%; }
 .property-editor-actions > button { width: auto; }
 .property-editor-bottom-back { display: flex; justify-content: flex-end; }
+
+.property-translations:not([hidden]) {
+  display: grid;
+  gap: 24px;
+  margin-top: 24px;
+}
+.property-translations > div {
+  display: grid;
+  gap: 16px;
+}

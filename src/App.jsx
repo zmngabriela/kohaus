@@ -283,7 +283,7 @@ const COPY = {
       seeProperties: 'Ver inmuebles',
       aboutLabel: 'Descubre más sobre nosotros',
       aboutTitle: 'Una marca inmobiliaria de conexión, curaduría y visión internacional.',
-      aboutCopy: 'Con una presencia natural entre Barcelona y la Costa Brava, KOHAUS une conocimiento local y perspectiva internacional, manteniendo conexiones puntuales con Portugal y Brasil.',
+      aboutCopy: 'Con presencia en Barcelona y la Costa Brava, KOHAUS combina una mirada selectiva con una perspectiva internacional, manteniendo conexiones con Portugal y Brasil.',
       aboutCta: 'Sobre nosotros',
     },
     ownerForm: {
@@ -5437,7 +5437,7 @@ export default function App() {
                   onChange={(event) => setPropertyForm((current) => ({ ...current, observations: event.target.value }))}
                 />
               </label>
-              <PropertyAI key={`${propertyEditor.mode}:${propertyEditor.propertyId}`} form={propertyForm} setForm={setPropertyForm} language={language} />
+              <PropertyAI key={`${propertyEditor.mode}:${propertyEditor.propertyId}`} form={propertyForm} setForm={setPropertyForm} language={language}>
               <div className="dashboard-property-form-full">
                 <p>{language === 'pt' ? 'Traduções do anúncio' : language === 'es' ? 'Traducciones del anuncio' : 'Listing translations'}</p>
                 <p className="dashboard-property-help">{language === 'pt' ? 'Campos opcionais. Quando vazios, o site usa o título e a descrição originais acima.' : language === 'es' ? 'Campos opcionales. Si están vacíos, se utiliza el título y la descripción originales.' : 'Optional fields. Empty fields use the original title and description above.'}</p>
@@ -5450,6 +5450,52 @@ export default function App() {
                   <textarea value={propertyForm.portalData?.translations?.[locale]?.description || ''} onChange={event => setPropertyForm(current => ({ ...current, portalData: { ...current.portalData, translations: { ...current.portalData?.translations, [locale]: { ...current.portalData?.translations?.[locale], description: event.target.value } } } }))} />
                 </label>
               </div>)}
+              </PropertyAI>
+              <section className="dashboard-property-form-full dashboard-portal-data-section">
+                <div className="dashboard-portal-prep-head">
+                  <div>
+                    <span>{portalFormCopy.title}</span>
+                    <small className="dashboard-property-help">{portalFormCopy.help}</small>
+                  </div>
+                </div>
+                <div className="dashboard-portal-data-grid">
+                  {PORTAL_DATA_FIELDS.map(([field, type], index) => (
+                    <label key={field}>
+                      <span>{portalFormCopy.fields[index]}</span>
+                      <input
+                        type={type}
+                        value={propertyForm.portalData[field]}
+                        onChange={(event) => setPropertyForm((current) => ({
+                          ...current,
+                          portalData: { ...current.portalData, [field]: event.target.value },
+                        }))}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </section>
+                  <div className="dashboard-property-form-full">
+                    <p>{copy.property.detailLabels.extras}</p>
+                    <TogglePillGroup value={propertyForm.portalData.extras || []} options={Object.entries(copy.catalog.extras).map(([value, label]) => ({ value, label }))} onChange={value => setPropertyForm(current => ({ ...current, portalData: { ...current.portalData, extras: value } }))} ariaLabel={copy.property.detailLabels.extras} />
+                  </div>
+                <div className="dashboard-property-form-full dashboard-portal-environment">
+                  <span>{portalEnvironmentCopy.title}</span>
+                  <div className="dashboard-portal-environment-grid">
+                    {PORTAL_ENVIRONMENT_FIELDS.map((field, index) => (
+                      <label key={field}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(propertyForm.portalData[field])}
+                          onChange={(event) => setPropertyForm((current) => ({
+                            ...current,
+                            portalData: { ...current.portalData, [field]: event.target.checked },
+                          }))}
+                        />
+                        <span>{portalEnvironmentCopy.fields[index]}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               <label className="dashboard-property-form-full">
                 <span>{copy.dashboard.propertyFields.photos}</span>
                 <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={propertyForm.offMarket} onChange={handlePropertyPhotoFilesChange} />
@@ -5507,64 +5553,6 @@ export default function App() {
                   </div>
                 </div>
               ) : null}
-              {propertyEditor.mode === 'edit' && propertyEditor.propertyId ? (
-                <div className="dashboard-property-history dashboard-property-form-full">
-                  <span>{copy.dashboard.historyTitle}</span>
-                  <div className="dashboard-history-list">
-                    {(dashboardProperties.find((property) => property.id === propertyEditor.propertyId)?.history || []).map((item) => (
-                      <article key={item.id} className="dashboard-history-item">
-                        <p>{item.text}</p>
-                        <time>{formatDate(item.createdAt, language)}</time>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-                  <div className="dashboard-property-form-full">
-                    <p>{copy.property.detailLabels.extras}</p>
-                    <TogglePillGroup value={propertyForm.portalData.extras || []} options={Object.entries(copy.catalog.extras).map(([value, label]) => ({ value, label }))} onChange={value => setPropertyForm(current => ({ ...current, portalData: { ...current.portalData, extras: value } }))} ariaLabel={copy.property.detailLabels.extras} />
-                  </div>
-              <section className="dashboard-property-form-full dashboard-portal-data-section">
-                <div className="dashboard-portal-prep-head">
-                  <div>
-                    <span>{portalFormCopy.title}</span>
-                    <small className="dashboard-property-help">{portalFormCopy.help}</small>
-                  </div>
-                </div>
-                <div className="dashboard-portal-data-grid">
-                  {PORTAL_DATA_FIELDS.map(([field, type], index) => (
-                    <label key={field}>
-                      <span>{portalFormCopy.fields[index]}</span>
-                      <input
-                        type={type}
-                        value={propertyForm.portalData[field]}
-                        onChange={(event) => setPropertyForm((current) => ({
-                          ...current,
-                          portalData: { ...current.portalData, [field]: event.target.value },
-                        }))}
-                      />
-                    </label>
-                  ))}
-                </div>
-                <div className="dashboard-portal-environment">
-                  <span>{portalEnvironmentCopy.title}</span>
-                  <div className="dashboard-portal-environment-grid">
-                    {PORTAL_ENVIRONMENT_FIELDS.map((field, index) => (
-                      <label key={field}>
-                        <input
-                          type="checkbox"
-                          checked={Boolean(propertyForm.portalData[field])}
-                          onChange={(event) => setPropertyForm((current) => ({
-                            ...current,
-                            portalData: { ...current.portalData, [field]: event.target.checked },
-                          }))}
-                        />
-                        <span>{portalEnvironmentCopy.fields[index]}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </section>
               <details className="dashboard-property-form-full dashboard-portal-picker">
                 <summary>
                   <span>{portalFormCopy.select}</span>
@@ -5588,6 +5576,19 @@ export default function App() {
                   ))}
                 </div>
               </details>
+              {propertyEditor.mode === 'edit' && propertyEditor.propertyId ? (
+                <details key={propertyEditor.propertyId} className="dashboard-property-history dashboard-property-form-full dashboard-portal-picker">
+                  <summary>{copy.dashboard.historyTitle}</summary>
+                  <div className="dashboard-history-list">
+                    {(dashboardProperties.find((property) => property.id === propertyEditor.propertyId)?.history || []).map((item) => (
+                      <article key={item.id} className="dashboard-history-item">
+                        <p>{item.text}</p>
+                        <time>{formatDate(item.createdAt, language)}</time>
+                      </article>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
               <div className="dashboard-property-form-full"><PropertyEditorActions editing={propertyEditor.mode === 'edit'} busy={propertySaving} language={language} saveLabel={propertyEditor.mode === 'edit' ? copy.dashboard.updateProperty : copy.dashboard.addProperty} savingLabel={copy.dashboard.saving} onDelete={handleDeleteProperty} /></div>
               <div className="dashboard-property-form-full property-editor-bottom-back"><button type="button" className="dashboard-editor-secondary" disabled={propertySaving} onClick={closePropertyEditor}>{copy.dashboard.backToProperties}</button></div>
             </form>
