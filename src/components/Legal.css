@@ -29,3 +29,6 @@
 @media(max-width:720px) { .legal-page { padding-top:36px; } }
 
 .legal-pending { background:#fff1a8; color:#323232; padding:2px 4px; box-decoration-break:clone; }
+
+.legal-page .legal-contact { margin-top: 24px; font-size: .875rem; }
+.legal-page .legal-owner-details a { text-decoration: none; }

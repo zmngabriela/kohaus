@@ -28,6 +28,7 @@ import { normalizeTypes, parseBudget } from './lib/clientCriteria'
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 const Invoices = lazy(() => import('./components/Invoices'))
 import './App.css'
+import './components/PropertyWatermark.css'
 import './components/Dropdown.css'
 import Tasks from './components/Tasks'
 import { unlinkLocalTaskReference } from './lib/tasks'
@@ -5929,7 +5930,7 @@ export default function App() {
                 return (
                   <article key={property.id} className="listing-card" onClick={() => property.offMarket ? setOffMarketSelection(property) : goProperty(property)}>
                     <div
-                      className="listing-media"
+                      className={`listing-media${property.offMarket ? '' : ' property-watermark'}`}
                       style={{
                         backgroundImage: `linear-gradient(rgba(20, 16, 14, 0.08), rgba(20, 16, 14, 0.18)), url(${property.image})`,
                       }}
@@ -6132,7 +6133,7 @@ export default function App() {
         <main className="property-page">
           <section className="property-hero">
             <div
-              className="property-hero-media"
+              className="property-hero-media property-watermark"
               style={{
                 backgroundImage: `linear-gradient(rgba(18, 14, 12, 0.12), rgba(18, 14, 12, 0.26)), url(${selectedProperty.image})`,
               }}
@@ -6190,14 +6191,14 @@ export default function App() {
 
           <section className="property-gallery">
             {selectedProperty.gallery.map((image, index) => (
+              <div key={`${selectedProperty.id}-${index}`} className={`property-watermark property-gallery-item property-gallery-item-${index + 1}`}>
               <img
-                key={`${selectedProperty.id}-${index}`}
-                className={`property-gallery-item property-gallery-item-${index + 1}`}
                 src={image}
                 alt={selectedPropertyText.title}
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
               />
+              </div>
             ))}
           </section>
 
@@ -6314,7 +6315,7 @@ export default function App() {
                 return (
                   <article key={property.id} className="listing-card" onClick={() => goProperty(property)}>
                     <div
-                      className="listing-media"
+                      className={`listing-media${property.offMarket ? '' : ' property-watermark'}`}
                       style={{
                         backgroundImage: `linear-gradient(rgba(20, 16, 14, 0.08), rgba(20, 16, 14, 0.18)), url(${property.image})`,
                       }}
@@ -6447,7 +6448,7 @@ export default function App() {
                       <p>{propertyMeta}</p>
                     </div>
                     <div
-                      className="featured-property-image"
+                      className={`featured-property-image${property.offMarket ? '' : ' property-watermark'}`}
                       style={{
                         backgroundImage: `linear-gradient(rgba(24, 20, 17, 0.08), rgba(24, 20, 17, 0.18)), url(${property.image})`,
                       }}
