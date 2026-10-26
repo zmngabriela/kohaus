@@ -3234,7 +3234,7 @@ function Footer({ copy, language }) {
           <a href="https://es.linkedin.com/company/broker-guilherme-coninch" target="_blank" rel="noopener noreferrer">LinkedIn</a>
         </nav>
       </div>
-      <div>
+      <div className="footer-legal">
         <span>{copy.footer.legal}</span>
         <nav className="legal-links" aria-label={copy.footer.legal}>
           {['legal', 'privacy', 'cookies'].map((page, index) => <a key={page} href={`?view=${page}&lang=${language}`}>{copy.footer.legalLinks[index]}</a>)}
