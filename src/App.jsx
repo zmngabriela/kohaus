@@ -1,5 +1,4 @@
 import { availableFeaturedSlots, selectFeatured } from './lib/featuredProperties'
-import Markets from './components/Markets'
 import Seo from './components/Seo'
 import { optimizePhoto } from './lib/optimizePhoto'
 import PropertyEditorActions from './components/PropertyEditorActions'
@@ -6484,8 +6483,6 @@ export default function App({ initialPage } = {}) {
             </div>
 
           </section>
-
-          <Markets language={language} />
 
           <section className="services-section" id="alquilar">
             <div className="editorial-band">

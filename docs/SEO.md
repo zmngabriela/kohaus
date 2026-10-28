@@ -4,7 +4,7 @@
 - Títulos e descrições por página, idioma, operação e destino; título e descrição reais nas páginas de imóveis.
 - Canonical sem parâmetros irrelevantes e alternates es/pt/en.
 - Dados estruturados Organization apenas com informações públicas verificadas; sem avaliações, endereço comercial ou habilitações inventadas.
-- Links HTML para os imóveis e para os mercados prioritários.
+- Links HTML para os imóveis.
 - Sitemap gerado no build de produção a partir da view pública. Inclui anúncios públicos, exclui anúncios individuais off-market. Não contém tokens nem endereços privados.
 - Preview/local: noindex. Builds preview também recebem robots bloqueado e X-Robots-Tag.
 
