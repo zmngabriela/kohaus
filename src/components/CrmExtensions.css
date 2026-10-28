@@ -23,3 +23,6 @@
 .crm-extension-form button,.invoice-list button { padding:12px 20px; min-height:44px; border:1px solid var(--line-strong); border-radius:0; background:var(--copy); color:var(--paper); font:inherit; cursor:pointer; }
 .invoice-list .invoice-delete-button { background:rgba(253,251,237,.8); color:#645a50; }
 @media(max-width:650px) { .invoice-list article { align-items:stretch; flex-direction:column; } .invoice-actions { width:100%; } .invoice-actions button { flex:1; } }
+
+.property-publication-options { display: grid; gap: 12px; padding: 8px 0; }
+.dashboard-property-form .property-publication-options .offmarket-toggle { padding: 0; }

@@ -12,7 +12,7 @@ if (!runningInVitest && (!supabaseUrl || !supabasePublishableKey)) {
 
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabasePublishableKey) && !runningInVitest
 
-export const supabase = hasSupabaseConfig
+export const supabase = hasSupabaseConfig && !import.meta.env.SSR
   ? createClient(supabaseUrl, supabasePublishableKey)
   : null
 

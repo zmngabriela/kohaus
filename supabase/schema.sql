@@ -556,6 +556,7 @@ select id, created_at, title, reference, operation, destination, type, price_val
  case when off_market then '' else observations end as observations,
  case when off_market then '[]'::jsonb else photos end as photos,
  case when off_market then '{}'::jsonb else jsonb_build_object(
+ 'featuredSlot', portal_data->'featuredSlot',
  'translations', coalesce(portal_data->'translations','{}'::jsonb),
  'extras', coalesce(portal_data->'extras','[]'::jsonb),
  'province',portal_data->'province','municipality',portal_data->'municipality',
@@ -837,3 +838,12 @@ end $$;
 revoke all on function public.save_property_with_address(jsonb,text,text) from public;
 grant execute on function public.save_property_with_address(jsonb,text,text) to authenticated;
 commit;
+
+
+-- Four numbered homepage slots; the unique index also protects concurrent saves.
+alter table public.dashboard_properties drop constraint if exists dashboard_properties_featured_slot_valid;
+alter table public.dashboard_properties add constraint dashboard_properties_featured_slot_valid
+ check (portal_data->>'featuredSlot' is null or portal_data->>'featuredSlot' in ('1','2','3','4'));
+create unique index if not exists dashboard_properties_featured_slot_unique
+ on public.dashboard_properties ((portal_data->>'featuredSlot'))
+ where status = 'active' and not off_market and portal_data->>'featuredSlot' is not null;

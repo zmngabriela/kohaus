@@ -7,6 +7,11 @@ incremental em um banco que já contém dados.
 
 Migrações disponíveis:
 
+- `202610281500_featured_properties.sql`: publica a seleção manual de destaques e limita
+  a quatro vagas únicas para imóveis ativos, fora de off-market. Aplicar primeiro no DEV
+  antes de testar a home. Não seleciona imóveis automaticamente; marcar e salvar os
+  destaques no editor. Aplicação em DEV/PROD ainda não confirmada.
+
 - `202610232100_security_boundaries.sql`: reforça acesso ao CRM e validação de leads.
 - `202610232110_private_media.sql`: restringe fotos a URLs assinadas e anúncios publicados.
 - `202610232120_protected_leads.sql`: direciona gravações de leads pelo gateway protegido.
