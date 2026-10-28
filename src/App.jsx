@@ -1,3 +1,4 @@
+import { availableFeaturedSlots, selectFeatured } from './lib/featuredProperties'
 import Markets from './components/Markets'
 import Seo from './components/Seo'
 import { optimizePhoto } from './lib/optimizePhoto'
@@ -2092,7 +2093,7 @@ async function fetchDashboardProperties(database = supabase, databaseEnabled = h
 
 function publicProperty(property) {
   const { id, createdAt, title, reference, operation, destination, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket } = property
-  return { id, createdAt, title, reference, operation, destination, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket, observations: offMarket ? '' : property.observations || '', photos: offMarket ? [] : property.photos || [], portalData: offMarket ? {} : Object.fromEntries(Object.entries(property.portalData || {}).filter(([key]) => ['translations','province','municipality','neighborhood','condition','usefulSurface','builtSurface','orientation','buildingYear','energyConsumptionRating','energyEmissionsRating','nearCityCenter','nearShops','nearSchools','nearPharmacy','nearParks','nearPolice','nearPublicTransport','numberOfFloors'].includes(key))), extras: offMarket ? [] : propertyExtras(property) }
+  return { id, createdAt, title, reference, operation, destination, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket, observations: offMarket ? '' : property.observations || '', photos: offMarket ? [] : property.photos || [], portalData: offMarket ? {} : Object.fromEntries(Object.entries(property.portalData || {}).filter(([key]) => ['featuredSlot','translations','province','municipality','neighborhood','condition','usefulSurface','builtSurface','orientation','buildingYear','energyConsumptionRating','energyEmissionsRating','nearCityCenter','nearShops','nearSchools','nearPharmacy','nearParks','nearPolice','nearPublicTransport','numberOfFloors'].includes(key))), extras: offMarket ? [] : propertyExtras(property) }
 }
 
 async function fetchPublishedProperties(database = supabase, databaseEnabled = hasSupabaseConfig) {
@@ -3709,10 +3710,11 @@ export default function App({ initialPage } = {}) {
     catalogFilters
   )
 
-  const featuredProperties = [...catalogProperties]
-    .filter((property) => property.image)
-    .sort((a, b) => closedListingsLast(a, b) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 4)
+  const featuredProperties = selectFeatured(catalogProperties)
+  const featuredSlots = availableFeaturedSlots(dashboardProperties, propertyEditor.propertyId)
+  const featuredEligible = propertyForm.status === 'active' && !propertyForm.offMarket
+  const featuredSelected = featuredEligible && Boolean(propertyForm.portalData?.featuredSlot)
+  const featuredRemaining = Math.max(0, featuredSlots.length - (featuredSelected ? 1 : 0))
 
   const filteredDashboardProperties = filterDashboardProperties(
     dashboardProperties,
@@ -4082,6 +4084,7 @@ export default function App({ initialPage } = {}) {
     setDashboardNotice('')
     setDataError('')
     try {
+      if (featuredSelected && !featuredSlots.includes(Number(propertyForm.portalData.featuredSlot))) throw new Error(language === 'pt' ? 'Essa vaga de destaque já foi ocupada. Atualize a lista e selecione novamente.' : language === 'es' ? 'Esta plaza ya está ocupada. Actualiza la lista y selecciona de nuevo.' : 'This featured slot is occupied. Refresh the list and select again.')
       const orderedPhotos = propertyForm.offMarket ? propertyPhotoItems.filter(item => item.source === 'existing').map(item => item.photo) : await resolvePropertyPhotos(propertyPhotoItems)
       const currentProperty = propertyEditor.propertyId
         ? dashboardProperties.find((property) => property.id === propertyEditor.propertyId)
@@ -4110,7 +4113,7 @@ export default function App({ initialPage } = {}) {
       setDashboardNotice(propertyEditor.mode === 'edit' ? copy.dashboard.propertySaved : copy.dashboard.propertyCreated)
     } catch (error) {
       console.error(error)
-      setDataError(error.message || 'Não foi possível salvar o imóvel no banco de dados.')
+      setDataError(error.message?.includes('dashboard_properties_featured_slot') ? (language === 'pt' ? 'Essa vaga de destaque foi ocupada por outro imóvel. Atualize a página e selecione novamente.' : language === 'es' ? 'Esta plaza está ocupada. Actualiza la página y selecciona de nuevo.' : 'This featured slot is occupied. Refresh the page and select again.') : error.message || 'Não foi possível salvar o imóvel no banco de dados.')
     } finally { propertySaveLock.current = false; setPropertySaving(false) }
   }
 
@@ -5437,11 +5440,18 @@ export default function App({ initialPage } = {}) {
                   required
                 />
               </label>
-              <label className="dashboard-property-form-full offmarket-toggle">
+              <div className="dashboard-property-form-full property-publication-options">
+              <label className="offmarket-toggle">
                 <input type="checkbox" checked={propertyForm.offMarket || false} onChange={e => setPropertyForm(current => ({ ...current, offMarket: e.target.checked }))} />
                 <span>Off-market</span>
                 <small>{language === 'pt' ? 'Exibir somente com imagem ilustrativa.' : language === 'es' ? 'Mostrar solo con imagen ilustrativa.' : 'Display with an illustrative image only.'}</small>
               </label>
+              <label className="offmarket-toggle">
+                <input type="checkbox" checked={featuredSelected} disabled={!featuredEligible || (!featuredSelected && !featuredSlots.length)} onChange={event => setPropertyForm(current => ({ ...current, portalData: { ...current.portalData, featuredSlot: event.target.checked ? featuredSlots[0] : null } }))} />
+                <span>{language === 'pt' ? 'Destaque na home' : language === 'es' ? 'Destacado en inicio' : 'Featured on homepage'}</span>
+                <small>{!featuredEligible ? (language === 'pt' ? 'Disponível para imóveis ativos que não sejam off-market.' : language === 'es' ? 'Disponible para inmuebles activos que no sean off-market.' : 'Available for active properties that are not off-market.') : (language === 'pt' ? `${featuredRemaining} de 4 vagas disponíveis. Salve para aplicar.` : language === 'es' ? `${featuredRemaining} de 4 plazas disponibles. Guarda para aplicar.` : `${featuredRemaining} of 4 slots available. Save to apply.`)}</small>
+              </label>
+              </div>
               <label className="dashboard-property-form-full">
                 <span>{copy.dashboard.propertyFields.observations}</span>
                 <textarea
