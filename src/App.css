@@ -339,16 +339,19 @@
 }
 
 .featured-property-card {
-  display: flex;
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
   min-width: 0;
-  flex-direction: column;
-  gap: 32px;
+  row-gap: 20px;
   cursor: pointer;
 }
 
 .featured-property-copy {
   display: grid;
-  gap: 10px;
+  grid-template-rows: subgrid;
+  grid-row: span 2;
+  row-gap: 10px;
 }
 
 .featured-property-copy h3,
@@ -357,7 +360,6 @@
 }
 
 .featured-property-copy h3 {
-  min-height: 2.5em;
   color: var(--paper);
   font-size: var(--fs-card-title);
   font-weight: 500;
@@ -3386,3 +3388,15 @@
   display: grid;
   gap: 16px;
 }
+
+.featured-property-copy h3 a,
+.listing-body h2 a { color: inherit; text-decoration: none; }
+.featured-property-copy h3 a:hover,
+.listing-body h2 a:hover { text-decoration: underline; text-underline-offset: .2em; }
+
+.markets-section { padding: 48px clamp(20px, 4vw, 60px); }
+.markets-section > p { max-width: 780px; color: var(--copy); line-height: 1.65; }
+.markets-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px; margin-top: 28px; }
+.markets-grid a { display: block; width: fit-content; color: var(--copy); font-size: var(--fs-body); margin-top: 10px; text-underline-offset: .2em; }
+@media (max-width: 900px) { .markets-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 480px) { .markets-grid { grid-template-columns: 1fr; } }

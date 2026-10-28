@@ -6,4 +6,4 @@ export function readAuthCallback(url) {
   return { active: Boolean(error) || ['invite', 'recovery'].includes(type), invalid: Boolean(error) }
 }
 // Capture before the Auth SDK consumes and removes the callback fragment.
-export const initialAuthCallback = readAuthCallback(window.location.href)
+export const initialAuthCallback = typeof window === 'undefined' ? { active: false, invalid: false } : readAuthCallback(window.location.href)
