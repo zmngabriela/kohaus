@@ -20,5 +20,5 @@ export async function loadPublicRows(config, fetcher = fetch) {
  if (!signed.ok) throw new Error('Public media unavailable')
  const data = await signed.json()
  const urls = new Map(data.map(item=>[item.path,item.signedURL ? new URL(`${config.url}/storage/v1${item.signedURL}`).href : '']))
- return published.map(row=>({...row,photos:(row.photos || []).map(photo=>({id:photo.id,name:photo.name,path:photo.path,url:photo.path ? urls.get(photo.path) || '' : /^https:\/\//.test(photo.url || '') ? photo.url : ''}))}))
+ return published.map(row=>({...row,photos:(row.photos || []).map(photo=>({id:photo.id,name:photo.name,caption:typeof photo.caption === 'string' ? photo.caption.slice(0,200) : '',path:photo.path,url:photo.path ? urls.get(photo.path) || '' : /^https:\/\//.test(photo.url || '') ? photo.url : ''}))}))
 }

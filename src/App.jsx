@@ -46,7 +46,7 @@ import { getPropertyMediaBucket, hasSupabaseConfig, supabase } from './lib/supab
 
 const LANGUAGES = ['es', 'en', 'pt']
 
-const PROPERTY_TYPE_OPTIONS = ['piso', 'apartamento', 'atico', 'loft', 'casa', 'villa', 'duplex', 'studio']
+const PROPERTY_TYPE_OPTIONS = ['apartamento', 'atico', 'loft', 'casa', 'villa', 'duplex', 'studio']
 
 const HOME_SEARCH_DEFAULTS = {
   operation: 'comprar',
@@ -97,7 +97,7 @@ const PROPERTY_FORM_DEFAULTS = {
   reference: '',
   operation: 'comprar',
   destination: 'barcelona',
-  type: 'piso',
+  type: 'apartamento',
   priceLabel: '',
   ownerClientId: '',
   privateAddress: '',
@@ -612,7 +612,7 @@ const COPY = {
       },
       types: {
         piso: 'Piso',
-        apartamento: 'Apartamento',
+        apartamento: 'Piso',
         atico: 'Ático',
         loft: 'Loft',
         casa: 'Casa',
@@ -637,6 +637,7 @@ const COPY = {
         vistas: 'Vistas',
         piscina: 'Piscina',
         jardin: 'Jardín',
+        parking: 'Aparcamiento',
         inversion: 'Inversión',
       },
       orderOptions: {
@@ -1064,6 +1065,7 @@ const COPY = {
         vistas: 'Views',
         piscina: 'Pool',
         jardin: 'Garden',
+        parking: 'Parking',
         inversion: 'Investment',
       },
       orderOptions: {
@@ -1491,6 +1493,7 @@ const COPY = {
         vistas: 'Vista',
         piscina: 'Piscina',
         jardin: 'Jardim',
+        parking: 'Estacionamento',
         inversion: 'Investimento',
       },
       orderOptions: {
@@ -1633,7 +1636,7 @@ function mapPropertyToForm(property) {
     reference: property.reference,
     operation: property.operation,
     destination: property.destination,
-    type: property.type,
+    type: normalizeTypes([property.type])[0],
     priceLabel: property.priceLabel,
     currency: property.currency || 'EUR',
     priceValue: String(propertyPrice(property) ?? ''),
@@ -1696,6 +1699,7 @@ function mapPhotosToEditorItems(photos) {
     source: 'existing',
     photo,
     name: photo.name || '',
+    caption: photo.caption || '',
     url: photo.url,
   }))
 }
@@ -1706,6 +1710,7 @@ function createEditorItemsFromFiles(files) {
     source: 'new',
     file,
     name: file.name,
+    caption: '',
     url: URL.createObjectURL(file),
   }))
 }
@@ -1883,11 +1888,11 @@ function getOperationLabel(operation, language) {
 }
 
 function getTypeLabel(type, language) {
-  return COPY[language].catalog.types[type] ?? type
+  return COPY[language].catalog.types[normalizeTypes([type])[0]] ?? type
 }
 
 function getCatalogTypeOptions(properties, language) {
-  return [...new Set(properties.map((property) => property.type))].map((type) => ({
+  return normalizeTypes(properties.map((property) => property.type)).map((type) => ({
     value: type,
     label: getTypeLabel(type, language),
   }))
@@ -2158,10 +2163,11 @@ async function resolvePropertyPhotos(photoItems) {
   return photoItems
     .map((item) => {
       if (item.source === 'existing') {
-        return item.photo
+        return { ...item.photo, caption: (item.caption || '').trim() }
       }
 
-      return uploadedByQueueId.get(item.queueId) ?? null
+      const photo = uploadedByQueueId.get(item.queueId)
+      return photo ? { ...photo, caption: (item.caption || '').trim() } : null
     })
     .filter(Boolean)
 }
@@ -2590,7 +2596,7 @@ export function mapPropertyFromSupabase(row) {
     reference: row.reference,
     operation: row.operation,
     destination: row.destination,
-    type: row.type,
+    type: normalizeTypes([row.type])[0],
     currency: row.currency || 'EUR',
     ...priceFields(row.price_value, row.currency || 'EUR'),
     surface: Number(row.surface || 0),
@@ -2679,7 +2685,7 @@ function filterCatalogProperties(properties, filters) {
         property.location.es.toLowerCase().includes(needle)
       )
     })
-    .filter((property) => filters.type.length === 0 || filters.type.includes(property.type))
+    .filter((property) => filters.type.length === 0 || normalizeTypes(filters.type).includes(normalizeTypes([property.type])[0]))
     .filter((property) => (!(filters.priceMin || filters.priceMax) || (property.currency || 'EUR') === (filters.priceCurrency || 'EUR')) && matchPriceRange(property.priceValue, filters.priceMin, filters.priceMax))
     .filter((property) => filters.surface === 'all' || matchSurfaceFilter(property.surface, filters.surface))
     .filter((property) => filters.rooms === 'all' || property.rooms >= Number(filters.rooms))
@@ -4084,7 +4090,7 @@ export default function App({ initialPage } = {}) {
     setDataError('')
     try {
       if (featuredSelected && !featuredSlots.includes(Number(propertyForm.portalData.featuredSlot))) throw new Error(language === 'pt' ? 'Essa vaga de destaque já foi ocupada. Atualize a lista e selecione novamente.' : language === 'es' ? 'Esta plaza ya está ocupada. Actualiza la lista y selecciona de nuevo.' : 'This featured slot is occupied. Refresh the list and select again.')
-      const orderedPhotos = propertyForm.offMarket ? propertyPhotoItems.filter(item => item.source === 'existing').map(item => item.photo) : await resolvePropertyPhotos(propertyPhotoItems)
+      const orderedPhotos = propertyForm.offMarket ? propertyPhotoItems.filter(item => item.source === 'existing').map(item => ({ ...item.photo, caption: (item.caption || '').trim() })) : await resolvePropertyPhotos(propertyPhotoItems)
       const currentProperty = propertyEditor.propertyId
         ? dashboardProperties.find((property) => property.id === propertyEditor.propertyId)
         : null
@@ -5538,11 +5544,15 @@ export default function App({ initialPage } = {}) {
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={() => handlePropertyPhotoDrop(item.queueId)}
                       >
-                        <img src={item.url} alt={item.name || propertyForm.title} />
+                        <img src={item.url} alt={item.caption || propertyForm.title} />
                         <figcaption>
                           <strong>{index + 1}</strong>
                           <span>{item.name || copy.dashboard.photoLabel}</span>
                         </figcaption>
+                        <label className="photo-caption-field" onDragStart={event => event.stopPropagation()}>
+                          <span>{language === 'pt' ? 'Legenda da foto' : language === 'es' ? 'Descripción de la foto' : 'Photo caption'}</span>
+                          <input type="text" maxLength={200} value={item.caption || ''} placeholder={language === 'pt' ? 'Ex.: Cozinha integrada' : language === 'es' ? 'Ej.: Cocina abierta' : 'E.g. Open-plan kitchen'} onChange={event => setPropertyPhotoItems(current => current.map(photo => photo.queueId === item.queueId ? { ...photo, caption: event.target.value } : photo))} />
+                        </label>
                         <div className="dashboard-sortable-photo-actions">
                           <button
                             type="button"
@@ -6158,6 +6168,8 @@ export default function App({ initialPage } = {}) {
           <section className="property-hero">
             <div
               className="property-hero-media property-watermark"
+              role="img"
+              aria-label={selectedProperty.photos?.[0]?.caption || selectedPropertyText.title}
               style={{
                 backgroundImage: `linear-gradient(rgba(18, 14, 12, 0.12), rgba(18, 14, 12, 0.26)), url(${selectedProperty.image})`,
               }}
@@ -6218,10 +6230,11 @@ export default function App({ initialPage } = {}) {
               <div key={`${selectedProperty.id}-${index}`} className={`property-watermark property-gallery-item property-gallery-item-${index + 1}`}>
               <img
                 src={image}
-                alt={selectedPropertyText.title}
+                alt={selectedProperty.photos?.[index]?.caption || selectedPropertyText.title}
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
               />
+              {selectedProperty.photos?.[index]?.caption && <span className="property-photo-caption">{selectedProperty.photos[index].caption}</span>}
               </div>
             ))}
           </section>
