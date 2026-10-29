@@ -1,3 +1,4 @@
+import PropertyMedia from './components/PropertyMedia'
 import { availableFeaturedSlots, selectFeatured } from './lib/featuredProperties'
 import Seo from './components/Seo'
 import { optimizePhoto } from './lib/optimizePhoto'
@@ -6,7 +7,7 @@ import { capitalizeCity, normalizeCity, cityKey, cityOptions } from './lib/prope
 import PropertyOwner from './components/PropertyOwner'
 import PropertyAI from './components/PropertyAI'
 import { botCheck } from './lib/botCheck'
-import { safeExternalUrl, validatePhoto, validatePhotoContent, signPropertyPhotos, photosForStorage } from './lib/mediaSecurity'
+import { clearSignedPhotoCache, safeExternalUrl, validatePhoto, validatePhotoContent, signPropertyPhotos, photosForStorage } from './lib/mediaSecurity'
 import PasswordRecovery from './components/PasswordRecovery'
 import PasswordSetup from './components/PasswordSetup'
 import { initialAuthCallback } from './lib/authCallback'
@@ -2143,8 +2144,16 @@ async function uploadPhotos(files) {
       throw error
     }
 
+    const thumbnail = await optimizePhoto(file, 800, 0.78)
+    let thumbnailPath
+    if (thumbnail.size < file.size) {
+      thumbnailPath = `${crypto.randomUUID()}.${await validatePhotoContent(thumbnail)}`
+      const result = await supabase.storage.from(bucket).upload(thumbnailPath, thumbnail, { cacheControl: '3600', upsert: false })
+      if (result.error) throw result.error
+    }
     const { data } = supabase.storage.from(bucket).getPublicUrl(path)
     uploaded.push({
+      ...(thumbnailPath ? { thumbnailPath } : {}),
       id: createId('photo'),
       name: file.name,
       url: data.publicUrl,
@@ -3541,6 +3550,7 @@ export default function App({ initialPage } = {}) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') clearSignedPhotoCache(supabase)
       if (event === 'PASSWORD_RECOVERY') setPasswordSetup(true)
       setAuthError('')
       void syncAccess(session)
@@ -3675,6 +3685,7 @@ export default function App({ initialPage } = {}) {
     ...property,
 
     image: property.offMarket ? offMarketImage : property.photos?.[0]?.url ?? '',
+    thumbnail: property.offMarket ? offMarketImage : property.photos?.[0]?.thumbnailUrl || property.photos?.[0]?.url || '',
 
     gallery: property.photos?.map((photo) => photo.url) ?? [],
 
@@ -4825,7 +4836,7 @@ export default function App({ initialPage } = {}) {
                 {filteredDashboardProperties.length ? (
                   <div className="dashboard-properties-grid">
                     {filteredDashboardProperties.map((property) => (
-                      <CrmRecord key={property.id} className="dashboard-property-card" language={language} title={property.title} image={property.photos?.[0]?.url}
+                      <CrmRecord key={property.id} className="dashboard-property-card" language={language} title={property.title} image={property.photos?.[0]?.thumbnailUrl || property.photos?.[0]?.url}
                         meta={`${property.reference} · ${getOperationLabel(property.operation, language)}${property.offMarket ? ' · Off-market' : ''}`}
                         status={copy.dashboard.propertyStatusOptions[property.status]} editLabel={copy.dashboard.editProperty} onEdit={() => openEditPropertyEditor(property)}
                         fields={[
@@ -4898,7 +4909,7 @@ export default function App({ initialPage } = {}) {
                       const livePublications = getPropertyPortalPublications(liveProperty)
 
                       return (
-                        <CrmRecord key={property.id} className="dashboard-portal-card" language={language} title={property.title} image={property.photos?.[0]?.url} meta={`${property.reference} · ${getDestinationMeta(property.destination, language).name} · ${livePublications.map(publication => `${getPortalDefinition(publication.portalId)?.name || publication.portalId}: ${copy.dashboard.portalStatusOptions[publication.status]}`).join(' · ')}`} editLabel={copy.dashboard.editPropertyFile} onEdit={() => openEditPropertyEditor(liveProperty)} fields={[
+                        <CrmRecord key={property.id} className="dashboard-portal-card" language={language} title={property.title} image={property.photos?.[0]?.thumbnailUrl || property.photos?.[0]?.url} meta={`${property.reference} · ${getDestinationMeta(property.destination, language).name} · ${livePublications.map(publication => `${getPortalDefinition(publication.portalId)?.name || publication.portalId}: ${copy.dashboard.portalStatusOptions[publication.status]}`).join(' · ')}`} editLabel={copy.dashboard.editPropertyFile} onEdit={() => openEditPropertyEditor(liveProperty)} fields={[
                           { label: copy.dashboard.propertyColumns.type, value: getTypeLabel(property.type, language) },
                           { label: copy.dashboard.clientColumns.budget, value: property.priceLabel },
                           { label: copy.dashboard.propertyColumns.surface, value: `${property.surface || '—'} m² · ${property.rooms || 0} ${copy.dashboard.propertyColumns.rooms}` },
@@ -5963,14 +5974,9 @@ export default function App({ initialPage } = {}) {
 
                 return (
                   <article key={property.id} className="listing-card" onClick={() => property.offMarket ? setOffMarketSelection(property) : goProperty(property)}>
-                    <div
-                      className={`listing-media${property.offMarket ? '' : ' property-watermark'}`}
-                      style={{
-                        backgroundImage: `linear-gradient(rgba(20, 16, 14, 0.08), rgba(20, 16, 14, 0.18)), url(${property.image})`,
-                      }}
-                    >
+                    <PropertyMedia className={`listing-media${property.offMarket ? '' : ' property-watermark'}`} src={property.thumbnail} alt={property.photos?.[0]?.caption || text.title}>
                       <div className="listing-chips">{listingLabels(property, language).map(label => <span className="listing-chip" key={label}>{label}</span>)}</div>
-                    </div>
+                    </PropertyMedia>
                     <div className="listing-body">
                       <p className="listing-reference">{property.reference}</p>
                       <h2>{property.offMarket ? text.title : <a href={toSearch({view: 'anuncio', propertyId: property.id, language})} onClick={event => { event.preventDefault(); event.stopPropagation(); goProperty(property) }}>{text.title}</a>}</h2>
@@ -6351,14 +6357,9 @@ export default function App({ initialPage } = {}) {
                 const text = getPropertyText(property, language)
                 return (
                   <article key={property.id} className="listing-card" onClick={() => goProperty(property)}>
-                    <div
-                      className={`listing-media${property.offMarket ? '' : ' property-watermark'}`}
-                      style={{
-                        backgroundImage: `linear-gradient(rgba(20, 16, 14, 0.08), rgba(20, 16, 14, 0.18)), url(${property.image})`,
-                      }}
-                    >
+                    <PropertyMedia className={`listing-media${property.offMarket ? '' : ' property-watermark'}`} src={property.thumbnail} alt={property.photos?.[0]?.caption || text.title}>
                       <div className="listing-chips">{listingLabels(property, language).map(label => <span className="listing-chip" key={label}>{label}</span>)}</div>
-                    </div>
+                    </PropertyMedia>
                     <div className="listing-body">
                       <p className="listing-reference">{property.reference}</p>
                       <h2>{property.offMarket ? text.title : <a href={toSearch({view: 'anuncio', propertyId: property.id, language})} onClick={event => { event.preventDefault(); event.stopPropagation(); goProperty(property) }}>{text.title}</a>}</h2>
@@ -6484,12 +6485,7 @@ export default function App({ initialPage } = {}) {
                       <h3><a href={toSearch({view: 'anuncio', propertyId: property.id, language})} onClick={event => { event.preventDefault(); event.stopPropagation(); goProperty(property) }}>{text.title}</a></h3>
                       <p>{propertyMeta}</p>
                     </div>
-                    <div
-                      className={`featured-property-image${property.offMarket ? '' : ' property-watermark'}`}
-                      style={{
-                        backgroundImage: `linear-gradient(rgba(24, 20, 17, 0.08), rgba(24, 20, 17, 0.18)), url(${property.image})`,
-                      }}
-                    />
+                    <PropertyMedia className={`featured-property-image${property.offMarket ? '' : ' property-watermark'}`} src={property.thumbnail} alt={property.photos?.[0]?.caption || text.title} />
                   </article>
                 )
               })}

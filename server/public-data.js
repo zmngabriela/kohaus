@@ -14,11 +14,25 @@ export async function loadPublicRows(config, fetcher = fetch) {
   if (safe.off_market) { safe.photos=[]; safe.observations=''; safe.portal_data={} }
   return safe
  })
- const paths = [...new Set(published.flatMap(row=>row.photos || []).map(photo=>photo.path).filter(Boolean))]
+ const paths = [...new Set(published.flatMap(row=>row.photos || []).flatMap(photo=>[photo.path,photo.thumbnailPath]).filter(Boolean))]
  if (!paths.length) return published
- const signed = await fetcher(`${config.url}/storage/v1/object/sign/${encodeURIComponent(config.bucket)}`,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({expiresIn:3600,paths}),signal:AbortSignal.timeout(10000)})
- if (!signed.ok) throw new Error('Public media unavailable')
- const data = await signed.json()
+ // Reuse public signed URLs for 20 minutes independently of the 60-second catalog cache.
+ const cache = globalThis.caches?.default
+ let cacheKey
+ if (cache) {
+  const digest = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([config.bucket,[...paths].sort()])))
+  const hash = [...new Uint8Array(digest)].map(n=>n.toString(16).padStart(2,'0')).join('')
+  cacheKey = new Request(new URL(`/__public-photo-signatures-v1/${hash}`,config.url))
+ }
+ const cached = cacheKey && await cache.match(cacheKey)
+ let data
+ if (cached) data = await cached.json()
+ else {
+  const signed = await fetcher(`${config.url}/storage/v1/object/sign/${encodeURIComponent(config.bucket)}`,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({expiresIn:3600,paths}),signal:AbortSignal.timeout(10000)})
+  if (!signed.ok) throw new Error('Public media unavailable')
+  data = await signed.json()
+  if (cacheKey) await cache.put(cacheKey,Response.json(data,{headers:{'Cache-Control':'public, max-age=1200'}}))
+ }
  const urls = new Map(data.map(item=>[item.path,item.signedURL ? new URL(`${config.url}/storage/v1${item.signedURL}`).href : '']))
- return published.map(row=>({...row,photos:(row.photos || []).map(photo=>({id:photo.id,name:photo.name,caption:typeof photo.caption === 'string' ? photo.caption.slice(0,200) : '',path:photo.path,url:photo.path ? urls.get(photo.path) || '' : /^https:\/\//.test(photo.url || '') ? photo.url : ''}))}))
+ return published.map(row=>({...row,photos:(row.photos || []).map(photo=>({id:photo.id,name:photo.name,caption:typeof photo.caption === 'string' ? photo.caption.slice(0,200) : '',path:photo.path,thumbnailPath:photo.thumbnailPath,thumbnailUrl:photo.thumbnailPath ? urls.get(photo.thumbnailPath) || '' : '',url:photo.path ? urls.get(photo.path) || '' : /^https:\/\//.test(photo.url || '') ? photo.url : ''}))}))
 }

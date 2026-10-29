@@ -6,7 +6,7 @@ export function photoDimensions(width, height, limit = 2400) {
 }
 
 // Convert before upload: no originals or duplicate files are added to the repository.
-export async function optimizePhoto(file) {
+export async function optimizePhoto(file, limit = 2400, quality = 0.84) {
   await validatePhotoContent(file)
   const url = URL.createObjectURL(file)
   try {
@@ -14,13 +14,13 @@ export async function optimizePhoto(file) {
     image.src = url
     await image.decode()
     const canvas = document.createElement('canvas')
-    const size = photoDimensions(image.naturalWidth, image.naturalHeight)
+    const size = photoDimensions(image.naturalWidth, image.naturalHeight, limit)
     canvas.width = size.width
     canvas.height = size.height
     const context = canvas.getContext('2d')
     if (!context) throw new Error('Não foi possível preparar a imagem.')
     context.drawImage(image, 0, 0, size.width, size.height)
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.84))
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', quality))
     if (!blob) throw new Error('Não foi possível otimizar a imagem.')
     // Small originals are already efficient; never enlarge the downloaded payload.
     if (blob.size >= file.size) return file
