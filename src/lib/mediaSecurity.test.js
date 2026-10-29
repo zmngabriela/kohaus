@@ -16,3 +16,15 @@ it('uses signed URLs for display, but never stores the capability',async()=>{
  expect(properties[0].photos[0].url).toContain('token=')
  expect(JSON.stringify(photosForStorage(properties[0].photos,db,'property-media'))).not.toContain('token=')
 })
+it('reuses signed links and signs thumbnail paths without persisting their tokens',async()=>{
+ const createSignedUrls=vi.fn().mockResolvedValue({data:[{path:'main.jpg',signedUrl:'https://test/main?token=a'},{path:'thumb.webp',signedUrl:'https://test/thumb?token=b'}]})
+ const db={storage:{from:()=>({createSignedUrls,getPublicUrl:path=>({data:{publicUrl:`https://test/public/${path}`}})})}}
+ const input=[{photos:[{path:'main.jpg',thumbnailPath:'thumb.webp'}]}]
+ const result=await signPropertyPhotos(input,db,'property-media')
+ await signPropertyPhotos(input,db,'property-media')
+ expect(createSignedUrls).toHaveBeenCalledTimes(1)
+ expect(createSignedUrls).toHaveBeenCalledWith(['main.jpg','thumb.webp'],3600)
+ expect(result[0].photos[0].thumbnailUrl).toContain('token=b')
+ expect(JSON.stringify(photosForStorage(result[0].photos,db,'property-media'))).not.toContain('token=')
+ expect(photosForStorage(result[0].photos,db,'property-media')[0].thumbnailPath).toBe('thumb.webp')
+})
