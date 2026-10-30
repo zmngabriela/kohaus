@@ -81,6 +81,8 @@ describe('KOHAUS app regressions', () => {
       expect(window.location.search).toContain('view=captacion')
     })
     expect(screen.getByRole('heading', { name: 'Thinking about renting or selling your property?' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Type of operation' })).toHaveTextContent('Select an option')
+    expect(screen.getByRole('button', { name: 'How did you hear about us' })).toHaveTextContent('Select an option')
   })
 
   it('opens the rental catalog from the header rent button', async () => {

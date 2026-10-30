@@ -1,3 +1,4 @@
+import { propertyNumericRules, portalNumericRules, clientNumericRules, validateNumericFields } from './lib/numericFields'
 import PropertyMedia from './components/PropertyMedia'
 import { availableFeaturedSlots, selectFeatured } from './lib/featuredProperties'
 import Seo from './components/Seo'
@@ -77,8 +78,8 @@ const OWNER_FORM_DEFAULTS = {
   email: '',
   address: '',
   city: '',
-  operation: 'vender',
-  source: 'instagram',
+  operation: '',
+  source: '',
   comments: '',
   legalAccepted: false,
   newsletterAccepted: false,
@@ -3980,6 +3981,7 @@ export default function App({ initialPage } = {}) {
   async function handleLeadSubmit(event) {
     event.preventDefault()
     try {
+      if (!ownerForm.operation || !ownerForm.source) throw new Error(({pt:'Selecione o tipo de operação e como nos conheceu.',es:'Selecciona el tipo de operación y cómo nos conociste.',en:'Select the operation and how you heard about us.'})[language])
       const nextLeads = await saveOwnerLead({ ...ownerForm, language })
       setLeads(nextLeads)
       setOwnerForm({ ...OWNER_FORM_DEFAULTS, operation: ownerForm.operation })
@@ -4100,6 +4102,9 @@ export default function App({ initialPage } = {}) {
     setDashboardNotice('')
     setDataError('')
     try {
+      validateNumericFields(propertyForm, propertyNumericRules, copy.dashboard.propertyFields, language)
+      validateNumericFields(propertyForm.portalData, portalNumericRules, Object.fromEntries(PORTAL_DATA_FIELDS.map(([field], index) => [field, portalFormCopy.fields[index]])), language)
+      priceFields(propertyForm.priceValue, propertyForm.currency)
       if (featuredSelected && !featuredSlots.includes(Number(propertyForm.portalData.featuredSlot))) throw new Error(language === 'pt' ? 'Essa vaga de destaque já foi ocupada. Atualize a lista e selecione novamente.' : language === 'es' ? 'Esta plaza ya está ocupada. Actualiza la lista y selecciona de nuevo.' : 'This featured slot is occupied. Refresh the list and select again.')
       const orderedPhotos = propertyForm.offMarket ? propertyPhotoItems.filter(item => item.source === 'existing').map(item => ({ ...item.photo, caption: (item.caption || '').trim() })) : await resolvePropertyPhotos(propertyPhotoItems)
       const currentProperty = propertyEditor.propertyId
@@ -4140,6 +4145,7 @@ export default function App({ initialPage } = {}) {
     setClientSaving(true)
     setDashboardNotice('')
     try {
+      validateNumericFields(clientForm, clientNumericRules, copy.dashboard.clientFields, language)
       let next
       if (clientEditor.mode === 'edit' && clientEditor.clientId) {
         const currentClient = dashboardClients.find((client) => client.id === clientEditor.clientId)
@@ -4563,7 +4569,7 @@ export default function App({ initialPage } = {}) {
         onLanguageChange={handleLanguageChange}
         onHomeClick={goHome}
         onCatalogClick={(operation) => goCatalog(operation)}
-        onOwnerClick={() => goOwnerForm('vender')}
+        onOwnerClick={() => goOwnerForm('')}
         onOffMarketClick={() => { setCatalogFilters({ ...CATALOG_FILTER_DEFAULTS, operation: 'all' }); setOffMarketSelection(null); syncRoute({ ...route, view: 'off-market', language, operation: 'all', destination: 'todos', reference: '' }) }}
         showSignOut={route.view === 'dashboard' && Boolean(authSession)}
         onSignOut={handleSignOut}
@@ -5431,6 +5437,7 @@ export default function App({ initialPage } = {}) {
                 <span>{copy.dashboard.propertyFields.surface}</span>
                 <input
                   type="number"
+                  {...propertyNumericRules.surface}
                   value={propertyForm.surface}
                   onChange={(event) => setPropertyForm((current) => ({ ...current, surface: event.target.value }))}
                   required
@@ -5440,6 +5447,7 @@ export default function App({ initialPage } = {}) {
                 <span>{copy.dashboard.propertyFields.rooms}</span>
                 <input
                   type="number"
+                  {...propertyNumericRules.rooms}
                   value={propertyForm.rooms}
                   onChange={(event) => setPropertyForm((current) => ({ ...current, rooms: event.target.value }))}
                   required
@@ -5449,8 +5457,7 @@ export default function App({ initialPage } = {}) {
                 <span>{copy.dashboard.propertyFields.bathrooms}</span>
                 <input
                   type="number"
-                  min="0"
-                  step="1"
+                  {...propertyNumericRules.bathrooms}
                   value={propertyForm.bathrooms}
                   onChange={(event) => setPropertyForm((current) => ({ ...current, bathrooms: event.target.value }))}
                   required
@@ -5502,6 +5509,7 @@ export default function App({ initialPage } = {}) {
                       <span>{portalFormCopy.fields[index]}</span>
                       <input
                         type={type}
+                        {...(portalNumericRules[field] || {})}
                         value={propertyForm.portalData[field]}
                         onChange={(event) => setPropertyForm((current) => ({
                           ...current,
@@ -5740,6 +5748,7 @@ export default function App({ initialPage } = {}) {
                 <span>{copy.dashboard.clientFields.minRooms}</span>
                 <input
                   type="number"
+                  {...clientNumericRules.minRooms}
                   value={clientForm.minRooms}
                   onChange={(event) => setClientForm((current) => ({ ...current, minRooms: event.target.value }))}
                 />
@@ -5752,6 +5761,7 @@ export default function App({ initialPage } = {}) {
                 <span>{copy.dashboard.clientFields.minSurface}</span>
                 <input
                   type="number"
+                  {...clientNumericRules.minSurface}
                   value={clientForm.minSurface}
                   onChange={(event) => setClientForm((current) => ({ ...current, minSurface: event.target.value }))}
                 />
@@ -6109,6 +6119,7 @@ export default function App({ initialPage } = {}) {
                     value={ownerForm.operation}
                     onChange={(value) => setOwnerForm((current) => ({ ...current, operation: value }))}
                     options={[
+                      { value: '', label: ({pt:'Selecione uma opção',es:'Selecciona una opción',en:'Select an option'})[language] },
                       { value: 'alquilar', label: copy.ownerForm.operations.alquilar },
                       { value: 'vender', label: copy.ownerForm.operations.vender },
                     ]}
@@ -6122,7 +6133,7 @@ export default function App({ initialPage } = {}) {
                   <CustomSelect
                     value={ownerForm.source}
                     onChange={(value) => setOwnerForm((current) => ({ ...current, source: value }))}
-                    options={Object.entries(copy.ownerForm.sources).map(([value, label]) => ({ value, label }))}
+                    options={[{ value: '', label: ({pt:'Selecione uma opção',es:'Selecciona una opción',en:'Select an option'})[language] }, ...Object.entries(copy.ownerForm.sources).map(([value, label]) => ({ value, label }))]}
                     className="owner-custom-select"
                     ariaLabel={copy.ownerForm.fields.source}
                     light
