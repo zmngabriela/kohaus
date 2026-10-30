@@ -3366,7 +3366,6 @@
 .bot-check > button { margin-top:16px; }
 
 .property-ai { border-block: 1px solid var(--line, #d5d1c4); padding-block: 1rem; }
-.property-ai-preview { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .property-owner-row { display: flex; align-items: flex-end; gap: 1.25rem; flex-wrap: wrap; }
 .property-owner-row > label { flex: 1 1 16rem; min-width: 0; }
