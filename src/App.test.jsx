@@ -37,6 +37,30 @@ beforeEach(() => {
 })
 
 describe('KOHAUS app regressions', () => {
+  it('opens destinations with buy and rent together and switches operation without losing the city', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem('kohaus-dashboard-properties-v1', JSON.stringify([
+      ...PROPERTY_FIXTURES,
+      { ...PROPERTY_FIXTURES[2], id: 'barcelona-rent', destination: 'barcelona', title: 'Barcelona rental' },
+    ]))
+    const { container } = renderApp('/?lang=en')
+    const tile = container.querySelector('.location-tile')
+    expect(tile).toHaveAttribute('href', '?view=catalogo&op=all&dest=barcelona&lang=en')
+    await user.click(tile)
+    await waitFor(() => expect(getListingCards(container)).toHaveLength(2))
+    expect(window.location.search).toContain('op=all')
+    const operation = screen.getByRole('button', { name: 'Operation' })
+    await user.click(operation)
+    await user.click(within(screen.getByRole('listbox')).getByRole('button', { name: 'Rent', exact: true }))
+    expect(getListingCards(container)).toHaveLength(1)
+    expect(screen.getByText('Barcelona rental')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Destination' })).toHaveTextContent('Barcelona')
+    await user.click(operation)
+    await user.click(within(screen.getByRole('listbox')).getByRole('button', { name: 'Buy', exact: true }))
+    expect(getListingCards(container)).toHaveLength(1)
+    expect(screen.getByText(PROPERTY_FIXTURES[0].title)).toBeInTheDocument()
+  })
+
   it('shows properties from custom cities when opening buy without a destination', async () => {
     window.localStorage.setItem('kohaus-dashboard-properties-v1', JSON.stringify([...PROPERTY_FIXTURES, {...PROPERTY_FIXTURES[0],id:'hospitalet',reference:'KH0115',destination:'Hospitalet',title:'Hospitalet property'}]))
     const {container}=renderApp('/?view=catalogo&lang=en&op=comprar')

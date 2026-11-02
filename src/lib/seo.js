@@ -27,7 +27,7 @@ export function pageSeo(route, property, origin = SITE_URL) {
  let title = c[view] || 'KOHAUS'
  let description = c.intro
  if (view === 'catalogo') {
-  title = `${route.operation === 'alquilar' ? c.rent : c.buy} ${language === 'en' ? 'in' : language === 'pt' ? 'em' : 'en'} ${destination}`
+  title = `${route.operation === 'all' ? ({ pt: 'Imóveis à venda e para alugar', es: 'Inmuebles en venta y alquiler', en: 'Property for sale and rent' }[language]) : route.operation === 'alquilar' ? c.rent : c.buy} ${language === 'en' ? 'in' : language === 'pt' ? 'em' : 'en'} ${destination}`
   description = `${title}. ${c.listing}`
  }
  if (view === 'anuncio' && property) {

@@ -1882,6 +1882,7 @@ function getDestinationMeta(slug, language) {
 
 function getOperationLabel(operation, language) {
   const labels = {
+    all: { pt: 'Comprar e alugar', es: 'Comprar y alquilar', en: 'Buy and rent' }[language],
     comprar: COPY[language].nav.buy,
     alquilar: COPY[language].nav.rent,
   }
@@ -3755,7 +3756,7 @@ export default function App({ initialPage } = {}) {
     value,
     label,
   }))
-  const destinationOptions = cityOptions(route.view === 'dashboard' ? dashboardProperties : publishedProperties.filter(property => belongsInCatalog(property, route.view === 'off-market') && ((route.view === 'home' ? homeSearch.operation : catalogFilters.operation) === 'all' || property.operation === (route.view === 'home' ? homeSearch.operation : catalogFilters.operation))), value => getDestinationMeta(value, language).name)
+  const destinationOptions = cityOptions(route.view === 'dashboard' ? dashboardProperties : publishedProperties.filter(property => belongsInCatalog(property, route.view === 'off-market')), value => getDestinationMeta(value, language).name)
   const visitStatusOptions = Object.entries(copy.dashboard.visitStatusOptions).map(([value, label]) => ({
     value,
     label,
@@ -5835,6 +5836,16 @@ export default function App({ initialPage } = {}) {
                 />
               </label>
               <label className="catalog-inline-select">
+                <span>{copy.dashboard.propertyFields.operation}</span>
+                <CustomSelect
+                  value={catalogFilters.operation}
+                  onChange={value => setCatalogFilters(current => ({ ...current, operation: value }))}
+                  options={['all', 'comprar', 'alquilar'].map(value => ({ value, label: getOperationLabel(value, language) }))}
+                  className="catalog-custom-select"
+                  ariaLabel={copy.dashboard.propertyFields.operation}
+                />
+              </label>
+              <label className="catalog-inline-select">
                 <span>{copy.catalog.filters.destination}</span>
                 <CustomSelect
                   value={catalogFilters.destination}
@@ -5853,7 +5864,6 @@ export default function App({ initialPage } = {}) {
             </form>
 
             <div id="catalog-advanced-filters" className="catalog-filter-strip" hidden={!filtersOpen}>
-              {route.view === 'off-market' && <label><span>{copy.dashboard.propertyFields.operation}</span><CustomSelect value={catalogFilters.operation} onChange={value => setCatalogFilters(current => ({ ...current, operation: value }))} options={[{value:'all',label:copy.catalog.all},{value:'comprar',label:copy.nav.buy},{value:'alquilar',label:copy.nav.rent}]} className="catalog-custom-select" ariaLabel={copy.dashboard.propertyFields.operation} /></label>}
               <label>
                 <span>{copy.catalog.filters.type}</span>
                 <CustomMultiSelect
@@ -6530,16 +6540,10 @@ export default function App({ initialPage } = {}) {
                 <a
                   key={destination.slug}
                   className="location-tile"
-                  href={`?view=catalogo&op=comprar&dest=${destination.slug}&lang=${language}`}
+                  href={`?view=catalogo&op=all&dest=${destination.slug}&lang=${language}`}
                   onClick={(event) => {
                     event.preventDefault()
-                    setCatalogFilters((current) => ({
-                      ...current,
-                      operation: 'comprar',
-                      destination: destination.slug,
-                      reference: '',
-                    }))
-                    goCatalog('comprar', destination.slug)
+                    goCatalog('all', destination.slug)
                   }}
                 >
                   <p className="location-label">{getDestinationMeta(destination.slug, language).name}</p>
