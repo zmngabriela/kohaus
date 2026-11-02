@@ -14,6 +14,7 @@ beforeEach(()=>{
 it('previews and generates a PDF in the client language with an editable prefilled address',async()=>{
  const user=userEvent.setup()
  render(<Invoices language="pt" clients={[{id:'c',name:'Ana',language:'es'}]} properties={[{id:'p',reference:'KH-1',privateAddress:'Calle Ejemplo 12',operation:'alquilar',currency:'EUR'}]} databaseEnabled={false}/>)
+ await user.click(screen.getByRole('button',{name:'Nova fatura'}))
  await waitFor(()=>expect(screen.getByLabelText('Cliente',{exact:true})).toBeEnabled())
  await user.selectOptions(screen.getByLabelText('Cliente',{exact:true}),'c')
  await user.selectOptions(screen.getByLabelText('Imóvel',{exact:true}),'p')
@@ -47,5 +48,38 @@ it('confirms invoice deletion and removes it from local history',async()=>{
  expect(JSON.parse(localStorage.getItem('kohaus-invoices'))).toEqual([])
  expect(onSaved).toHaveBeenCalledWith('deleted')
  expect(confirm).toHaveBeenCalled()
+ confirm.mockRestore()
+})
+
+it('records payments and separates totals by currency without assuming old invoices are paid',async()=>{
+ const user=userEvent.setup()
+ localStorage.setItem('kohaus-invoices',JSON.stringify([
+  {id:'one',number:'F-1',snapshot:{client:{name:'Ana'},date:'2026-11-01',base:100,taxRate:21,currency:'EUR'}},
+  {id:'two',number:'F-2',snapshot:{client:{name:'Joao'},date:'2026-11-01',base:200,taxRate:0,currency:'BRL'}},
+ ]))
+ render(<Invoices language="pt" clients={[]} properties={[]} databaseEnabled={false}/>)
+ const row=(await screen.findByText(/F-1/)).closest('article')
+ expect(within(row).getByLabelText('Pagamento')).toHaveValue('')
+ await user.selectOptions(within(row).getByLabelText('Pagamento'),'paid')
+ await waitFor(()=>expect(JSON.parse(localStorage.getItem('kohaus-invoices'))[0].payment_status).toBe('paid'))
+ expect(screen.getAllByRole('img')).toHaveLength(2)
+ expect(screen.getAllByRole('img')[0]).toHaveAccessibleName(/Recebido:.*121/)
+ expect(screen.getAllByRole('img')[1]).toHaveAccessibleName(/Não informado:.*200/)
+})
+
+it('shows a deletion failure beside the invoice when the database denies deletion',async()=>{
+ const user=userEvent.setup()
+ const row={id:'denied',number:'DENIED-1',snapshot:{client:{name:'Ana'},date:'2026-11-02',dueDate:'2026-11-10',description:'Serviço de intermediação'}}
+ const confirm=vi.spyOn(window,'confirm').mockReturnValue(true)
+ const database={from:vi.fn(table=> table==='dashboard_invoice_settings'
+  ?{select:()=>({eq:()=>({maybeSingle:async()=>({data:null})})})}
+  :{select:()=>({order:async()=>({data:[row]})}),delete:()=>({eq:()=>({select:async()=>({data:[],error:null})})})})}
+ render(<Invoices language="pt" clients={[]} properties={[]} database={database} databaseEnabled/>)
+ const article=(await screen.findByText(/DENIED-1/)).closest('article')
+ expect(within(article).getByText(/Vencimento: 2026-11-10/)).toBeInTheDocument()
+ expect(within(article).getByText('Serviço de intermediação')).toBeInTheDocument()
+ await user.click(within(article).getByRole('button',{name:'Excluir fatura'}))
+ expect(await within(article).findByRole('alert')).toHaveTextContent('Não foi possível excluir')
+ expect(screen.getByText(/DENIED-1/)).toBeInTheDocument()
  confirm.mockRestore()
 })

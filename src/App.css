@@ -3204,7 +3204,7 @@
 
 .page-shell .section-label { font-size: var(--fs-label-xs); font-weight: 600; line-height: 1.5; letter-spacing: 0; }
 .location-tile { color: inherit; text-decoration: none; }
-.catalog-search-form { grid-template-columns: minmax(180px, .7fr) minmax(0, 1.3fr) auto auto; }
+.catalog-search-form { grid-template-columns: repeat(2, minmax(140px, .7fr)) minmax(0, 1.3fr) auto auto; }
 .catalog-search-field { order: 2; }
 .catalog-inline-select { order: 1; }
 .catalog-search-button { order: 3; }
@@ -3213,11 +3213,11 @@
 .catalog-filter-strip[hidden] { display: none; }
 .catalog-filter-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); padding-top: 24px; border-top: 1px solid var(--line); }
 @media (max-width: 720px) {
-  .catalog-search-form { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
-  .catalog-inline-select { grid-column: 1; }
-  .catalog-filter-toggle { grid-column: 2; order: 2; }
-  .catalog-search-field { grid-column: 1; order: 3; min-width: 0; }
-  .catalog-search-button { grid-column: 2; order: 4; }
+  .catalog-search-form { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .catalog-inline-select { grid-column: auto; min-width: 0; }
+  .catalog-filter-toggle { grid-column: 2; order: 4; }
+  .catalog-search-field { grid-column: 1 / -1; order: 2; min-width: 0; }
+  .catalog-search-button { grid-column: 1; order: 3; }
   .catalog-filter-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
   .catalog-filter-strip > label { min-width: 0; }
 }
@@ -3398,3 +3398,17 @@
 .deferred-property-media > .listing-chips { position: relative; z-index: 2; }
 
 .deferred-property-media::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(rgba(20, 16, 14, 0.08), rgba(20, 16, 14, 0.18)); }
+
+.portal-status-tabs { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; }
+.portal-status-tabs button[aria-pressed="true"] { background:var(--ink); color:var(--paper); }
+.portal-status-tabs button span { margin-left:8px; font-variant-numeric:tabular-nums; }
+.portal-channel-list { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.portal-channel { display:inline-flex; align-items:center; gap:10px; padding:8px 12px; border:1px solid var(--line); font-size:var(--fs-ui); }
+.portal-channel strong { font-weight:500; }
+.portal-channel > span { color:var(--muted); }
+.portal-channel::before { content:''; width:6px; height:6px; flex-shrink:0; border-radius:50%; background:#aaa397; }
+.portal-channel.is-posted::before { background:#657560; }
+.portal-channel.is-ready::before { background:var(--ink); }
+.portal-channel.is-update_needed::before { background:#b56942; }
+.portal-validation { border-left:2px solid #b56942; padding:0 16px; margin:18px 0; font-size:var(--fs-ui); }
+.portal-validation ul { display:flex; flex-wrap:wrap; gap:8px 24px; padding-left:16px; }
