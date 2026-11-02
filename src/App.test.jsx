@@ -377,6 +377,10 @@ describe('KOHAUS app regressions', () => {
     await user.click(screen.getByRole('button', { name: 'Portals' }))
 
     expect(screen.getByText('Portal-ready townhouse')).toBeInTheDocument()
+    const channels = document.querySelector('.portal-channel-list')
+    expect(channels).toHaveTextContent('Fotocasa')
+    expect(channels).toHaveTextContent('Draft')
+    expect(screen.queryByRole('button', { name: /Copy title/ })).not.toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Manage' }).find(button => button.closest('.dashboard-portal-card')?.textContent?.includes('Portal-ready townhouse')))
     expect(screen.getAllByText('Draft').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Fotocasa').length).toBeGreaterThan(0)

@@ -462,7 +462,7 @@ const COPY = {
       },
       portalsLabel: 'Publicación en portales',
       portalsTitle: 'Controla qué inmuebles están listos, publicados o pendientes de actualizar.',
-      portalsPanelCopy: 'Primero dejamos cada inmueble preparado desde KOHAUS. Después abres el portal, copias el paquete comercial y guardas aquí el enlace y el estado.',
+      portalsPanelCopy: 'Gestiona los anuncios y revisa los datos pendientes. El envío directo requiere activar la integración con cada portal. Los estados actuales son registros manuales, no confirmaciones del portal.',
       portalsEmpty: 'Todavía no hay inmuebles preparados para portales.',
       portalsSelectionLabel: 'Selecciona los portales activos para cada inmueble.',
       portalsSelectionEmpty: 'Este inmueble ya está preparado, pero todavía no tiene ningún portal seleccionado.',
@@ -890,7 +890,7 @@ const COPY = {
       },
       portalsLabel: 'Portal publishing',
       portalsTitle: 'Track which properties are ready, published or waiting for updates.',
-      portalsPanelCopy: 'Prepare the property inside KOHAUS first. Then open the portal, copy the commercial package and save the live URL and status here.',
+      portalsPanelCopy: 'Manage listings and review missing data. Direct publishing requires activating each portal integration. Current statuses are manual records, not confirmations from the portal.',
       portalsEmpty: 'There are no properties prepared for portals yet.',
       portalsSelectionLabel: 'Choose the active portals for each property.',
       portalsSelectionEmpty: 'This property is already prepared, but no portals have been selected yet.',
@@ -1318,7 +1318,7 @@ const COPY = {
       },
       portalsLabel: 'Publicação em portais',
       portalsTitle: 'Controla quais imóveis estão prontos, publicados ou pendentes de atualização.',
-      portalsPanelCopy: 'Primeiro preparamos o imóvel dentro da KOHAUS. Depois você abre o portal, copia o pacote comercial e guarda aqui o link e o estado.',
+      portalsPanelCopy: 'Gerencie os anúncios e confira os dados pendentes. O envio direto depende da ativação de cada integração. Os estados atuais são registros manuais, não confirmações do portal.',
       portalsEmpty: 'Ainda não há imóveis preparados para portais.',
       portalsSelectionLabel: 'Selecione os portais ativos para cada imóvel.',
       portalsSelectionEmpty: 'Este imóvel já está preparado, mas ainda não tem nenhum portal selecionado.',
@@ -1788,10 +1788,10 @@ function getDashboardPortalItems(properties) {
 function filterDashboardPortalItems(items, filters) {
   return items.filter((property) => {
     const publications = getPropertyPortalPublications(property)
-    const matchesPortal =
-      filters.portal === 'all' || publications.some((publication) => publication.portalId === filters.portal)
-    const matchesStatus =
-      filters.status === 'all' || publications.some((publication) => publication.status === filters.status)
+    const matchesPublication = publications.some(publication =>
+      (filters.portal === 'all' || publication.portalId === filters.portal) &&
+      (filters.status === 'all' || publication.status === filters.status))
+      || (!publications.length && filters.portal === 'all' && filters.status === 'all')
     const search = filters.search.trim().toLowerCase()
     const portalNames = publications
       .map((publication) => getPortalDefinition(publication.portalId)?.name.toLowerCase() || '')
@@ -1802,7 +1802,7 @@ function filterDashboardPortalItems(items, filters) {
       property.reference.toLowerCase().includes(search) ||
       portalNames.includes(search)
 
-    return matchesPortal && matchesStatus && matchesSearch
+    return matchesPublication && matchesSearch
   })
 }
 
@@ -4614,7 +4614,7 @@ export default function App({ initialPage } = {}) {
             <div className="dashboard-head">
               <div>
                 <p className="section-label dashboard-label">{copy.dashboard.label}</p>
-                <h1>{copy.dashboard.title}</h1>
+
               </div>
             </div>
 
@@ -4692,7 +4692,7 @@ export default function App({ initialPage } = {}) {
             {dashboardSection === 'leads' ? (
               leads.length ? (
                 <section className="dashboard-section">
-                  <div className="dashboard-properties-head"><div><p className="section-label dashboard-label">{copy.dashboard.sections.leads}</p><h2>{copy.dashboard.title}</h2></div></div>
+                  <div className="dashboard-properties-head"><div><p className="section-label dashboard-label">{copy.dashboard.sections.leads}</p></div></div>
                   <div className="dashboard-leads-grid">
                     {leads.map((lead) => (
                       <CrmRecord key={lead.id} className="dashboard-lead-card" language={language} title={`${lead.name} ${lead.surname}`} meta={[lead.phone, lead.email, lead.city, copy.ownerForm.operations[lead.operation] || companyCopy[language].contact].filter(Boolean).join(' · ')} status={copy.dashboard.statusOptions[lead.status]} fields={[
@@ -4870,6 +4870,9 @@ export default function App({ initialPage } = {}) {
                   </div>
                 </div>
 
+                <div className="portal-status-tabs" role="group" aria-label={copy.dashboard.portalFilters.status}>
+                  {[{value:'all',label:copy.catalog.all},...portalStatusOptions].map(option=><button type="button" key={option.value} className="dashboard-property-edit" aria-pressed={portalFilters.status===option.value} onClick={()=>setPortalFilters(current=>({...current,status:option.value}))}>{option.label} <span>{filterDashboardPortalItems(dashboardPortalItems,{...portalFilters,status:option.value}).length}</span></button>)}
+                </div>
                 <div className="dashboard-property-panel">
                   <div>
                     <p>{copy.dashboard.portalsPanelCopy}</p>
@@ -4916,7 +4919,7 @@ export default function App({ initialPage } = {}) {
                       const livePublications = getPropertyPortalPublications(liveProperty)
 
                       return (
-                        <CrmRecord key={property.id} className="dashboard-portal-card" language={language} title={property.title} image={property.photos?.[0]?.thumbnailUrl || property.photos?.[0]?.url} meta={`${property.reference} · ${getDestinationMeta(property.destination, language).name} · ${livePublications.map(publication => `${getPortalDefinition(publication.portalId)?.name || publication.portalId}: ${copy.dashboard.portalStatusOptions[publication.status]}`).join(' · ')}`} editLabel={copy.dashboard.editPropertyFile} onEdit={() => openEditPropertyEditor(liveProperty)} fields={[
+                        <CrmRecord key={property.id} className="dashboard-portal-card" language={language} summaryExtra={<div className="portal-channel-list" aria-label={copy.dashboard.sections.portals}>{livePublications.map(publication=><span key={publication.portalId} className={`portal-channel is-${publication.status}`}><strong>{getPortalDefinition(publication.portalId)?.name || publication.portalId}</strong><span>{copy.dashboard.portalStatusOptions[publication.status] || publication.status}</span></span>)}</div>} title={property.title} image={property.photos?.[0]?.thumbnailUrl || property.photos?.[0]?.url} meta={`${property.reference} · ${getDestinationMeta(property.destination, language).name}`} editLabel={copy.dashboard.editPropertyFile} onEdit={() => openEditPropertyEditor(liveProperty)} fields={[
                           { label: copy.dashboard.propertyColumns.type, value: getTypeLabel(property.type, language) },
                           { label: copy.dashboard.clientColumns.budget, value: property.priceLabel },
                           { label: copy.dashboard.propertyColumns.surface, value: `${property.surface || '—'} m² · ${property.rooms || 0} ${copy.dashboard.propertyColumns.rooms}` },
@@ -5008,18 +5011,12 @@ export default function App({ initialPage } = {}) {
                                         {copy.dashboard.openListing}
                                       </a>
                                     ) : null}
-                                    <button type="button" className="dashboard-property-edit" onClick={() => copyToClipboard(property.title)}>
-                                      {copy.dashboard.copyPortalTitle}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="dashboard-property-edit"
-                                      onClick={() => copyToClipboard(buildPortalDescription(property, language))}
-                                    >
-                                      {copy.dashboard.copyPortalDescription}
-                                    </button>
                                   </div>
 
+                                  {missingFields.length > 0 && <div className="portal-validation">
+                                    <p>{language==='pt'?'Revisão preliminar — confirme os requisitos específicos após ativar a integração.':language==='es'?'Revisión preliminar — confirma los requisitos específicos al activar la integración.':'Preliminary review — confirm portal-specific requirements when activating the integration.'}</p>
+                                    <ul>{missingFields.map(([key])=><li key={key}>{portalFormCopy.fields[PORTAL_DATA_FIELDS.findIndex(([field])=>field===key)] || ({title:copy.dashboard.propertyColumns.title,price:copy.dashboard.propertyColumns.price,type:copy.dashboard.propertyColumns.type,rooms:copy.dashboard.propertyColumns.rooms,bathrooms:copy.dashboard.propertyFields.bathrooms,surface:copy.dashboard.propertyColumns.surface,photos:copy.dashboard.photoLabel}[key]) || key}</li>)}</ul>
+                                  </div>}
                                   <div className="dashboard-portal-fields">
                                     <label>
                                       <span>{copy.dashboard.portalListingUrlLabel}</span>
