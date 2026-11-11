@@ -34,7 +34,7 @@ export function createPageHandler({renderPage,requestRoute,publicViews,serverCon
    return new Response(request.method==='HEAD'?null:html,{headers})
   } catch {
    // Do not present a temporary upstream outage as an empty catalog to search engines.
-   return new Response('<!doctype html><html><head><title>KOHAUS</title></head><body><p>KOHAUS · Temporarily unavailable. Please try again shortly.</p><a href="mailto:hola@thekohaus.com">hola@thekohaus.com</a></body></html>',{status:503,headers:{...headers,'Retry-After':'60','X-Robots-Tag':'noindex'}})
+   return new Response('<!doctype html><html><head><title>KOHAUS</title></head><body><p>KOHAUS · Temporarily unavailable. Please try again shortly.</p><a href="mailto:hola@kohausrealestate.com">hola@kohausrealestate.com</a></body></html>',{status:503,headers:{...headers,'Retry-After':'60','X-Robots-Tag':'noindex'}})
   }
  }
 }
