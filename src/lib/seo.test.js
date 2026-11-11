@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import { canonicalUrl, pageSeo } from './seo'
 it('drops irrelevant filters and tracking from canonical URLs',()=>{
  const url=canonicalUrl({view:'home',language:'pt',operation:'comprar',destination:'barcelona',reference:'x'})
- expect(url).toBe('https://kohaus.pages.dev/?lang=pt')
+ expect(url).toBe('https://kohausrealestate.com/?lang=pt')
 })
 it('keeps language, operation and city for distinct search pages',()=>{
  const seo=pageSeo({view:'catalogo',language:'pt',operation:'alquilar',destination:'itapema'})
