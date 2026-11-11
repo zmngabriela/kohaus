@@ -1,0 +1,5 @@
+export const similarInquiry = {
+  pt: { contact:'Procurar algo parecido', inquiryLabel:'Imóveis semelhantes', inquiryTitle:'Que imóvel você procura?', inquiryCopy:'Conte o que chamou sua atenção neste imóvel e o que gostaria de encontrar.', inquiryMessage:'O que é importante para você?', inquirySubmit:'Enviar mensagem', inquirySuccess:'Recebemos sua mensagem. Guilherme entrará em contato.' },
+  es: { contact:'Buscar algo parecido', inquiryLabel:'Inmuebles similares', inquiryTitle:'¿Qué inmueble buscas?', inquiryCopy:'Cuéntanos qué te ha gustado de este inmueble y qué te gustaría encontrar.', inquiryMessage:'¿Qué es importante para ti?', inquirySubmit:'Enviar mensaje', inquirySuccess:'Hemos recibido tu mensaje. Guilherme se pondrá en contacto contigo.' },
+  en: { contact:'Find something similar', inquiryLabel:'Similar properties', inquiryTitle:'What kind of property are you looking for?', inquiryCopy:'Tell us what caught your eye here and what you would like to find.', inquiryMessage:'What matters most to you?', inquirySubmit:'Send message', inquirySuccess:'We received your message. Guilherme will be in touch.' },
+}

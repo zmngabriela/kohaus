@@ -1,3 +1,4 @@
+import { similarInquiry } from '../lib/similarInquiry'
 import PrivacyConsent from './PrivacyConsent'
 import { useEffect, useRef, useState } from 'react'
 import './CrmExtensions.css'
@@ -9,14 +10,16 @@ const copy = {
 export default function OffMarket({ property, language, onSubmit, onClose }) {
  const section = useRef(null)
  useEffect(() => { section.current?.scrollIntoView?.({behavior:'smooth',block:'center'}) }, [])
- const c = copy[language]
+ const closed = property.status === 'closed'
+ const similar = similarInquiry[language]
+ const c = closed ? {...copy[language], request:similar.inquiryTitle, message:similar.inquiryMessage, send:similar.inquirySubmit, success:similar.inquirySuccess} : copy[language]
  const [busy,setBusy] = useState(false), [result,setResult] = useState(''), [sent,setSent] = useState(false)
  async function submit(event) {
   event.preventDefault()
   const form = new FormData(event.currentTarget)
   setBusy(true); setResult('')
   try {
-   await onSubmit({name:form.get('name'),surname:form.get('surname'),phone:form.get('phone'),email:form.get('email'),comments:`Off-market ${property.reference}\n${form.get('message')}`,address:property.reference,city:property.destination,operation:property.operation,source:'property_request',language,legalAccepted:true,newsletterAccepted:false})
+   await onSubmit({name:form.get('name'),surname:form.get('surname'),phone:form.get('phone'),email:form.get('email'),comments:`Off-market ${property.reference}\n${form.get('message')}`,address:property.reference,city:property.destination,operation:property.operation,source:closed ? 'similar-property' : 'property_request',language,legalAccepted:true,newsletterAccepted:false})
    setSent(true); setResult(c.success)
   } catch { setResult(c.error) } finally { setBusy(false) }
  }

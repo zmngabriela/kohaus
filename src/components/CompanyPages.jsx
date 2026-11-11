@@ -10,7 +10,7 @@ export const companyCopy = {
  en: { contact:'Contact', about:'About us', title:'Every connection starts with a conversation.', intro:'For information, ideas or a new possibility, get in touch with KOHAUS.', location:'Barcelona, Spain', form:'Let’s talk', name:'First name', surname:'Last name', email:'Email', phone:'Phone', message:'Message', send:'Send message', sending:'Sending…', consent:'I have read the privacy policy.', privacy:'Privacy', success:'Message received. We will contact you using the email or phone number provided.', error:'Could not send. Please try again or contact us by email.', headline:'People, places and possibilities.', statement:'An attentive eye for what makes each connection unique.', body:'KOHAUS connects people with distinctive spaces and meaningful opportunities. Thoughtful selection, local knowledge and an international outlook shape a more personal approach to real estate.', approach:'Every search has its context. Every property, its value. Our approach starts with listening and continues with clear advice and attention to detail.', person:'Behind the connections', role:'Guilherme Coninch', bio:'Leading KOHAUS, Guilherme brings together his experience in Barcelona’s property market and a network of collaborators. Direct, personal guidance, with the right connections for each project.', cta:'Talk to KOHAUS', rights:'All rights reserved.' },
 }
 
-export function ContactPage({ language, onSubmit }) {
+export function ContactForm({ language, onSubmit, messageLabel, messageRequired = true, successMessage }) {
  const c = companyCopy[language]
  const [status, setStatus] = useState('')
  async function submit(event) {
@@ -19,25 +19,30 @@ export function ContactPage({ language, onSubmit }) {
   const form = event.currentTarget
   const data = new FormData(form)
   const fields = Object.fromEntries(['name','surname','email','phone','message'].map(key => [key, String(data.get(key) || '').trim()]))
-  if (Object.values(fields).some(value => !value)) { setStatus('error'); return }
+  if (['name','surname','phone','email', ...(messageRequired ? ['message'] : [])].some(key => !fields[key])) { setStatus('error'); return }
   setStatus('sending')
   try {
-   await onSubmit({ ...fields, comments: fields.message, language, city:'Barcelona', address:'', operation:'contact', source:'website-contact', legalAccepted:true, newsletterAccepted:false })
+   await onSubmit(fields)
    setStatus('success'); form.reset()
   } catch { setStatus('error') }
  }
+ return <form onSubmit={submit} className="contact-form">
+    {['name','surname','email','phone'].map(key => <label key={key}><span>{c[key]}</span><input name={key} type={key==='email'?'email':key==='phone'?'tel':'text'} autoComplete={{name:'given-name',surname:'family-name',email:'email',phone:'tel'}[key]} required maxLength={key==='email'?254:key==='phone'?40:100} disabled={status==='sending'} /></label>)}
+    <label className="contact-wide"><span>{messageLabel || c.message}</span><textarea name="message" required={messageRequired} maxLength={5000} rows={5} disabled={status==='sending'} /></label>
+    <label className="contact-consent contact-wide"><input type="checkbox" required disabled={status==='sending'} /><PrivacyConsent language={language} text={c.consent} /></label>
+    <button className="solid-button" disabled={status==='sending'}>{status==='sending'?c.sending:c.send}</button>
+    {['success','error'].includes(status) && <p className="contact-wide" role={status==='error'?'alert':'status'}>{status==='success' ? successMessage || c.success : c.error}</p>}
+   </form>
+}
+
+export function ContactPage({ language, onSubmit }) {
+ const c = companyCopy[language]
  return <main className="company-page company-contact">
   <p className="section-label">{c.contact}</p><h1 className="section-title company-opening">{c.title}</h1>
   <p className="company-intro">{c.intro}</p>
   <div className="contact-details"><p>{c.location}</p><a href={`mailto:${companyContact.email}`}>{companyContact.email}</a><a href={`tel:${companyContact.tel}`}>{companyContact.phone}</a></div>
   <section className="contact-section"><h2 className="section-title">{c.form}</h2>
-   <form onSubmit={submit} className="contact-form">
-    {['name','surname','email','phone'].map(key => <label key={key}><span>{c[key]}</span><input name={key} type={key==='email'?'email':key==='phone'?'tel':'text'} autoComplete={{name:'given-name',surname:'family-name',email:'email',phone:'tel'}[key]} required maxLength={key==='email'?254:100} disabled={status==='sending'} /></label>)}
-    <label className="contact-wide"><span>{c.message}</span><textarea name="message" required maxLength={5000} rows={5} disabled={status==='sending'} /></label>
-    <label className="contact-consent contact-wide"><input type="checkbox" required disabled={status==='sending'} /><PrivacyConsent language={language} text={c.consent} /></label>
-    <button className="solid-button" disabled={status==='sending'}>{status==='sending'?c.sending:c.send}</button>
-    {['success','error'].includes(status) && <p className="contact-wide" role={status==='error'?'alert':'status'}>{c[status]}</p>}
-   </form>
+   <ContactForm language={language} onSubmit={fields => onSubmit({ ...fields, comments: fields.message, language, city:'Barcelona', address:'', operation:'contact', source:'website-contact', legalAccepted:true, newsletterAccepted:false })} />
   </section>
  </main>
 }

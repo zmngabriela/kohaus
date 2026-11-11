@@ -335,6 +335,24 @@ describe('KOHAUS app regressions', () => {
     expect(savedLead.comments).toContain('Is the property available for a visit?')
   })
 
+  it('collects preferences from a closed listing in the existing enquiry form', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem('kohaus-dashboard-properties-v1', JSON.stringify([{...PROPERTY_FIXTURES[0],status:'closed'}]))
+    renderApp('/?view=anuncio&lang=en&id=test-eixample')
+    const link = await screen.findByRole('link',{name:'Find something similar'})
+    expect(link).toHaveAttribute('href','#contacto')
+    await user.click(link)
+    const form = within(document.getElementById('contacto'))
+    expect(form.getByRole('heading',{name:'What kind of property are you looking for?'})).toBeInTheDocument()
+    for(const [field,value] of [['Name*','Ana'],['Surname*','Silva'],['Phone*','123456789'],['Email*','ana@example.com'],['What matters most to you?','Two bedrooms']]) await user.type(form.getByLabelText(field),value)
+    await user.click(form.getByRole('checkbox'))
+    await user.click(form.getByRole('button',{name:'Send message'}))
+    const [lead] = JSON.parse(localStorage.getItem('kohaus-owner-leads-v1'))
+    expect(lead).toMatchObject({source:'similar-property', language:'en',operation:'comprar'})
+    expect(lead.comments).toContain('TEST-BCN-1')
+    expect(lead.comments).toContain('Two bedrooms')
+  })
+
   it('removes an existing property photo when the edited property is saved', async () => {
     const user = userEvent.setup()
     const propertyWithPhoto = {
@@ -355,6 +373,9 @@ describe('KOHAUS app regressions', () => {
     await screen.findByText(propertyWithPhoto.title)
     const savedProperties = JSON.parse(window.localStorage.getItem('kohaus-dashboard-properties-v1'))
     expect(savedProperties[0].photos).toEqual([])
+    await user.click(screen.getByRole('button',{name:'Internal history'}))
+    expect(await screen.findByText('Before: living-room.jpg')).toBeInTheDocument()
+    expect(screen.getAllByText('After: —').length).toBeGreaterThan(0)
   })
 
   it('creates selected portal publications as drafts from the property editor', async () => {
@@ -572,4 +593,17 @@ it('uses the shared catalogue layout for off-market sale and rental listings',as
  expect(container.querySelector('.catalog-filter-strip')).toBeInTheDocument()
  expect(container.innerHTML).not.toContain('real-property.jpg')
  expect(screen.getAllByRole('button',{name:'Request information'})).toHaveLength(2)
+})
+
+it('records a client call and shows it again after navigating back to the list',async()=>{
+  const user=userEvent.setup()
+  localStorage.setItem('kohaus-dashboard-clients-v1',JSON.stringify([{id:'contact-1',name:'Ana',surname:'Silva',operation:'comprar',status:'new',types:[],destinations:[],history:[]}]))
+  renderApp('/?view=dashboard&section=clients&lang=en')
+  await user.click(await screen.findByRole('button',{name:'Internal history'}))
+  await user.type(screen.getByLabelText('Description'),'Confirmed the viewing by phone')
+  await user.click(screen.getByRole('button',{name:'Save'}))
+  expect(await screen.findByText('Confirmed the viewing by phone')).toBeInTheDocument()
+  await user.click(screen.getByRole('button',{name:'Back'}))
+  await user.click(screen.getByRole('button',{name:'Internal history'}))
+  expect(await screen.findByText('Confirmed the viewing by phone')).toBeInTheDocument()
 })

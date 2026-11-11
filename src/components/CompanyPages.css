@@ -25,3 +25,6 @@
 /* Shared label-to-heading spacing on Contact and About, at every breakpoint. */
 .page-shell main.company-page > .section-label { margin:0; }
 .page-shell main.company-page > .company-opening { margin-top:16px; padding-top:0; }
+
+.empty-catalog-lead { max-width: 44rem; }
+.empty-catalog-lead .contact-form { margin-top: 1.5rem; }

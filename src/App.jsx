@@ -1,3 +1,6 @@
+import DashboardSidebar from './components/DashboardSidebar'
+import RecordHistory from './components/RecordHistory'
+import { recordChanges } from './lib/recordHistory'
 import { propertyNumericRules, portalNumericRules, clientNumericRules, validateNumericFields } from './lib/numericFields'
 import PropertyMedia from './components/PropertyMedia'
 import { availableFeaturedSlots, selectFeatured } from './lib/featuredProperties'
@@ -23,6 +26,8 @@ import { isPublishedListing, belongsInCatalog, listingLabels, closedListingsLast
 import { AboutPage, ContactPage, companyContact, companyCopy } from './components/CompanyPages'
 import { LegalPage } from './components/Legal'
 import CookieConsent from './components/CookieConsent'
+import EmptyCatalogLead, { searchCopy } from './components/EmptyCatalogLead'
+import { similarInquiry } from './lib/similarInquiry'
 import OffMarket from './components/OffMarket'
 import offMarketImage from './assets/kohaus-intro-concept-mirrorless-v3.png'
 import { preferredLanguage, recipientLanguage, visitRecipient } from './lib/language'
@@ -39,7 +44,7 @@ import Tasks from './components/Tasks'
 import { unlinkLocalTaskReference } from './lib/tasks'
 import Opportunities from './components/Opportunities'
 import { opportunityCopy } from './lib/opportunityCopy'
-import { propertyExtras } from './lib/opportunities'
+import { contactLinks, propertyExtras } from './lib/opportunities'
 import locationBarcelona from './assets/barcelona.jpg'
 import locationCostaBrava from './assets/costa-brava.jpg'
 import locationPortugal from './assets/portugal.jpg'
@@ -1890,6 +1895,24 @@ function getOperationLabel(operation, language) {
   return labels[operation] ?? COPY[language].nav.buy
 }
 
+function catalogLeadCriteria(filters, language, offMarket) {
+  const c = COPY[language].catalog
+  const items = [
+    offMarket && 'Off-market',
+    getOperationLabel(filters.operation, language),
+    filters.destination !== 'todos' && getDestinationMeta(filters.destination, language).name,
+    filters.reference && filters.reference.trim(),
+    ...filters.type.map(type => getTypeLabel(type, language)),
+    filters.priceMin && `${c.filters.price} ≥ ${filters.priceMin} ${filters.priceCurrency}`,
+    filters.priceMax && `${c.filters.price} ≤ ${filters.priceMax} ${filters.priceCurrency}`,
+    filters.surface !== 'all' && c.surfaces[filters.surface],
+    filters.rooms !== 'all' && `${c.filters.rooms}: ${filters.rooms}+`,
+    filters.bathrooms !== 'all' && `${c.filters.bathrooms}: ${filters.bathrooms}+`,
+    ...filters.extras.map(extra => c.extras[extra]),
+  ]
+  return items.filter(Boolean).join(' · ')
+}
+
 function getTypeLabel(type, language) {
   return COPY[language].catalog.types[normalizeTypes([type])[0]] ?? type
 }
@@ -3396,10 +3419,12 @@ export default function App({ initialPage } = {}) {
   const [propertyFilters, setPropertyFilters] = useState(PROPERTY_FILTER_DEFAULTS)
   const [portalFilters, setPortalFilters] = useState(PORTAL_FILTER_DEFAULTS)
   const [clientForm, setClientForm] = useState(CLIENT_FORM_DEFAULTS)
+  const [historyView, setHistoryView] = useState(null)
   const [clientFilters, setClientFilters] = useState(CLIENT_FILTER_DEFAULTS)
   const [visitForm, setVisitForm] = useState(VISIT_FORM_DEFAULTS)
   const [visitSaving, setVisitSaving] = useState(false)
   const visitSaveLock = useRef(false)
+  const [portalDrafts,setPortalDrafts] = useState({})
   const [portalSavingId, setPortalSavingId] = useState('')
   const [leadSavingId, setLeadSavingId] = useState('')
   const [visitFilters, setVisitFilters] = useState(VISIT_FILTER_DEFAULTS)
@@ -3679,6 +3704,9 @@ export default function App({ initialPage } = {}) {
   }, [clientEditor.isOpen])
 
   const copy = COPY[language]
+  const historyRecord = historyView?.kind === dashboardSection && (dashboardSection === 'clients' ? dashboardClients : dashboardProperties).find(item => item.id === historyView.id)
+  const historyButton = (kind,id) => <button type="button" onClick={()=>{setHistoryView({kind,id});window.scrollTo(0,0)}}>{copy.dashboard.historyTitle}</button>
+  const leadSourceLabel = lead => lead.source === 'similar-property' ? similarInquiry[language].inquiryLabel : lead.source === 'catalog-alert' ? searchCopy[language].source : copy.ownerForm.sources[lead.source] || companyCopy[language].contact
   const portalFormCopy = getPortalFormCopy(language)
   const portalEnvironmentCopy = getPortalEnvironmentCopy(language)
   const catalogProperties = publishedProperties
@@ -3723,6 +3751,7 @@ export default function App({ initialPage } = {}) {
     ? getPropertyText(selectedProperty, language)
     : null
 
+  const inquiryCopy = selectedProperty?.status === 'closed' ? similarInquiry[language] : copy.property
   const filteredCatalog = filterCatalogProperties(
     catalogProperties,
     catalogFilters
@@ -3880,6 +3909,7 @@ export default function App({ initialPage } = {}) {
   }
 
   function goDashboard(section = DASHBOARD_SECTION_DEFAULT) {
+    setHistoryView(null)
     setDashboardSection(section)
     syncRoute({
       view: 'dashboard',
@@ -4012,7 +4042,7 @@ export default function App({ initialPage } = {}) {
       address: propertyLabel,
       city: getDestinationMeta(selectedProperty.destination, language).name,
       operation: selectedProperty.operation,
-      source: 'property_request',
+      source: selectedProperty.status === 'closed' ? 'similar-property' : 'property_request',
       comments: [propertyLabel, inquiryMessage].filter(Boolean).join('\n\n'),
       legalAccepted: propertyInquiry.legalAccepted,
       newsletterAccepted: false,
@@ -4115,14 +4145,15 @@ export default function App({ initialPage } = {}) {
       let next
 
       if (propertyEditor.mode === 'edit' && propertyEditor.propertyId) {
-        const nextHistory = [createHistoryEntry('Property updated from dashboard editor.'), ...(currentProperty?.history || [])]
-        next = await updateDashboardProperty(propertyEditor.propertyId, {
+        const patch = {
           ownerClientId: propertyForm.ownerClientId, privateAddress: propertyForm.privateAddress, offMarket: propertyForm.offMarket, title: propertyForm.title, operation: propertyForm.operation,
           destination: normalizeCity(propertyForm.destination), type: propertyForm.type, ...priceFields(propertyForm.priceValue, propertyForm.currency), currency: propertyForm.currency, surface: Number(propertyForm.surface || 0),
           rooms: Number(propertyForm.rooms || 0), bathrooms: Number(propertyForm.bathrooms || 0), status: propertyForm.status,
           observations: propertyForm.observations, portalData: propertyForm.portalData,
-          history: nextHistory, photos: orderedPhotos, portalPublications,
-        })
+          photos: orderedPhotos, portalPublications,
+        }
+        const changes = recordChanges(currentProperty, patch)
+        next = await updateDashboardProperty(propertyEditor.propertyId, {...patch, history: changes.length ? [{...createHistoryEntry(''), changes}, ...(currentProperty.history || [])] : currentProperty.history})
       } else {
         propertyRequestId.current ||= createId('property')
         next = await saveDashboardProperty({ ...propertyForm, requestId: propertyRequestId.current }, orderedPhotos)
@@ -4150,15 +4181,16 @@ export default function App({ initialPage } = {}) {
       let next
       if (clientEditor.mode === 'edit' && clientEditor.clientId) {
         const currentClient = dashboardClients.find((client) => client.id === clientEditor.clientId)
-        next = await updateDashboardClient(clientEditor.clientId, {
+        const patch = {
           name: clientForm.name, surname: clientForm.surname, phone: clientForm.phone, email: clientForm.email,
           language: clientForm.language, operation: clientForm.operation, destinations: clientForm.destinations, types: normalizeTypes(clientForm.types),
           budgetMin: parseBudget(clientForm.budgetMin), budgetMax: parseBudget(clientForm.budgetMax), currency: clientForm.currency,
           minBathrooms: Number(clientForm.minBathrooms || 0), requiredExtras: clientForm.requiredExtras,
           minRooms: Number(clientForm.minRooms || 0), minSurface: Number(clientForm.minSurface || 0),
           status: clientForm.status, notes: clientForm.notes,
-          history: [createHistoryEntry('Client profile updated from dashboard.'), ...(currentClient?.history || [])],
-        })
+        }
+        const changes = recordChanges(currentClient, patch)
+        next = await updateDashboardClient(clientEditor.clientId, {...patch, history: changes.length ? [{...createHistoryEntry(''), changes}, ...(currentClient.history || [])] : currentClient.history})
       } else {
         next = await saveDashboardClient(clientForm)
       }
@@ -4304,23 +4336,21 @@ export default function App({ initialPage } = {}) {
     goDashboard('visits')
   }
 
-  function openCreateVisit(lead = null) {
+  function openCreateVisit({lead, client, property} = {}) {
+    const contact = client || lead
     setVisitEditorOpen(true)
     setVisitEditorId(null)
-    setVisitForm(
-      lead
-        ? {
-            ...VISIT_FORM_DEFAULTS,
-            leadId: lead.id,
-            contactName: `${lead.name} ${lead.surname}`.trim(),
-            contactPhone: lead.phone,
-            contactEmail: lead.email,
-            location: [lead.address, lead.city].filter(Boolean).join(', '),
-            status: 'scheduled',
-            notes: lead.comments || '',
-          }
-        : VISIT_FORM_DEFAULTS,
-    )
+    setVisitForm({
+      ...VISIT_FORM_DEFAULTS,
+      clientId: client?.id || '',
+      leadId: lead?.id || '',
+      propertyId: property?.id || '',
+      contactName: contact ? [contact.name, contact.surname].filter(Boolean).join(' ') : '',
+      contactPhone: contact?.phone || '',
+      contactEmail: contact?.email || '',
+      location: property?.privateAddress || [lead?.address, lead?.city].filter(Boolean).join(', '),
+      notes: lead?.comments || '',
+    })
     goDashboard('visits')
   }
 
@@ -4333,7 +4363,7 @@ export default function App({ initialPage } = {}) {
       phone: lead.phone,
       email: lead.email,
       operation: lead.operation === 'alquilar' ? 'alquilar' : 'comprar',
-      notes: [lead.comments, `Lead source: ${(copy.ownerForm.sources[lead.source] || companyCopy[language].contact)}`].filter(Boolean).join('\n'),
+      notes: [lead.comments, `Lead source: ${leadSourceLabel(lead)}`].filter(Boolean).join('\n'),
     })
     setClientEditor({
       isOpen: true,
@@ -4354,7 +4384,7 @@ export default function App({ initialPage } = {}) {
         lead.comments,
         lead.address ? `Address: ${lead.address}` : '',
         lead.city ? `City: ${lead.city}` : '',
-        `Lead source: ${(copy.ownerForm.sources[lead.source] || companyCopy[language].contact)}`,
+        `Lead source: ${leadSourceLabel(lead)}`,
         `Owner contact: ${lead.name} ${lead.surname}`.trim(),
         lead.phone ? `Phone: ${lead.phone}` : '',
         lead.email ? `Email: ${lead.email}` : '',
@@ -4512,32 +4542,22 @@ export default function App({ initialPage } = {}) {
   }
 
   function handlePortalDraftChange(propertyId, portalId, field, value) {
-    setDashboardProperties((current) =>
-      current.map((property) => {
-        if (property.id !== propertyId) {
-          return property
-        }
-
-        return {
-          ...property,
-          portalPublications: (property.portalPublications || []).map((publication) =>
-            publication.portalId === portalId ? { ...publication, [field]: value } : publication,
-          ),
-        }
-      }),
-    )
+    const key = propertyId + ':' + portalId
+    setPortalDrafts(current => ({...current,[key]:{...current[key],[field]:value}}))
   }
 
   async function handlePortalSave(property, portalId) {
-    const definition = getPortalDefinition(portalId)
     const savingId = `${property.id}:${portalId}`
     setPortalSavingId(savingId)
     setDashboardNotice('')
     try {
+      const publications = property.portalPublications.map(item => item.portalId === portalId ? normalizePortalPublication({...item,...portalDrafts[savingId]}) : item)
+      const changes = recordChanges(property, {portalPublications:publications})
       const next = await updateDashboardProperty(property.id, {
-        portalPublications: property.portalPublications || [],
-        history: [createHistoryEntry(`Portal ${definition?.name || portalId} details updated.`), ...property.history],
+        portalPublications:publications,
+        history:changes.length ? [{...createHistoryEntry(''),changes},...property.history] : property.history,
       })
+      setPortalDrafts(current => { const remaining={...current}; delete remaining[savingId]; return remaining })
       setDashboardProperties(next)
       setDataError('')
       setDashboardNotice(copy.dashboard.portalSaved)
@@ -4610,40 +4630,12 @@ export default function App({ initialPage } = {}) {
 
       {route.view === 'dashboard' && canOpenDashboard ? (
         <main className="dashboard-page">
-          <section className="dashboard-shell">
-            <div className="dashboard-head">
-              <div>
-                <p className="section-label dashboard-label">{copy.dashboard.label}</p>
-
-              </div>
-            </div>
-
-            {authAccess ? (
-              <section className="dashboard-user-band" aria-label={copy.auth.signedInAs}>
-                <div className="dashboard-user-band-copy">
-                  <p className="dashboard-user-band-label">{copy.auth.signedInAs}</p>
-                  <h2>{authAccess.display_name || authSession?.user?.email}</h2>
-                </div>
-                <div className="dashboard-user-band-meta">
-                  <span>{copy.auth.roleLabel}</span>
-                  <strong>{authAccess.role}</strong>
-                </div>
-              </section>
-            ) : null}
-
-            <nav className="dashboard-tabs" aria-label="Dashboard sections">
-              {Object.entries(copy.dashboard.sections).map(([section, label]) => (
-                <button
-                  key={section}
-                  type="button"
-                  className={dashboardSection === section ? 'dashboard-tab is-active' : 'dashboard-tab'}
-                  onClick={() => goDashboard(section)}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
-
+          <section className="dashboard-shell dashboard-workspace">
+            <DashboardSidebar copy={copy} language={language} section={dashboardSection} onSelect={goDashboard} account={authAccess} email={authSession?.user?.email} />
+            <div className="dashboard-content">
+            {historyRecord ? <RecordHistory key={historyRecord.id} record={historyRecord} client={historyView.kind==='clients'} language={language} properties={dashboardProperties} visits={dashboardVisits}
+              labels={{...copy.dashboard.propertyFields,...copy.dashboard.clientFields,...copy.dashboard.visitStatusOptions,...copy.property.detailLabels}}
+              onBack={()=>setHistoryView(null)} onActivity={async activity=>{setDashboardClients(await updateDashboardClient(historyRecord.id,{history:[{...createHistoryEntry(activity.text),...activity},...(historyRecord.history || [])]}))}} /> : <>
             {dashboardSection === 'overview' ? (
               <section className="dashboard-section">
                 <div className="dashboard-stats">
@@ -4696,7 +4688,7 @@ export default function App({ initialPage } = {}) {
                   <div className="dashboard-leads-grid">
                     {leads.map((lead) => (
                       <CrmRecord key={lead.id} className="dashboard-lead-card" language={language} title={`${lead.name} ${lead.surname}`} meta={[lead.phone, lead.email, lead.city, copy.ownerForm.operations[lead.operation] || companyCopy[language].contact].filter(Boolean).join(' · ')} status={copy.dashboard.statusOptions[lead.status]} fields={[
-                        { label: copy.dashboard.columns.source, value: copy.ownerForm.sources[lead.source] || lead.source },
+                        { label: copy.dashboard.columns.source, value: ['catalog-alert','similar-property'].includes(lead.source) ? leadSourceLabel(lead) : copy.ownerForm.sources[lead.source] || lead.source },
                         { label: copy.dashboard.columns.date, value: formatDate(lead.createdAt, language) },
                         { label: copy.ownerForm.fields?.comments || (language === 'pt' ? 'Mensagem' : language === 'es' ? 'Mensaje' : 'Message'), value: lead.comments },
                       ]}>
@@ -4719,7 +4711,7 @@ export default function App({ initialPage } = {}) {
                           </div>
                           <div>
                             <span>{copy.dashboard.columns.source}</span>
-                            <strong>{(copy.ownerForm.sources[lead.source] || companyCopy[language].contact)}</strong>
+                            <strong>{leadSourceLabel(lead)}</strong>
                           </div>
                           <div>
                             <span>{copy.dashboard.columns.date}</span>
@@ -4758,7 +4750,7 @@ export default function App({ initialPage } = {}) {
                               {copy.dashboard.leadToProperty}
                             </button>
                           ) : null}
-                          <button type="button" className="dashboard-property-cta" onClick={() => openCreateVisit(lead)}>
+                          <button type="button" className="dashboard-property-cta" onClick={() => openCreateVisit({lead})}>
                             {copy.dashboard.leadToVisit}
                           </button>
                         </div>
@@ -4845,8 +4837,13 @@ export default function App({ initialPage } = {}) {
                     {filteredDashboardProperties.map((property) => (
                       <CrmRecord key={property.id} className="dashboard-property-card" language={language} title={property.title} image={property.photos?.[0]?.thumbnailUrl || property.photos?.[0]?.url}
                         meta={`${property.reference} · ${getOperationLabel(property.operation, language)}${property.offMarket ? ' · Off-market' : ''}`}
-                        status={copy.dashboard.propertyStatusOptions[property.status]} editLabel={copy.dashboard.editProperty} onEdit={() => openEditPropertyEditor(property)}
+                        status={copy.dashboard.propertyStatusOptions[property.status]} editLabel={copy.dashboard.editProperty} onEdit={() => openEditPropertyEditor(property)} actions={<>
+                          {historyButton('properties',property.id)}
+                          {property.status === 'active' && <button type="button" onClick={() => openCreateVisit({property})}>{copy.dashboard.leadToVisit}</button>}
+                          {isPublishedListing(property) && !property.offMarket && <a href={toSearch({view:'anuncio',propertyId:property.id,language})} target="_blank" rel="noreferrer">{copy.catalog.viewListing}</a>}
+                        </>}
                         fields={[
+                          { label: copy.dashboard.sections.portals, value: getPropertyPortalPublications(property).filter(p=>p.status==='posted').map(p=>getPortalDefinition(p.portalId)?.name || p.portalId).join(' · ') },
                           { label: copy.dashboard.propertyFilters.destination, value: `${getDestinationMeta(property.destination, language).name} · ${getTypeLabel(property.type, language)}` },
                           { label: copy.dashboard.clientColumns.budget, value: property.priceLabel || '—' },
                           { label: copy.dashboard.clientColumns.criteria, value: `${property.surface} m² · ${property.rooms} ${copy.dashboard.propertyColumns.rooms} · ${property.bathrooms} ${copy.dashboard.propertyColumns.bathrooms}` },
@@ -4968,7 +4965,8 @@ export default function App({ initialPage } = {}) {
                           </div>
 
                           {livePublications.length ? (
-                            livePublications.map((publication) => {
+                            livePublications.map((savedPublication) => {
+                              const publication = {...savedPublication,...portalDrafts[property.id + ':' + savedPublication.portalId]}
                               const definition = getPortalDefinition(publication.portalId)
                               const missingFields = getPortalMissingFields(liveProperty)
                               return (
@@ -5313,10 +5311,16 @@ export default function App({ initialPage } = {}) {
                 {filteredDashboardClients.length ? (
                   <div className="dashboard-clients-grid">
                     {filteredDashboardClients.map((client) => {
+                      const links = contactLinks(client)
                       return (
                         <CrmRecord key={client.id} className="dashboard-client-card" language={language}
                           title={`${client.name} ${client.surname}`} meta={getOperationLabel(client.operation, language)}
-                          status={copy.dashboard.clientStatusOptions[client.status]} editLabel={copy.dashboard.editClient} onEdit={() => openClientEditor(client)}
+                          status={copy.dashboard.clientStatusOptions[client.status]} editLabel={copy.dashboard.editClient} onEdit={() => openClientEditor(client)} actions={<>
+                            {historyButton('clients',client.id)}
+                            {links.phone && <a href={links.phone}>{opportunityCopy[language].call}</a>}
+                            {links.email && <a href={links.email}>{opportunityCopy[language].email}</a>}
+                            <button type="button" onClick={() => openCreateVisit({client})}>{copy.dashboard.leadToVisit}</button>
+                          </>}
                           fields={[
                             { label: copy.dashboard.clientColumns.contact, value: [client.phone, client.email].filter(Boolean).join(' · ') },
                             { label: copy.dashboard.clientColumns.budget, value: `${formatBudgetRange(client)} ${client.currency || 'EUR'}` },
@@ -5339,6 +5343,8 @@ export default function App({ initialPage } = {}) {
                 )}
               </section>
             ) : null}
+            </>}
+            </div>
           </section>
         </main>
       ) : null}
@@ -5624,19 +5630,6 @@ export default function App({ initialPage } = {}) {
                   ))}
                 </div>
               </details>
-              {propertyEditor.mode === 'edit' && propertyEditor.propertyId ? (
-                <details key={propertyEditor.propertyId} className="dashboard-property-history dashboard-property-form-full dashboard-portal-picker">
-                  <summary>{copy.dashboard.historyTitle}</summary>
-                  <div className="dashboard-history-list">
-                    {(dashboardProperties.find((property) => property.id === propertyEditor.propertyId)?.history || []).map((item) => (
-                      <article key={item.id} className="dashboard-history-item">
-                        <p>{item.text}</p>
-                        <time>{formatDate(item.createdAt, language)}</time>
-                      </article>
-                    ))}
-                  </div>
-                </details>
-              ) : null}
               <div className="dashboard-property-form-full"><PropertyEditorActions editing={propertyEditor.mode === 'edit'} busy={propertySaving} language={language} saveLabel={propertyEditor.mode === 'edit' ? copy.dashboard.updateProperty : copy.dashboard.addProperty} savingLabel={copy.dashboard.saving} onDelete={handleDeleteProperty} /></div>
               <div className="dashboard-property-form-full property-editor-bottom-back"><button type="button" className="dashboard-editor-secondary" disabled={propertySaving} onClick={closePropertyEditor}>{copy.dashboard.backToProperties}</button></div>
             </form>
@@ -6018,14 +6011,21 @@ export default function App({ initialPage } = {}) {
                           else goProperty(property)
                         }}
                       >
-                        {property.offMarket ? (language === 'pt' ? 'Solicitar informações' : language === 'es' ? 'Solicitar información' : 'Request information') : copy.catalog.viewListing}
+                        {property.offMarket && property.status === 'closed' ? similarInquiry[language].contact : property.offMarket ? (language === 'pt' ? 'Solicitar informações' : language === 'es' ? 'Solicitar información' : 'Request information') : copy.catalog.viewListing}
                       </button>
                     </div>
                   </article>
                 )
               })}
             </div>
-            {!publicLoading && !filteredCatalog.length && <p>{language === 'pt' ? 'Nenhum imóvel encontrado com estes critérios.' : language === 'es' ? 'No se han encontrado inmuebles con estos criterios.' : 'No properties match these criteria.'}</p>}
+            {!publicLoading && !publicDataError && !filteredCatalog.length && <EmptyCatalogLead
+              key={JSON.stringify([route.view, language, catalogFilters])}
+              language={language}
+              criteria={catalogLeadCriteria(catalogFilters, language, route.view === 'off-market')}
+              city={catalogFilters.destination === 'todos' ? copy.catalog.all : getDestinationMeta(catalogFilters.destination, language).name}
+              operation={catalogFilters.operation}
+              onSubmit={saveOwnerLead}
+            />}
             {offMarketSelection && <OffMarket key={offMarketSelection.id} property={offMarketSelection} language={language} onSubmit={saveOwnerLead} onClose={() => setOffMarketSelection(null)} />}
           </section>
         </main>
@@ -6241,9 +6241,7 @@ export default function App({ initialPage } = {}) {
                       <strong>{selectedProperty.extras.map((extra) => copy.catalog.extras[extra]).join(' · ')}</strong>
                     </div>
                   </div>
-                  <a className="solid-button property-cta" href="#contacto">
-                    {copy.property.contact}
-                  </a>
+                  <a className="solid-button property-cta" href="#contacto">{inquiryCopy.contact}</a>
                 </aside>
               </div>
             </div>
@@ -6318,9 +6316,9 @@ export default function App({ initialPage } = {}) {
 
           <section className="property-inquiry" id="contacto">
             <div className="property-inquiry-copy">
-              <p className="section-label">{copy.property.inquiryLabel}</p>
-              <h2>{copy.property.inquiryTitle}</h2>
-              <p>{copy.property.inquiryCopy}</p>
+              <p className="section-label">{inquiryCopy.inquiryLabel}</p>
+              <h2>{inquiryCopy.inquiryTitle}</h2>
+              <p>{inquiryCopy.inquiryCopy}</p>
               <div className="property-inquiry-reference">
                 <span>{selectedProperty.reference}</span>
                 <strong>{selectedPropertyText.title}</strong>
@@ -6330,7 +6328,7 @@ export default function App({ initialPage } = {}) {
             <div className="owner-form-card property-inquiry-card">
               {propertyInquirySuccess ? (
                 <div className="owner-form-success" role="status">
-                  <p>{copy.property.inquirySuccess}</p>
+                  <p>{inquiryCopy.inquirySuccess}</p>
                 </div>
               ) : null}
               <form className="owner-form-grid" onSubmit={handlePropertyInquirySubmit} autoComplete="on">
@@ -6351,14 +6349,14 @@ export default function App({ initialPage } = {}) {
                   <input type="email" autoComplete="email" inputMode="email" value={propertyInquiry.email} onChange={(event) => setPropertyInquiry((current) => ({ ...current, email: event.target.value }))} required />
                 </label>
                 <label className="owner-form-comments owner-form-full">
-                  <span>{copy.property.inquiryMessage}</span>
+                  <span>{inquiryCopy.inquiryMessage}</span>
                   <textarea value={propertyInquiry.message} onChange={(event) => setPropertyInquiry((current) => ({ ...current, message: event.target.value }))} />
                 </label>
                 <label className="owner-form-check owner-form-full">
                   <input type="checkbox" checked={propertyInquiry.legalAccepted} onChange={(event) => setPropertyInquiry((current) => ({ ...current, legalAccepted: event.target.checked }))} required />
                   <PrivacyConsent language={language} text={copy.ownerForm.legal} />
                 </label>
-                <button type="submit" className="owner-form-submit owner-form-full">{copy.property.inquirySubmit}</button>
+                <button type="submit" className="owner-form-submit owner-form-full">{inquiryCopy.inquirySubmit}</button>
               </form>
             </div>
           </section>
