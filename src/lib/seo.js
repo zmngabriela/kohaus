@@ -5,10 +5,10 @@ export function siteOrigin(configured) {
 }
 export function socialImage(origin) {
  return {
-  image: new URL('/brand/kohaus-favicon.png?v=dashboard', origin).href,
+  image: new URL('/brand/kohaus-social-monogram.png', origin).href,
   'image:type': 'image/png',
-  'image:width': '512',
-  'image:height': '512',
+  'image:width': '1600',
+  'image:height': '1600',
   'image:alt': 'KOHAUS Real Estate',
  }
 }
