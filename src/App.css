@@ -3309,6 +3309,21 @@
   padding-bottom: clamp(28px, 4svh, 48px);
 }
 
+/* Short landscape viewports need room for the film even with Safari's bars open. */
+@media (orientation: landscape) and (max-height: 540px) and (max-width: 1000px) {
+  .site-header { padding-block: 4px; }
+  .home-first-screen { grid-template-rows: minmax(max(10rem, 48svh), 1fr) auto; }
+  .home-first-screen .hero-overlay { padding-block: 18px; }
+  .hero-search-band { padding: 10px 24px; }
+  .hero-search-band .search-panel { gap: 10px 14px; }
+  .header-menu-panel { max-height: calc(100dvh - var(--header-height, 52px)); }
+}
+
+@media (orientation: landscape) and (min-width: 600px) and (max-width: 1000px) and (max-height: 540px) {
+  .hero-search-band .search-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) auto; }
+  .hero-search-band .search-panel > :is(label, button) { grid-column: auto; min-width: 0; }
+}
+
 /* Quiet controls share the cream band, with only an underline. */
 .hero-search-band .search-panel label > span { color: var(--copy); }
 .hero-search-band .hero-custom-select .custom-select-trigger,
