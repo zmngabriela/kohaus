@@ -23,12 +23,12 @@ export function LegalPage({ page, language }) {
   {page === 'legal' && <section>
    <h2>{c.identity}</h2>
    <p className="legal-owner-details">{c.ownerDetails}{legalOwner.name} · {legalOwner.city} · <a href={`mailto:${legalOwner.email}`}>{legalOwner.email}</a> · <a href="tel:+34665324791">+34 665 32 47 91</a></p>
-   <p className="legal-contact">{c.legalContact} <a href="mailto:hola@thekohaus.com">hola@thekohaus.com</a></p>
+   <p className="legal-contact">{c.legalContact} <a href="mailto:hola@kohausrealestate.com">hola@kohausrealestate.com</a></p>
   </section>}
   {(page === 'privacy' || page === 'cookies') && <section>
    <h2>{c.identity}</h2>
    <p className="legal-owner-details">{c.controllerLabel}{legalOwner.name} · {legalOwner.city} · <a href={`mailto:${legalOwner.email}`}>{legalOwner.email}</a> · <a href="tel:+34665324791">+34 665 32 47 91</a></p>
-   <p className="legal-contact">{page === 'cookies' ? cookies.contact : c.privacyContact} <a href="mailto:hola@thekohaus.com">hola@thekohaus.com</a></p>
+   <p className="legal-contact">{page === 'cookies' ? cookies.contact : c.privacyContact} <a href="mailto:hola@kohausrealestate.com">hola@kohausrealestate.com</a></p>
   </section>}
  </main>
 }

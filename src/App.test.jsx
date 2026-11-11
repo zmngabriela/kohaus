@@ -87,7 +87,7 @@ describe('KOHAUS app regressions', () => {
       const { container, unmount } = renderApp(route)
 
       expect(container.querySelectorAll('.site-footer')).toHaveLength(1)
-      expect(screen.getByText('hola@thekohaus.com')).toBeInTheDocument()
+      expect(screen.getByText('hola@kohausrealestate.com')).toBeInTheDocument()
 
       unmount()
     })

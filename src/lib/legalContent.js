@@ -1,4 +1,4 @@
-export const legalOwner = { name: 'José Guilherme Coninch', city: 'Barcelona', email: 'guilherme@thekohaus.com' }
+export const legalOwner = { name: 'José Guilherme Coninch', city: 'Barcelona', email: 'guilherme@kohausrealestate.com' }
 
 // Business details must be verified by the owner. Never invent tax IDs or addresses.
 export const legalContent = {
@@ -18,7 +18,7 @@ export const legalContent = {
    ["6. Disponibilidade e restrição de acesso", "O acesso poderá ser interrompido para manutenção ou limitado de forma proporcional em caso de uso abusivo ou não autorizado. A utilização do site não cria uma relação de sociedade, representação ou emprego com a KOHAUS. Se uma disposição for considerada inválida, as restantes continuam aplicáveis na medida permitida por lei."],
    ["7. Direitos de autor e propriedade intelectual", "Os textos, imagens, gráficos, vídeos, ficheiros, estrutura e apresentação do site estão sujeitos aos direitos dos respetivos titulares. A consulta pessoal não concede licença de exploração comercial. A reprodução, distribuição, transformação ou utilização noutros sites exige autorização prévia do titular dos direitos, salvo quando permitida por lei."],
    ["8. Marcas e sinais distintivos", "O nome KOHAUS, o logótipo e os restantes sinais distintivos pertencem aos respetivos titulares. A sua apresentação no site não concede autorização para os utilizar. A proteção aplicável decorre da legislação em vigor; este aviso não presume que todos os sinais estejam registados."],
-   ["9. Legislação aplicável e contato", "Aplicam-se as normas espanholas e europeias pertinentes. Eventuais litígios serão submetidos aos tribunais competentes de acordo com a legislação aplicável, preservando as normas imperativas e os direitos dos consumidores. Para questões sobre estas condições: hola@thekohaus.com · +34 665 32 47 91."],
+   ["9. Legislação aplicável e contato", "Aplicam-se as normas espanholas e europeias pertinentes. Eventuais litígios serão submetidos aos tribunais competentes de acordo com a legislação aplicável, preservando as normas imperativas e os direitos dos consumidores. Para questões sobre estas condições: hola@kohausrealestate.com · +34 665 32 47 91."],
   ],
   privacy: [
   [
@@ -65,7 +65,7 @@ export const legalContent = {
     {
       "paragraphs": [
         "Os seus dados são guardados nos sistemas utilizados pela KOHAUS para gerir o atendimento e os serviços imobiliários. O acesso é limitado às pessoas autorizadas e aos prestadores que precisam desses dados para apoiar o armazenamento, a manutenção ou a comunicação, sujeitos às obrigações de confidencialidade e proteção de dados aplicáveis.",
-        "Pode solicitar informações sobre os locais de armazenamento e quem tem acesso aos seus dados por hola@thekohaus.com."
+        "Pode solicitar informações sobre os locais de armazenamento e quem tem acesso aos seus dados por hola@kohausrealestate.com."
       ]
     }
   ],
@@ -82,12 +82,12 @@ export const legalContent = {
   ],
   [
     "Transparência",
-    "Informamos de forma clara e acessível como e por que tratamos os seus dados pessoais. Se tiver dúvidas sobre algum uso, prestador ou prazo de conservação, pode escrever para hola@thekohaus.com. Alterações relevantes no tratamento serão refletidas nesta política."
+    "Informamos de forma clara e acessível como e por que tratamos os seus dados pessoais. Se tiver dúvidas sobre algum uso, prestador ou prazo de conservação, pode escrever para hola@kohausrealestate.com. Alterações relevantes no tratamento serão refletidas nesta política."
   ],
   [
     "Exercício dos direitos",
     {
-      "intro": "Pode exercer os direitos abaixo, quando aplicáveis, enviando um e-mail para hola@thekohaus.com.",
+      "intro": "Pode exercer os direitos abaixo, quando aplicáveis, enviando um e-mail para hola@kohausrealestate.com.",
       "items": [
         {
           "title": "Acesso",
@@ -133,7 +133,7 @@ export const legalContent = {
    ["6. Disponibilidad y restricción de acceso", "El acceso podrá interrumpirse por mantenimiento o limitarse de forma proporcionada ante usos abusivos o no autorizados. El uso del sitio no crea una relación de sociedad, representación o empleo con KOHAUS. Si una disposición se declara inválida, las restantes seguirán siendo aplicables en la medida permitida por la ley."],
    ["7. Derechos de autor y propiedad intelectual", "Los textos, imágenes, gráficos, vídeos, archivos, estructura y presentación del sitio están sujetos a los derechos de sus respectivos titulares. La consulta personal no concede una licencia de explotación comercial. La reproducción, distribución, transformación o utilización en otros sitios requiere autorización previa del titular de los derechos, salvo cuando la ley lo permita."],
    ["8. Marcas y signos distintivos", "El nombre KOHAUS, el logotipo y los demás signos distintivos pertenecen a sus respectivos titulares. Su presentación en el sitio no autoriza su utilización. La protección aplicable deriva de la legislación vigente; este aviso no presupone que todos los signos estén registrados."],
-   ["9. Legislación aplicable y contacto", "Se aplica la normativa española y europea pertinente. Los litigios se someterán a los tribunales competentes conforme a la legislación aplicable, respetando las normas imperativas y los derechos de los consumidores. Para consultas sobre estas condiciones: hola@thekohaus.com · +34 665 32 47 91."],
+   ["9. Legislación aplicable y contacto", "Se aplica la normativa española y europea pertinente. Los litigios se someterán a los tribunales competentes conforme a la legislación aplicable, respetando las normas imperativas y los derechos de los consumidores. Para consultas sobre estas condiciones: hola@kohausrealestate.com · +34 665 32 47 91."],
   ],
   privacy: [
   [
@@ -179,7 +179,7 @@ export const legalContent = {
     "Dónde se guardan los datos y quién los trata",
     {
       "paragraphs": [
-        "Sus datos se guardan en los sistemas utilizados por KOHAUS para gestionar la atención y los servicios inmobiliarios. El acceso está limitado a las personas autorizadas y a los proveedores que necesitan esos datos para apoyar el almacenamiento, el mantenimiento o la comunicación, sujetos a las obligaciones de confidencialidad y protección de datos aplicables. Puede solicitar información sobre los lugares de almacenamiento y quién tiene acceso a sus datos en hola@thekohaus.com."
+        "Sus datos se guardan en los sistemas utilizados por KOHAUS para gestionar la atención y los servicios inmobiliarios. El acceso está limitado a las personas autorizadas y a los proveedores que necesitan esos datos para apoyar el almacenamiento, el mantenimiento o la comunicación, sujetos a las obligaciones de confidencialidad y protección de datos aplicables. Puede solicitar información sobre los lugares de almacenamiento y quién tiene acceso a sus datos en hola@kohausrealestate.com."
       ]
     }
   ],
@@ -196,12 +196,12 @@ export const legalContent = {
   ],
   [
     "Transparencia",
-    "Informamos de forma clara y accesible sobre cómo y por qué tratamos sus datos personales. Si tiene dudas sobre algún uso, proveedor o plazo de conservación, puede escribir a hola@thekohaus.com. Los cambios relevantes en el tratamiento se reflejarán en esta política."
+    "Informamos de forma clara y accesible sobre cómo y por qué tratamos sus datos personales. Si tiene dudas sobre algún uso, proveedor o plazo de conservación, puede escribir a hola@kohausrealestate.com. Los cambios relevantes en el tratamiento se reflejarán en esta política."
   ],
   [
     "Ejercicio de derechos",
     {
-      "intro": "Puede ejercer los siguientes derechos, cuando procedan, enviando un correo a hola@thekohaus.com.",
+      "intro": "Puede ejercer los siguientes derechos, cuando procedan, enviando un correo a hola@kohausrealestate.com.",
       "items": [
         {
           "title": "Acceso",
@@ -247,7 +247,7 @@ export const legalContent = {
    ["6. Availability and access restrictions", "Access may be interrupted for maintenance or proportionately restricted in cases of misuse or unauthorized access. Using the website does not create a partnership, agency or employment relationship with KOHAUS. If a provision is held invalid, the remaining provisions continue to apply to the extent permitted by law."],
    ["7. Copyright and intellectual property", "The website’s text, images, graphics, videos, files, structure and presentation are subject to their respective owners’ rights. Personal viewing does not grant a licence for commercial exploitation. Reproduction, distribution, modification or use on other websites requires the rights holder’s prior permission unless permitted by law."],
    ["8. Trademarks and distinctive signs", "The KOHAUS name, logo and other distinctive signs belong to their respective owners. Their appearance on this website does not authorize their use. Applicable protection derives from current law; this notice does not assume that every sign is registered."],
-   ["9. Applicable law and contact", "Relevant Spanish and European law applies. Disputes will be submitted to the competent courts under applicable law, preserving mandatory rules and consumer rights. For questions about these terms: hola@thekohaus.com · +34 665 32 47 91."],
+   ["9. Applicable law and contact", "Relevant Spanish and European law applies. Disputes will be submitted to the competent courts under applicable law, preserving mandatory rules and consumer rights. For questions about these terms: hola@kohausrealestate.com · +34 665 32 47 91."],
   ],
   privacy: [
   [
@@ -294,7 +294,7 @@ export const legalContent = {
     {
       "paragraphs": [
         "Your data is stored in the systems KOHAUS uses to manage enquiries and property services. Access is restricted to authorized people and providers that need the data to support storage, maintenance or communication, subject to applicable confidentiality and data protection obligations.",
-        "You can request information about storage locations and who has access to your data at hola@thekohaus.com."
+        "You can request information about storage locations and who has access to your data at hola@kohausrealestate.com."
       ]
     }
   ],
@@ -311,12 +311,12 @@ export const legalContent = {
   ],
   [
     "Transparency",
-    "We explain clearly and accessibly how and why we process your personal data. If you have questions about a use, provider or retention period, you can write to hola@thekohaus.com. Relevant changes to processing will be reflected in this policy."
+    "We explain clearly and accessibly how and why we process your personal data. If you have questions about a use, provider or retention period, you can write to hola@kohausrealestate.com. Relevant changes to processing will be reflected in this policy."
   ],
   [
     "Exercising your rights",
     {
-      "intro": "You may exercise the following rights, where applicable, by emailing hola@thekohaus.com.",
+      "intro": "You may exercise the following rights, where applicable, by emailing hola@kohausrealestate.com.",
       "items": [
         {
           "title": "Access",
