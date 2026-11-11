@@ -1,5 +1,17 @@
 import { cityKey } from './propertyCities.js'
-export const SITE_URL = 'https://kohaus.pages.dev'
+export const SITE_URL = 'https://kohausrealestate.com'
+export function siteOrigin(configured) {
+ return !configured || new URL(configured).origin === 'https://kohaus.pages.dev' ? SITE_URL : configured
+}
+export function socialImage(origin) {
+ return {
+  image: new URL('/brand/kohaus-favicon.png?v=dashboard', origin).href,
+  'image:type': 'image/png',
+  'image:width': '512',
+  'image:height': '512',
+  'image:alt': 'KOHAUS Real Estate',
+ }
+}
 export const LANGUAGES = ['es', 'pt', 'en']
 export const DESTINATIONS = ['barcelona', 'costa-brava', 'itapema', 'balneario camboriu']
 const names = { barcelona: 'Barcelona', 'costa-brava': 'Costa Brava', itapema: 'Itapema', 'balneario camboriu': 'Balneário Camboriú' }

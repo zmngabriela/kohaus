@@ -1,8 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { loadEnv } from 'vite'
-import { canonicalUrl, LANGUAGES, SITE_URL } from '../src/lib/seo.js'
+import { canonicalUrl, LANGUAGES, siteOrigin } from '../src/lib/seo.js'
 const env = {...loadEnv('production',process.cwd(),''),...process.env}
-const origin = env.VITE_SITE_URL || SITE_URL
+const origin = siteOrigin(env.VITE_SITE_URL)
 const production = env.VITE_APP_ENV === 'production'
 const xml = value => value.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;')
 const routes = ['home','about','contact','captacion','off-market','legal','privacy','cookies'].map(view=>({view}))
