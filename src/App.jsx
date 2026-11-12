@@ -1,3 +1,4 @@
+import CommercialAgenda, { commercialText } from './components/CommercialAgenda'
 import DashboardSidebar from './components/DashboardSidebar'
 import RecordHistory from './components/RecordHistory'
 import { recordChanges } from './lib/recordHistory'
@@ -3419,6 +3420,9 @@ export default function App({ initialPage } = {}) {
   const [propertyFilters, setPropertyFilters] = useState(PROPERTY_FILTER_DEFAULTS)
   const [portalFilters, setPortalFilters] = useState(PORTAL_FILTER_DEFAULTS)
   const [clientForm, setClientForm] = useState(CLIENT_FORM_DEFAULTS)
+  const [shortcut,setShortcut] = useState(null)
+  const openShortcut = (section,target) => { goDashboard(section); setShortcut(target) }
+  const opportunityButton = (field,item) => <button type="button" onClick={()=>openShortcut('opportunities',{filters:{[field]:item.id}})}>{copy.dashboard.sections.opportunities}</button>
   const [historyView, setHistoryView] = useState(null)
   const [clientFilters, setClientFilters] = useState(CLIENT_FILTER_DEFAULTS)
   const [visitForm, setVisitForm] = useState(VISIT_FORM_DEFAULTS)
@@ -3909,6 +3913,7 @@ export default function App({ initialPage } = {}) {
   }
 
   function goDashboard(section = DASHBOARD_SECTION_DEFAULT) {
+    setShortcut(null)
     setHistoryView(null)
     setDashboardSection(section)
     syncRoute({
@@ -4635,9 +4640,11 @@ export default function App({ initialPage } = {}) {
             <div className="dashboard-content">
             {historyRecord ? <RecordHistory key={historyRecord.id} record={historyRecord} client={historyView.kind==='clients'} language={language} properties={dashboardProperties} visits={dashboardVisits}
               labels={{...copy.dashboard.propertyFields,...copy.dashboard.clientFields,...copy.dashboard.visitStatusOptions,...copy.property.detailLabels}}
+              onSchedule={()=>openShortcut('tasks',{draft:{client_id:historyRecord.id,title:commercialText[language].task+' · '+[historyRecord.name,historyRecord.surname].join(' ')},followup:true})}
               onBack={()=>setHistoryView(null)} onActivity={async activity=>{setDashboardClients(await updateDashboardClient(historyRecord.id,{history:[{...createHistoryEntry(activity.text),...activity},...(historyRecord.history || [])]}))}} /> : <>
             {dashboardSection === 'overview' ? (
               <section className="dashboard-section">
+                <CommercialAgenda language={language} leads={leads} visits={dashboardVisits} onLead={l=>openShortcut('leads',{leadId:l.id})} onTask={t=>openShortcut('tasks',{draft:t})} onVisit={openVisitEditor} />
                 <div className="dashboard-stats">
                   <article className="dashboard-stat-card">
                     <span>{copy.dashboard.stats.total}</span>
@@ -4687,7 +4694,7 @@ export default function App({ initialPage } = {}) {
                   <div className="dashboard-properties-head"><div><p className="section-label dashboard-label">{copy.dashboard.sections.leads}</p></div></div>
                   <div className="dashboard-leads-grid">
                     {leads.map((lead) => (
-                      <CrmRecord key={lead.id} className="dashboard-lead-card" language={language} title={`${lead.name} ${lead.surname}`} meta={[lead.phone, lead.email, lead.city, copy.ownerForm.operations[lead.operation] || companyCopy[language].contact].filter(Boolean).join(' · ')} status={copy.dashboard.statusOptions[lead.status]} fields={[
+                      <CrmRecord key={lead.id} initiallyOpen={shortcut?.leadId===lead.id} className="dashboard-lead-card" language={language} title={`${lead.name} ${lead.surname}`} meta={[lead.phone, lead.email, lead.city, copy.ownerForm.operations[lead.operation] || companyCopy[language].contact].filter(Boolean).join(' · ')} status={copy.dashboard.statusOptions[lead.status]} fields={[
                         { label: copy.dashboard.columns.source, value: ['catalog-alert','similar-property'].includes(lead.source) ? leadSourceLabel(lead) : copy.ownerForm.sources[lead.source] || lead.source },
                         { label: copy.dashboard.columns.date, value: formatDate(lead.createdAt, language) },
                         { label: copy.ownerForm.fields?.comments || (language === 'pt' ? 'Mensagem' : language === 'es' ? 'Mensaje' : 'Message'), value: lead.comments },
@@ -4839,6 +4846,7 @@ export default function App({ initialPage } = {}) {
                         meta={`${property.reference} · ${getOperationLabel(property.operation, language)}${property.offMarket ? ' · Off-market' : ''}`}
                         status={copy.dashboard.propertyStatusOptions[property.status]} editLabel={copy.dashboard.editProperty} onEdit={() => openEditPropertyEditor(property)} actions={<>
                           {historyButton('properties',property.id)}
+                          {opportunityButton('property',property)}
                           {property.status === 'active' && <button type="button" onClick={() => openCreateVisit({property})}>{copy.dashboard.leadToVisit}</button>}
                           {isPublishedListing(property) && !property.offMarket && <a href={toSearch({view:'anuncio',propertyId:property.id,language})} target="_blank" rel="noreferrer">{copy.catalog.viewListing}</a>}
                         </>}
@@ -5072,9 +5080,9 @@ export default function App({ initialPage } = {}) {
 
             {dashboardSection === 'invoices' ? <Suspense fallback={<p>…</p>}><Invoices clients={dashboardClients} properties={dashboardProperties} language={language} onSaving={() => setDashboardNotice('')} onSaved={(kind) => setDashboardNotice(kind === 'issuer' ? copy.dashboard.invoiceIssuerSaved : kind === 'deleted' ? copy.dashboard.invoiceDeleted : copy.dashboard.invoiceSaved)} /></Suspense> : null}
 
-            {dashboardSection === 'opportunities' ? <Opportunities clients={dashboardClients} properties={dashboardProperties} language={language} copy={copy} onClient={openClientEditor} onProperty={goProperty} loading={opportunitiesLoading} error={dataError} /> : null}
+            {dashboardSection === 'opportunities' ? <Opportunities Select={CustomSelect} filters={shortcut?.filters || {}} onFilter={filters=>setShortcut({filters})} clients={dashboardClients} properties={dashboardProperties} language={language} copy={copy} onClient={openClientEditor} onProperty={goProperty} loading={opportunitiesLoading} error={dataError} /> : null}
 
-            {dashboardSection === 'tasks' ? <Tasks language={language} clients={dashboardClients} leads={leads} properties={dashboardProperties} onSaving={() => setDashboardNotice('')} onSaved={(kind) => setDashboardNotice(kind === 'deleted' ? copy.dashboard.taskDeleted : copy.dashboard.taskSaved)} /> : null}
+            {dashboardSection === 'tasks' ? <Tasks initialDraft={shortcut?.draft} followup={shortcut?.followup} language={language} clients={dashboardClients} leads={leads} properties={dashboardProperties} onSaving={() => setDashboardNotice('')} onSaved={(kind) => setDashboardNotice(kind === 'deleted' ? copy.dashboard.taskDeleted : copy.dashboard.taskSaved)} /> : null}
 
             {dashboardSection === 'visits' ? (
               <section className="dashboard-visits-section dashboard-section">
@@ -5317,6 +5325,7 @@ export default function App({ initialPage } = {}) {
                           title={`${client.name} ${client.surname}`} meta={getOperationLabel(client.operation, language)}
                           status={copy.dashboard.clientStatusOptions[client.status]} editLabel={copy.dashboard.editClient} onEdit={() => openClientEditor(client)} actions={<>
                             {historyButton('clients',client.id)}
+                            {opportunityButton('client',client)}
                             {links.phone && <a href={links.phone}>{opportunityCopy[language].call}</a>}
                             {links.email && <a href={links.email}>{opportunityCopy[language].email}</a>}
                             <button type="button" onClick={() => openCreateVisit({client})}>{copy.dashboard.leadToVisit}</button>

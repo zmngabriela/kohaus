@@ -12,11 +12,11 @@ const texts = {
 }
 const blank = () => ({ title: '', due_date: localDate(), priority: 'medium', status: 'pending', client_id: null, lead_id: null, property_id: null })
 const person = item => [item.name, item.surname].filter(Boolean).join(' ')
-export default function Tasks({ language, clients, leads, properties, onSaving, onSaved }) {
+export default function Tasks({ language, clients, leads, properties, onSaving, onSaved, initialDraft, followup }) {
   const c = texts[language] || texts.es
   const [tasks, setTasks] = useState([])
-  const [form, setForm] = useState(blank)
-  const [editorOpen, setEditorOpen] = useState(false)
+  const [form, setForm] = useState(()=>({...blank(),...initialDraft, ...(followup ? {newFollowup:true} : {})}))
+  const [editorOpen, setEditorOpen] = useState(Boolean(initialDraft))
   const [filter, setFilter] = useState('pending')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -61,7 +61,7 @@ export default function Tasks({ language, clients, leads, properties, onSaving, 
     <div className="dashboard-property-panel"><p>{c.intro}</p><button type="button" className="dashboard-property-cta" onClick={() => { setForm(blank()); setEditorOpen(true) }}>{c.new}</button></div>
     {editorOpen && <EditorDialog title={form.id ? c.edit : c.new} closeLabel={c.cancel} busy={busy} onClose={() => { setForm(blank()); setEditorOpen(false) }}>
     {error && <p role="alert">{c.error}</p>}
-    <form className="tasks-form" onSubmit={e => { e.preventDefault(); if (form.title.trim()) persist({ ...form, status: e.nativeEvent.submitter?.value === 'complete' ? 'completed' : form.status, id: form.id || `task-${crypto.randomUUID()}` }, true) }}>
+    <form className="tasks-form" onSubmit={e => { e.preventDefault(); const {newFollowup,...values}=form; if (form.title.trim()) persist({ ...values, status: e.nativeEvent.submitter?.value === 'complete' ? 'completed' : form.status, id: form.id || `${newFollowup ? 'followup' : 'task'}-${crypto.randomUUID()}` }, true) }}>
       <fieldset disabled={loading || busy}>
         <label className="tasks-wide">{c.name}<input required maxLength={200} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
         <label>{c.due}<input type="date" required value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} /></label>

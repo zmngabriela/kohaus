@@ -2,8 +2,8 @@ import { useState } from 'react'
 import EditorDialog from './EditorDialog'
 import './CrmRecord.css'
 
-export default function CrmRecord({ title, meta, fields = [], status, image, imageAlt = title, editLabel, onEdit, language, children, actions, summaryExtra, disabled = false, className = '' }) {
-  const [editing, setEditing] = useState(false)
+export default function CrmRecord({ title, meta, fields = [], status, image, imageAlt = title, editLabel, onEdit, language, children, initiallyOpen = false, actions, summaryExtra, disabled = false, className = '' }) {
+  const [editing, setEditing] = useState(initiallyOpen)
   const labels = { pt: ['Gerenciar', 'Fechar'], es: ['Gestionar', 'Cerrar'], en: ['Manage', 'Close'] }[language] || ['Manage', 'Close']
   return <article className={`crm-record ${className}`}>
     <div className={`crm-record-summary${image ? ' has-image' : ''}`}>
