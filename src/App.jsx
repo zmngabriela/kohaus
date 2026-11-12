@@ -1,3 +1,4 @@
+import FormNotice from './components/FormNotice'
 import CommercialAgenda, { commercialText } from './components/CommercialAgenda'
 import DashboardSidebar from './components/DashboardSidebar'
 import RecordHistory from './components/RecordHistory'
@@ -2070,7 +2071,7 @@ async function saveOwnerLead(payload) {
 
   const token = await botCheck(insertPayload.language)
   const response = await fetch('/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead: insertPayload, token }) })
-  if (!response.ok) throw new Error(response.status === 429 ? 'Muitas tentativas. Aguarde um minuto e tente novamente.' : 'Não foi possível enviar. Tente novamente ou entre em contato por e-mail.')
+  if (!response.ok || (await response.json().catch(() => null))?.ok !== true) throw new Error(response.status === 429 ? 'Muitas tentativas. Aguarde um minuto e tente novamente.' : 'Não foi possível enviar. Tente novamente ou entre em contato por e-mail.')
 
   // Public submissions must not require read access to the private leads table.
   return [mapLeadFromSupabase({ ...insertPayload, created_at: new Date().toISOString() })]
@@ -3402,6 +3403,8 @@ export default function App({ initialPage } = {}) {
     operation: route.leadType || OWNER_FORM_DEFAULTS.operation,
   }))
   const [offMarketSelection, setOffMarketSelection] = useState(null)
+  const [leadSending, setLeadSending] = useState(false)
+  const [leadNotice, setLeadNotice] = useState('')
   const [ownerSuccess, setOwnerSuccess] = useState(false)
   const [propertyInquiry, setPropertyInquiry] = useState(PROPERTY_INQUIRY_DEFAULTS)
   const [propertyInquirySuccess, setPropertyInquirySuccess] = useState(false)
@@ -3449,6 +3452,7 @@ export default function App({ initialPage } = {}) {
   const [authSubmitting, setAuthSubmitting] = useState(false)
   const [authError, setAuthError] = useState('')
   const [dataError, setDataError] = useState('')
+  const [catalogNoticeDismissed, setCatalogNoticeDismissed] = useState(false)
   const [publicDataError, setPublicDataError] = useState('')
   const [publicLoading, setPublicLoading] = useState(!initialPage?.catalogLoaded)
   const [authForm, setAuthForm] = useState({
@@ -3495,6 +3499,7 @@ export default function App({ initialPage } = {}) {
         console.error(error)
         if (active) {
           setPublicLoading(false)
+          setCatalogNoticeDismissed(false)
           setPublicDataError(error.message || 'Não foi possível carregar os imóveis do banco de dados.')
         }
       }
@@ -4016,18 +4021,22 @@ export default function App({ initialPage } = {}) {
 
   async function handleLeadSubmit(event) {
     event.preventDefault()
+    if (leadSending) return
+    setLeadSending(true)
+    setLeadNotice('')
+    setDataError('')
     try {
       if (!ownerForm.operation || !ownerForm.source) throw new Error(({pt:'Selecione o tipo de operação e como nos conheceu.',es:'Selecciona el tipo de operación y cómo nos conociste.',en:'Select the operation and how you heard about us.'})[language])
       const nextLeads = await saveOwnerLead({ ...ownerForm, language })
       setLeads(nextLeads)
       setOwnerForm({ ...OWNER_FORM_DEFAULTS, operation: ownerForm.operation })
       setOwnerSuccess(true)
+      setLeadNotice(companyCopy[language].success)
       setDataError('')
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     } catch (error) {
       console.error(error)
       setDataError(error.message || 'Não foi possível salvar os dados no banco de dados.')
-    }
+    } finally { setLeadSending(false) }
   }
 
   async function handlePropertyInquirySubmit(event) {
@@ -4053,16 +4062,21 @@ export default function App({ initialPage } = {}) {
       newsletterAccepted: false,
     }
 
+    if (leadSending) return
+    setLeadSending(true)
+    setLeadNotice('')
+    setDataError('')
     try {
       const nextLeads = await saveOwnerLead(payload)
       setLeads(nextLeads)
       setPropertyInquiry(PROPERTY_INQUIRY_DEFAULTS)
       setPropertyInquirySuccess(true)
+      setLeadNotice(companyCopy[language].success)
       setDataError('')
     } catch (error) {
       console.error(error)
       setDataError(error.message || 'Não foi possível salvar os dados no banco de dados.')
-    }
+    } finally { setLeadSending(false) }
   }
 
   function confirmDashboardDelete(name) {
@@ -4615,7 +4629,7 @@ export default function App({ initialPage } = {}) {
         <span>{dashboardNotice}</span>
         <button type="button" className="dashboard-notice-close" aria-label={language === 'pt' ? 'Fechar aviso' : language === 'es' ? 'Cerrar aviso' : 'Dismiss notification'} onClick={() => setDashboardNotice('')}><span aria-hidden="true">×</span></button>
       </aside>}
-      {dataError || publicDataError ? <div className="database-error" role="alert">{dataError || publicDataError}</div> : null}
+      {dataError || (publicDataError && !catalogNoticeDismissed) ? <FormNotice key={dataError || publicDataError} language={language} error onDismiss={() => { if (dataError) setDataError(''); else setCatalogNoticeDismissed(true) }}>{dataError || publicDataError}</FormNotice> : leadNotice && <FormNotice language={language} onDismiss={() => setLeadNotice('')}>{leadNotice}</FormNotice>}
 
       {showDashboardAuthGate ? (
         <DashboardAuthGate
@@ -6187,8 +6201,8 @@ export default function App({ initialPage } = {}) {
                   />
                   <span>{copy.ownerForm.newsletter}</span>
                 </label>
-                <button type="submit" className="owner-form-submit owner-form-full">
-                  {copy.ownerForm.submit}
+                <button type="submit" disabled={leadSending} className="owner-form-submit owner-form-full">
+                  {leadSending ? companyCopy[language].sending : copy.ownerForm.submit}
                 </button>
               </form>
             </div>
@@ -6365,7 +6379,7 @@ export default function App({ initialPage } = {}) {
                   <input type="checkbox" checked={propertyInquiry.legalAccepted} onChange={(event) => setPropertyInquiry((current) => ({ ...current, legalAccepted: event.target.checked }))} required />
                   <PrivacyConsent language={language} text={copy.ownerForm.legal} />
                 </label>
-                <button type="submit" className="owner-form-submit owner-form-full">{inquiryCopy.inquirySubmit}</button>
+                <button type="submit" disabled={leadSending} className="owner-form-submit owner-form-full">{leadSending ? companyCopy[language].sending : inquiryCopy.inquirySubmit}</button>
               </form>
             </div>
           </section>
