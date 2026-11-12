@@ -1,2 +1,5 @@
 [functions.property-ai]
 verify_jwt = true
+
+[functions.idealista-feed]
+verify_jwt = false # The importer authenticates with IDEALISTA_FEED_TOKEN.

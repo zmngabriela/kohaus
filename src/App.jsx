@@ -1,3 +1,4 @@
+import { idealistaListingId, idealistaOperationPreview } from './lib/idealistaListing'
 import FormNotice from './components/FormNotice'
 import CommercialAgenda, { commercialText } from './components/CommercialAgenda'
 import DashboardSidebar from './components/DashboardSidebar'
@@ -1571,6 +1572,7 @@ function getPortalDefinition(portalId) {
 function normalizePortalPublication(item) {
   return {
     portalId: item?.portalId || '',
+    ...(item?.portalId === 'idealista' && item.feedCode ? {feedCode:item.feedCode, feedEnabled:item.feedEnabled === true} : {}),
     status: item?.status || 'draft',
     listingUrl: safeExternalUrl(item?.listingUrl),
     externalReference: item?.externalReference || '',
@@ -1679,7 +1681,10 @@ function getPortalRequiredFields(property) {
 }
 
 function getPortalMissingFields(property) {
-  return getPortalRequiredFields(property).filter(([, value]) => value === '' || value === null || value === undefined || value === 0)
+  return getPortalRequiredFields(property).filter(([field, value]) => {
+    if (value == null || String(value).trim() === '') return true
+    return ['photos', 'price', 'surface'].includes(field) && !(Number(value) > 0)
+  })
 }
 
 function getPortalFormCopy(language) {
@@ -4565,12 +4570,22 @@ export default function App({ initialPage } = {}) {
     setPortalDrafts(current => ({...current,[key]:{...current[key],[field]:value}}))
   }
 
-  async function handlePortalSave(property, portalId) {
+  async function handlePortalSave(property, portalId, feedChange = {}) {
     const savingId = `${property.id}:${portalId}`
     setPortalSavingId(savingId)
     setDashboardNotice('')
     try {
-      const publications = property.portalPublications.map(item => item.portalId === portalId ? normalizePortalPublication({...item,...portalDrafts[savingId]}) : item)
+      const publications = property.portalPublications.map(item => item.portalId === portalId ? normalizePortalPublication({...item,...portalDrafts[savingId],...feedChange}) : item)
+      if (portalId === 'idealista' && portalDrafts[savingId]?.listingUrl !== undefined) {
+        const listingId = idealistaListingId(portalDrafts[savingId].listingUrl)
+        const duplicate = listingId && dashboardProperties.find(other => other.id !== property.id &&
+          getPropertyPortalPublications(other).some(p => p.portalId === portalId && idealistaListingId(p.listingUrl) === listingId))
+        if (duplicate) throw new Error({
+          pt: `Este anúncio do Idealista já está vinculado ao imóvel ${duplicate.reference}.`,
+          es: `Este anuncio de idealista ya está vinculado al inmueble ${duplicate.reference}.`,
+          en: `This idealista listing is already linked to property ${duplicate.reference}.`,
+        }[language])
+      }
       const changes = recordChanges(property, {portalPublications:publications})
       const next = await updateDashboardProperty(property.id, {
         portalPublications:publications,
@@ -4990,6 +5005,7 @@ export default function App({ initialPage } = {}) {
                             livePublications.map((savedPublication) => {
                               const publication = {...savedPublication,...portalDrafts[property.id + ':' + savedPublication.portalId]}
                               const definition = getPortalDefinition(publication.portalId)
+                              const operationPreview = publication.portalId === 'idealista' && idealistaOperationPreview(liveProperty)
                               const missingFields = getPortalMissingFields(liveProperty)
                               return (
                                 <section key={`${property.id}-${publication.portalId}`} className="dashboard-portal-publication">
@@ -5015,14 +5031,23 @@ export default function App({ initialPage } = {}) {
                                   </div>
 
                                   <div className="dashboard-portal-actions">
-                                    <button
-                                      type="button"
-                                      className="dashboard-property-cta"
-                                      disabled
-                                      title={definition?.id === 'fotocasa' ? portalFormCopy.api : portalFormCopy.api}
-                                    >
-                                      {portalFormCopy.publish} · {portalFormCopy.api}
-                                    </button>
+                                    {definition?.id === 'idealista' ? <button type="button" className="dashboard-property-cta"
+                                      disabled={Boolean(portalSavingId)}
+                                      onClick={() => {
+                                        if (publication.feedEnabled) return handlePortalSave(liveProperty, 'idealista', {feedEnabled:false})
+                                        if (!operationPreview || !liveProperty.photos?.length || !liveProperty.portalData?.municipality?.trim() || !/^\d{5}$/.test(liveProperty.portalData?.postalCode)) {
+                                          openEditPropertyEditor(liveProperty)
+                                          setDataError({pt:'Para exportar, confira status ativo, preço em EUR, operação, fotos, município e código postal espanhol.', es:'Para exportar, revisa estado activo, precio en EUR, operación, fotos, municipio y código postal español.', en:'Check active status, EUR price, operation, photos, municipality and Spanish postcode.'}[language])
+                                          return
+                                        }
+                                        if (publication.listingUrl && !publication.feedCode && !publication.externalReference.trim()) {
+                                          setDataError({pt:'Informe a referência de importação original do anúncio existente.',es:'Introduce la referencia de importación original del anuncio existente.',en:'Enter the original import reference for the existing listing.'}[language])
+                                          return
+                                        }
+                                        return handlePortalSave(liveProperty, 'idealista', {feedEnabled:true, feedCode:publication.feedCode || publication.externalReference.trim() || liveProperty.reference})
+                                      }}>
+                                      {(publication.feedEnabled ? {pt:'Retirar do feed Idealista',es:'Retirar del feed de idealista',en:'Remove from idealista feed'} : {pt:'Incluir no feed Idealista',es:'Incluir en el feed de idealista',en:'Include in idealista feed'})[language]}
+                                    </button> : <button type="button" className="dashboard-property-cta" disabled>{portalFormCopy.publish} · {portalFormCopy.api}</button>}
                                     <span className={missingFields.length ? 'dashboard-portal-readiness is-incomplete' : 'dashboard-portal-readiness'}>
                                       {missingFields.length} {portalFormCopy.missing}
                                     </span>
@@ -5033,6 +5058,10 @@ export default function App({ initialPage } = {}) {
                                     ) : null}
                                   </div>
 
+                                  {operationPreview && <details className="portal-validation">
+                                    <summary>{{pt:'Prévia de operação e preço', es:'Vista previa de operación y precio', en:'Preview operation and price'}[language]}</summary>
+                                    <pre>{JSON.stringify(operationPreview, null, 2)}</pre>
+                                  </details>}
                                   {missingFields.length > 0 && <div className="portal-validation">
                                     <p>{language==='pt'?'Revisão preliminar — confirme os requisitos específicos após ativar a integração.':language==='es'?'Revisión preliminar — confirma los requisitos específicos al activar la integración.':'Preliminary review — confirm portal-specific requirements when activating the integration.'}</p>
                                     <ul>{missingFields.map(([key])=><li key={key}>{portalFormCopy.fields[PORTAL_DATA_FIELDS.findIndex(([field])=>field===key)] || ({title:copy.dashboard.propertyColumns.title,price:copy.dashboard.propertyColumns.price,type:copy.dashboard.propertyColumns.type,rooms:copy.dashboard.propertyColumns.rooms,bathrooms:copy.dashboard.propertyFields.bathrooms,surface:copy.dashboard.propertyColumns.surface,photos:copy.dashboard.photoLabel}[key]) || key}</li>)}</ul>
@@ -5047,6 +5076,8 @@ export default function App({ initialPage } = {}) {
                                           handlePortalDraftChange(property.id, publication.portalId, 'listingUrl', event.target.value)
                                         }
                                       />
+                                      {publication.portalId === 'idealista' && idealistaListingId(publication.listingUrl) &&
+                                        <small>ID Idealista · {idealistaListingId(publication.listingUrl)}</small>}
                                     </label>
                                     <label>
                                       <span>{copy.dashboard.portalReferenceLabel}</span>
