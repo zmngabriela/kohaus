@@ -1,3 +1,4 @@
+import FormNotice from './FormNotice'
 import PrivacyConsent from './PrivacyConsent'
 import guilhermePortrait from '../assets/guilherme-coninch.png'
 import { useState } from 'react'
@@ -31,7 +32,7 @@ export function ContactForm({ language, onSubmit, messageLabel, messageRequired 
     <label className="contact-wide"><span>{messageLabel || c.message}</span><textarea name="message" required={messageRequired} maxLength={5000} rows={5} disabled={status==='sending'} /></label>
     <label className="contact-consent contact-wide"><input type="checkbox" required disabled={status==='sending'} /><PrivacyConsent language={language} text={c.consent} /></label>
     <button className="solid-button" disabled={status==='sending'}>{status==='sending'?c.sending:c.send}</button>
-    {['success','error'].includes(status) && <p className="contact-wide" role={status==='error'?'alert':'status'}>{status==='success' ? successMessage || c.success : c.error}</p>}
+    {['success','error'].includes(status) && <FormNotice error={status==='error'} language={language} onDismiss={() => setStatus('')}>{status==='success' ? successMessage || c.success : c.error}</FormNotice>}
    </form>
 }
 

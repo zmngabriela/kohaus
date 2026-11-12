@@ -1,3 +1,4 @@
+import FormNotice from './FormNotice'
 import { useState } from 'react'
 import { ContactForm } from './CompanyPages'
 
@@ -9,15 +10,17 @@ export const searchCopy = {
 
 export default function EmptyCatalogLead({ language, criteria, city, operation, onSubmit }) {
   const [open, setOpen] = useState(false)
+  const [notice, setNotice] = useState(false)
   const [sent, setSent] = useState(false)
   const c = searchCopy[language]
   return <section className="empty-catalog-lead">
     <p>{c.empty}</p>
-    {sent ? <p role="status">{c.success}</p> : <>
+    {notice && <FormNotice language={language} onDismiss={() => setNotice(false)}>{c.success}</FormNotice>}
+    {sent ? <p>{c.success}</p> : <>
       <button type="button" className="solid-button" aria-expanded={open} onClick={() => setOpen(!open)}>{c.action}</button>
       {open && <><p>{criteria}</p><ContactForm language={language} messageLabel={c.note} messageRequired={false} onSubmit={async fields => {
         await onSubmit({ ...fields, language, city, operation, source:'catalog-alert', address:'', comments:[criteria, fields.message].filter(Boolean).join('\n'), legalAccepted:true, newsletterAccepted:false })
-        setSent(true)
+        setSent(true); setNotice(true)
       }} /></>}
     </>}
   </section>

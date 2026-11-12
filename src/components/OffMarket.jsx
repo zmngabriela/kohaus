@@ -1,3 +1,4 @@
+import FormNotice from './FormNotice'
 import { similarInquiry } from '../lib/similarInquiry'
 import PrivacyConsent from './PrivacyConsent'
 import { useEffect, useRef, useState } from 'react'
@@ -25,7 +26,7 @@ export default function OffMarket({ property, language, onSubmit, onClose }) {
  }
  return <section ref={section} className="offmarket-request" aria-label={c.request}>
   <h2>{c.request} · {property.reference}</h2>
-  {result && <p role="status">{result}</p>}
+  {result && <FormNotice language={language} error={!sent} onDismiss={() => setResult('')}>{result}</FormNotice>}
   {!sent && <form onSubmit={submit} className="crm-extension-form"><fieldset disabled={busy}>
    {['name','surname','email','phone'].map(key=><label key={key}>{c[key]}<input name={key} type={key==='email'?'email':key==='phone'?'tel':'text'} required /></label>)}
    <label>{c.message}<textarea name="message" /></label>
