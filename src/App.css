@@ -3469,3 +3469,10 @@
   .services-section .editorial-band-body p, .about-section .about-copy p:not(.section-label) { font-size:var(--fs-ui); line-height:1.6; }
   .services-section .editorial-band-body h2, .about-section .about-copy h2 { font-size:var(--fs-card-title); line-height:1.2; }
 }
+
+.agenda-groups { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr)); gap:16px; }
+.agenda-groups > section { min-width:0; border-top:1px solid var(--line-strong); padding-block:12px; }
+.agenda-groups h3 { margin:0; font-size:var(--fs-body); }
+.agenda-groups p,.agenda-groups button { font-size:var(--fs-ui); color:var(--copy); }
+.agenda-groups button { display:flex; width:100%; justify-content:space-between; align-items:baseline; gap:8px; padding:10px 0; background:transparent; border:0; border-bottom:1px solid var(--line); text-align:start; cursor:pointer; }
+.agenda-groups button strong { overflow-wrap:anywhere; }

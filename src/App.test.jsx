@@ -554,7 +554,7 @@ it('lists opportunities, persists bathroom and feature criteria, and recalculate
   }]))
   renderApp('/?view=dashboard&section=opportunities&lang=en')
   expect(await screen.findByRole('heading', { name: 'Ana Silva' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', 'https://wa.me/34612345678')
+  expect(screen.getByRole('link', { name: 'Send a WhatsApp message' })).toHaveAttribute('href', 'https://wa.me/34612345678')
   await user.click(screen.getByRole('button', { name: 'Edit client' }))
   const bathrooms = screen.getByLabelText('Minimum bathrooms')
   expect(bathrooms).toHaveValue(2)
@@ -577,12 +577,25 @@ it('shows every matching property for one client with its own photo', async () =
     { ...property, id: 'second-match', title: 'Second matching apartment', reference: 'SECOND', photos: [{ url: 'https://example.com/second.jpg' }] },
   ]))
   window.localStorage.setItem('kohaus-dashboard-clients-v1', JSON.stringify([{
-    id: 'one-client', name: 'Ana', surname: 'Silva', status: 'new', operation: 'comprar', types: ['apartamento'], destinations: ['barcelona'],
+    id: 'one-client', language:'pt', phone:'+34612345678', name: 'Ana', surname: 'Silva', status: 'new', operation: 'comprar', types: ['apartamento'], destinations: ['barcelona'],
   }]))
   renderApp('/?view=dashboard&section=opportunities&lang=en')
   expect(await screen.findByRole('img', { name: property.title })).toHaveAttribute('src', 'https://example.com/first.jpg')
   expect(screen.getByRole('img', { name: 'Second matching apartment' })).toHaveAttribute('src', 'https://example.com/second.jpg')
-  expect(screen.getAllByRole('heading', { name: 'Ana Silva' })).toHaveLength(2)
+  expect(screen.getAllByRole('heading', { name: 'Ana Silva' })).toHaveLength(1)
+  const clientCard=screen.getByRole('heading',{name:'Ana Silva'}).closest('article')
+  expect(within(clientCard).getAllByRole('listitem')).toHaveLength(2)
+  const user=userEvent.setup()
+  await user.click(screen.getByRole('button',{name:'Property',exact:true}))
+  await user.click(within(screen.getByRole('listbox')).getByRole('button',{name:/SECOND · Second/}))
+  expect(within(clientCard).getAllByRole('listitem')).toHaveLength(1)
+  const link=within(clientCard).getByRole('link',{name:'Send opportunities on WhatsApp (2)'})
+  const message=new URL(link.href).searchParams.get('text')
+  expect(message).toContain('Olá, Ana!')
+  expect(message).toContain('TEST-BCN-1')
+  expect(message).toContain('SECOND')
+  expect(message).toContain('lang=pt')
+
 })
 
 it('uses the shared catalogue layout for off-market sale and rental listings',async()=>{
@@ -606,4 +619,20 @@ it('records a client call and shows it again after navigating back to the list',
   await user.click(screen.getByRole('button',{name:'Back'}))
   await user.click(screen.getByRole('button',{name:'Internal history'}))
   expect(await screen.findByText('Confirmed the viewing by phone')).toBeInTheDocument()
+})
+
+it('schedules a client follow-up from history and opens the overdue task from the daily agenda', async () => {
+  const user=userEvent.setup()
+  localStorage.setItem('kohaus-dashboard-clients-v1',JSON.stringify([{id:'ana',name:'Ana',surname:'Silva',status:'new',operation:'comprar',types:[],destinations:[],history:[]}]))
+  renderApp('/?view=dashboard&section=clients&lang=en')
+  await user.click(await screen.findByRole('button',{name:'Internal history'}))
+  await user.click(screen.getByRole('button',{name:'Schedule next contact'}))
+  const editor=within(await screen.findByRole('dialog'))
+  expect(editor.getByLabelText('Client')).toHaveValue('ana')
+  fireEvent.change(editor.getByLabelText('Due date'),{target:{value:'2020-01-01'}})
+  await user.click(editor.getByRole('button',{name:'Save task'}))
+  await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  await user.click(screen.getByRole('button',{name:'Dashboard',exact:true}))
+  await user.click(await screen.findByRole('button',{name:/Follow up · Ana Silva/}))
+  expect(within(await screen.findByRole('dialog')).getByLabelText('Due date')).toHaveValue('2020-01-01')
 })

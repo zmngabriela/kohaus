@@ -1,3 +1,4 @@
+import { commercialText } from './CommercialAgenda'
 import { useState } from 'react'
 import { matchProperties } from '../lib/opportunities'
 
@@ -6,7 +7,7 @@ const words = {
  es:['Historial','Volver','Llamada','Interés en inmueble','Nota','Registrar actividad','Guardar','Inmueble','Oportunidades actuales','Ficha actualizada','Antes','Después','Sin actividad registrada.','Descripción','Visita'],
  en:['History','Back','Call','Property interest','Note','Log activity','Save','Property','Current matches','Record updated','Before','After','No activity recorded.','Description','Visit'],
 }
-export default function RecordHistory({record,client,properties,visits,language,labels,onBack,onActivity}) {
+export default function RecordHistory({record,client,properties,visits,language,labels,onBack,onActivity,onSchedule}) {
  const [kind,setKind]=useState('call')
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
@@ -31,7 +32,7 @@ export default function RecordHistory({record,client,properties,visits,language,
  }
  return <section className="dashboard-section record-history">
    <header><button type="button" className="outline-button" onClick={onBack}>{back}</button><p className="section-label">{history}</p><h2>{client ? [record.name,record.surname].join(' ') : record.reference+' · '+record.title}</h2></header>
-   {client && <><form onSubmit={submit} className="dashboard-property-filters activity-form"><label><span>{log}</span><select value={kind} onChange={e=>setKind(e.target.value)}>{Object.entries(kinds).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
+   {client && <><div><button type="button" className="outline-button" onClick={onSchedule}>{commercialText[language].follow}</button></div><form onSubmit={submit} className="dashboard-property-filters activity-form"><label><span>{log}</span><select value={kind} onChange={e=>setKind(e.target.value)}>{Object.entries(kinds).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
    <label><span>{property}</span><select name="property" required={kind==='interest' || kind==='opportunity'}><option value="">—</option>{properties.map(p=><option key={p.id} value={p.reference}>{p.reference} · {p.title}</option>)}</select></label>
    <label><span>{description}</span><input name="note" required={kind==='note'} maxLength={2000}/></label><button disabled={busy} className="dashboard-property-edit">{save}</button>{error && <p role="alert">{error}</p>}</form>
    <details><summary>{matches}</summary><ul>{matchProperties(record,properties).map(p=><li key={p.id}>{p.reference} · {p.title}</li>)}</ul></details></>}
