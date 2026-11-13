@@ -38,8 +38,9 @@ export default function HeroVideo() {
     }
   }, [])
   return <div className="hero-video-media" aria-hidden="true">
-    <img className="hero-video-poster" src="/media/kohaus-hero-poster.jpg" alt="" />
+    <img className="hero-video-poster" fetchPriority="high" src="/media/kohaus-hero-poster.jpg" alt="" />
     <video ref={video} autoPlay muted loop playsInline controls={false} preload="auto" style={{opacity: playing ? 1 : 0}} onPlaying={() => setPlaying(true)} onPause={() => setPlaying(false)} onError={() => setPlaying(false)}>
+      <source src="/media/kohaus-hero-qhd.webm" type="video/webm; codecs=vp9" />
       <source src="/media/kohaus-hero-loop-compatible.mp4" type="video/mp4" />
     </video>
   </div>
