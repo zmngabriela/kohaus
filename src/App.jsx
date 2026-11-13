@@ -1,4 +1,5 @@
 import SiteIcon from './components/SiteIcon.jsx'
+import Prospecting from './components/Prospecting'
 import { idealistaListingId, idealistaOperationPreview } from './lib/idealistaListing'
 import FormNotice from './components/FormNotice'
 import CommercialAgenda, { commercialText } from './components/CommercialAgenda'
@@ -358,6 +359,7 @@ const COPY = {
         overview: 'Dashboard',
         leads: 'Leads',
         properties: 'Inmuebles',
+        prospecting: 'Captación',
         portals: 'Portales',
         visits: 'Visitas',
         tasks: 'Tareas',
@@ -786,6 +788,7 @@ const COPY = {
         overview: 'Dashboard',
         leads: 'Leads',
         properties: 'Properties',
+        prospecting: 'Prospecting',
         portals: 'Portals',
         visits: 'Visits',
         tasks: 'Tasks',
@@ -1214,6 +1217,7 @@ const COPY = {
         overview: 'Dashboard',
         leads: 'Leads',
         properties: 'Imóveis',
+        prospecting: 'Captação',
         portals: 'Portais',
         visits: 'Visitas',
         tasks: 'Tarefas',
@@ -4896,6 +4900,7 @@ export default function App({ initialPage } = {}) {
               </section>
             ) : null}
 
+            {dashboardSection === 'prospecting' && <Prospecting language={language} />}
             {dashboardSection === 'portals' ? (
               <section className="dashboard-portals-section dashboard-section">
                 <div className="dashboard-properties-head">
