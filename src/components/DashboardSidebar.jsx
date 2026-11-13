@@ -1,7 +1,7 @@
 const groups = [
   { sections:['overview'] },
   { sections:['properties','clients','visits','tasks'], pt:'Gestão', es:'Gestión', en:'Management' },
-  { sections:['leads','opportunities','portals'], pt:'Comercial', es:'Comercial', en:'Sales' },
+  { sections:['prospecting','leads','opportunities','portals'], pt:'Comercial', es:'Comercial', en:'Sales' },
   { sections:['invoices'], pt:'Financeiro', es:'Finanzas', en:'Finance' },
 ]
 

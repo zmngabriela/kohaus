@@ -2,7 +2,9 @@
 
 ## Estado atual
 
-A tela agrupa imóveis, identifica os portais selecionados, mostra estados manuais e uma revisão preliminar dos campos. Não existe conector ativo nem envio automático. O botão Publicar permanece desabilitado; preencher os dados não comprova aprovação pelo portal. Não usamos a Search API como API de publicação.
+Em Portais → Idealista, um editor pode incluir um imóvel no feed de Espanha ou retirá-lo. O vínculo guarda um código estável em portal_publications. Para anúncios já existentes, confirmar a referência original de importação do CRM anterior. O ID mostrado no link público pode ser diferente.
+
+A função Supabase `idealista-feed` gera o JSON com os dados salvos a cada leitura. Usa IDEALISTA_API_SECRET como código de cliente e exige um token independente em Authorization: Bearer (IDEALISTA_FEED_TOKEN). Ambos ficam no servidor. A função recusa exportar uma carteira vazia ou incompleta. A configuração atual está no Supabase DEV. Inclusão no feed indica seleção local; importação, entrega por FTP ou leitura autenticada pelo portal dependem do canal habilitado para a agência. Antes de conectar uma carteira existente, conferir as referências e o comportamento de retirada de anúncios omitidos.
 
 Idealista é o único portal contratado informado pelo cliente. Fotocasa, Habitaclia e Milanuncios continuam opções de planejamento, não integrações ativas.
 
