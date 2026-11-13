@@ -1,3 +1,4 @@
+import SiteIcon from "./components/SiteIcon.jsx"
 import FormNotice from './components/FormNotice'
 import CommercialAgenda, { commercialText } from './components/CommercialAgenda'
 import DashboardSidebar from './components/DashboardSidebar'
@@ -3275,9 +3276,9 @@ function Footer({ copy, language }) {
         <p><a href={`mailto:${companyContact.email}`}>{companyContact.email}</a></p>
         <p><a href={`tel:${companyContact.tel}`}>{companyContact.phone}</a></p>
         <nav className="social-links" aria-label={language === 'en' ? 'Social media' : 'Redes sociais'}>
-          <a href="https://www.instagram.com/guilhermeconinch.broker/" target="_blank" rel="noopener noreferrer">Instagram</a>
-          <a href="https://www.facebook.com/corretorguilhermeconinch/" target="_blank" rel="noopener noreferrer">Facebook</a>
-          <a href="https://es.linkedin.com/company/broker-guilherme-coninch" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          <a href="https://www.instagram.com/guilhermeconinch.broker/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><SiteIcon name="Instagram" /></a>
+          <a href="https://www.facebook.com/corretorguilhermeconinch/" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><SiteIcon name="Facebook" /></a>
+          <a href="https://es.linkedin.com/company/broker-guilherme-coninch" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><SiteIcon name="LinkedIn" /></a>
         </nav>
       </div>
       <div className="footer-legal">
@@ -6002,12 +6003,12 @@ export default function App({ initialPage } = {}) {
             </div>
 
             <div className="listing-grid">
-              {filteredCatalog.map((property) => {
+              {filteredCatalog.map((property, index) => {
                 const text = getPropertyText(property, language)
 
                 return (
                   <article key={property.id} className="listing-card" onClick={() => property.offMarket ? setOffMarketSelection(property) : goProperty(property)}>
-                    <PropertyMedia className={`listing-media${property.offMarket ? '' : ' property-watermark'}`} src={property.thumbnail} alt={property.photos?.[0]?.caption || text.title}>
+                    <PropertyMedia loading={index < 3 ? 'eager' : 'lazy'} className={`listing-media${property.offMarket ? '' : ' property-watermark'}`} src={property.thumbnail} alt={property.photos?.[0]?.caption || text.title}>
                       <div className="listing-chips">{listingLabels(property, language).map(label => <span className="listing-chip" key={label}>{label}</span>)}</div>
                     </PropertyMedia>
                     <div className="listing-body">
@@ -6230,6 +6231,12 @@ export default function App({ initialPage } = {}) {
                 <span>{getDestinationMeta(selectedProperty.destination, language).name}</span>
               </div>
 
+              <ul className="property-key-facts">
+                {['rooms', 'bathrooms', 'surface'].filter(key => Number(selectedProperty[key]) > 0).map(key => (
+                  <li key={key}><SiteIcon name={key} />{selectedProperty[key]} {key === 'surface' ? 'm²' : copy.property.facts[key]}</li>
+                ))}
+                {selectedProperty.extras.includes('terraza') && <li><SiteIcon name="terrace" />{copy.catalog.extras.terraza}</li>}
+              </ul>
               <div className="property-hero-grid">
                 <div className="property-hero-copy">
                   <p className="section-label">Referencia {selectedProperty.reference}</p>
@@ -6245,20 +6252,6 @@ export default function App({ initialPage } = {}) {
                       <span>{copy.property.facts.type}</span>
                       <strong>{getTypeLabel(selectedProperty.type, language)}</strong>
                     </div>
-                    <div>
-                      <span>{copy.property.facts.surface}</span>
-                      <strong>{selectedProperty.surface} m²</strong>
-                    </div>
-                    <div>
-                      <span>{copy.property.facts.rooms}</span>
-                      <strong>{selectedProperty.rooms}</strong>
-                    </div>
-                    {selectedProperty.bathrooms ? (
-                      <div>
-                        <span>{copy.property.facts.bathrooms}</span>
-                        <strong>{selectedProperty.bathrooms}</strong>
-                      </div>
-                    ) : null}
                     <div>
                       <span>{copy.property.facts.extras}</span>
                       <strong>{selectedProperty.extras.map((extra) => copy.catalog.extras[extra]).join(' · ')}</strong>
@@ -6565,12 +6558,14 @@ export default function App({ initialPage } = {}) {
                   }}
                 >
                   <p className="location-label">{getDestinationMeta(destination.slug, language).name}</p>
-                  <div
-                    className="location-image"
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(24, 20, 17, 0.18), rgba(24, 20, 17, 0.3)), url(${destination.image})`,
-                    }}
-                  />
+                  <div className="location-image">
+                    <img
+                      src={destination.image}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
                 </a>
               ))}
             </div>
