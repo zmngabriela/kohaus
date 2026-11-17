@@ -28,3 +28,79 @@
 
 .empty-catalog-lead { max-width: 44rem; }
 .empty-catalog-lead .contact-form { margin-top: 1.5rem; }
+
+@media (max-width: 720px) {
+  .page-shell main.company-contact .contact-section > h2 {
+    font-size: 1.25rem;
+    line-height: 1.25;
+    margin-bottom: 20px;
+  }
+  .company-contact .contact-form { gap: 18px; }
+  .company-contact .contact-form input:not([type='checkbox']) {
+    height: 44px;
+    min-height: 44px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+  }
+  .company-contact .contact-form textarea {
+    padding: 10px 12px;
+    line-height: 1.4;
+  }
+}
+
+/* Contact copy and bordered form sit at opposite sides on desktop. */
+.company-page.company-contact {
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+}
+.contact-copy { min-width: 0; }
+.page-shell main.company-contact .contact-copy > .section-label { margin: 0; }
+.page-shell main.company-contact .contact-copy > h1 { margin-top: 16px; }
+.company-contact .contact-section {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  padding: 28px;
+  box-sizing: border-box;
+}
+.page-shell main.company-contact .contact-section > h2 { font-size: 1.5rem; line-height: 1.25; }
+.company-contact .contact-form { gap: 16px; }
+.company-contact .contact-form input:not([type='checkbox']) {
+  height: 44px; min-height: 44px; padding: 8px 12px; box-sizing: border-box;
+}
+.company-contact .contact-form textarea { min-height: 96px; padding: 10px 12px; line-height: 1.4; }
+@media (max-width: 900px) {
+  .company-page.company-contact { grid-template-columns: 1fr; gap: 24px; }
+  .company-contact .contact-details { margin-bottom: 0; }
+}
+@media (max-width: 720px) {
+  .company-contact .contact-section { padding: 22px 18px; }
+  .page-shell main.company-contact .contact-section > h2 { font-size: 1.25rem; }
+}
+
+.company-contact .contact-form select {
+  width: 100%; min-width: 0; height: 44px; box-sizing: border-box;
+  border: 1px solid var(--line-strong); border-radius: 0;
+  padding: 8px 12px; background: var(--field); color: var(--ink); font: inherit;
+}
+@media (max-width: 720px) { .company-contact .contact-form select { font-size: 16px; } }
+
+.company-contact .contact-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m3 6 5 5 5-5' stroke='%23323232' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+}
+@media (forced-colors: active) {
+  .company-contact .contact-form select { appearance: auto; background-image: none; }
+}
+
+.company-contact .contact-form .contact-consent + .contact-consent {
+  margin-top: -8px;
+}

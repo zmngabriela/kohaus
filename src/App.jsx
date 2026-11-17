@@ -6459,7 +6459,7 @@ export default function App({ initialPage } = {}) {
         </main>
       ) : null}
 
-      {route.view === 'contact' && <ContactPage language={language} onSubmit={saveOwnerLead} />}
+      {route.view === 'contact' && <ContactPage language={language} leadCopy={copy.ownerForm} onSubmit={saveOwnerLead} />}
       {route.view === 'about' && <AboutPage language={language} />}
       {['legal', 'privacy', 'cookies'].includes(route.view) && <LegalPage page={route.view} language={language} />}
 
