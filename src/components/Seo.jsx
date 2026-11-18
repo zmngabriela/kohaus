@@ -4,6 +4,7 @@ import { canonicalUrl, LANGUAGES, pageSeo, siteOrigin, socialImage } from '../li
 export default function Seo({ route, property }) {
  const origin = siteOrigin(import.meta.env.VITE_SITE_URL)
  const metadata = pageSeo(route, property, origin)
+ const image = socialImage(origin, route, property)
  useEffect(() => {
   document.head.querySelectorAll('[data-ssr-seo]').forEach(node=>node.remove())
   const nodes = []
@@ -20,10 +21,10 @@ export default function Seo({ route, property }) {
   add('link', { rel:'canonical', href:metadata.canonical })
   for (const language of LANGUAGES) add('link',{rel:'alternate',hreflang:language,href:canonicalUrl({...route,language},origin)})
   add('link',{rel:'alternate',hreflang:'x-default',href:canonicalUrl({...route,language:'es'},origin)})
-  for (const [key,value] of Object.entries({ title:metadata.title, description:metadata.description, url:metadata.canonical, type:'website', site_name:'KOHAUS Real Estate', ...socialImage(origin) })) add('meta',{property:`og:${key}`,content:value})
-  add('meta',{name:'twitter:card',content:'summary'})
+  for (const [key,value] of Object.entries({ title:metadata.title, description:metadata.description, url:metadata.canonical, type:'website', site_name:'KOHAUS Real Estate', ...image })) add('meta',{property:`og:${key}`,content:value})
+  for (const [key,value] of Object.entries({card:route.view === 'anuncio' && image.image.includes('/api/property-image') ? 'summary_large_image' : 'summary',title:metadata.title,description:metadata.description,image:image.image,'image:alt':image['image:alt']})) add('meta',{name:`twitter:${key}`,content:value})
   add('script',{type:'application/ld+json'},JSON.stringify({ '@context':'https://schema.org', '@type':'Organization', name:'KOHAUS Real Estate', url:origin, logo:new URL('/brand/kohaus-logo.svg',origin).href, email:'hola@kohausrealestate.com', telephone:'+34665324791', sameAs:['https://www.instagram.com/guilhermeconinch.broker/','https://www.facebook.com/corretorguilhermeconinch/','https://www.linkedin.com/company/broker-guilherme-coninch/'] }))
   return () => nodes.forEach(node=>node.remove())
- }, [metadata.title,metadata.description,metadata.canonical,metadata.language,metadata.noindex,origin,route])
+ }, [metadata.title,metadata.description,metadata.canonical,metadata.language,metadata.noindex,origin,route,image.image,image['image:alt']])
  return null
 }

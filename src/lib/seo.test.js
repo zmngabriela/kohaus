@@ -20,3 +20,15 @@ it('uses localized property copy without private fields',()=>{
  expect(JSON.stringify(seo)).not.toContain('SECRET')
  expect(seo.description).toBe('Two bedrooms.')
 })
+
+it('keeps the brand image on main pages and uses a stable cover URL for listings', async () => {
+ const { socialImage } = await import('./seo')
+ const property = {id:'home-1',title:'Apartment',photos:[{url:'https://media.example/first.jpg?token=temporary'},{url:'https://media.example/second.jpg'}]}
+ expect(socialImage('https://kohausrealestate.com', {view:'contact'}, property).image).toContain('/brand/kohaus-social-monogram.png')
+ const image = socialImage('https://kohausrealestate.com', {view:'anuncio',language:'en'}, property)
+ expect(image.image).toBe('https://kohausrealestate.com/api/property-image?id=home-1')
+ expect(image['image:alt']).toBe('Apartment')
+ expect(image).not.toHaveProperty('image:width')
+ expect(socialImage('https://kohausrealestate.com', {view:'anuncio'}, {...property,offMarket:true}).image).toContain('/brand/')
+ expect(socialImage('https://kohausrealestate.com', {view:'anuncio'}, {...property,photos:[]}).image).toContain('/brand/')
+})
