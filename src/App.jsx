@@ -1980,6 +1980,11 @@ function toSearch(route) {
     params.set('lang', route.language)
   }
 
+  // Home keeps its language, without catalog filters or listing identifiers.
+  if (!route.view || route.view === 'home') {
+    return params.size ? `?${params}` : '/'
+  }
+
   if (route.operation) {
     params.set('op', route.operation)
   }

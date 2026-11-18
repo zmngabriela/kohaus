@@ -3,7 +3,13 @@ export const SITE_URL = 'https://kohausrealestate.com'
 export function siteOrigin(configured) {
  return !configured || new URL(configured).origin === 'https://kohaus.pages.dev' ? SITE_URL : configured
 }
-export function socialImage(origin) {
+export function socialImage(origin, route, property) {
+ if (route?.view === 'anuncio' && property?.id && !property.offMarket && !property.off_market && property.photos?.[0]?.url) {
+  const image = new URL('/api/property-image', origin)
+  image.searchParams.set('id', property.id)
+  const title = typeof property.title === 'object' ? property.title[route.language] || property.title.es : property.title
+  return {image:image.href, 'image:alt':title || 'KOHAUS Real Estate'}
+ }
  return {
   image: new URL('/brand/kohaus-social-monogram.png', origin).href,
   'image:type': 'image/png',

@@ -17,7 +17,7 @@ export function requestRoute(url, acceptLanguage = '') {
  return parseRoute(new URL(url).search, preferredLanguage(languages))
 }
 const escape = value => String(value).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
-export function renderPage(route, rows) {
+export function renderPage(route, rows, requestOrigin = serverConfig.origin) {
  const properties = rows.map(mapPropertyFromSupabase)
  const selected = rows.find(p=>p.id===route.propertyId)
  const localized = selected?.portal_data?.translations?.[route.language]
@@ -25,8 +25,10 @@ export function renderPage(route, rows) {
  const initialPage = {route, properties, catalogLoaded: ['home','catalogo','off-market','anuncio'].includes(route.view)}
  const html = renderToString(<App initialPage={initialPage} />)
  const attributes = (tag, attrs) => `<${tag} data-ssr-seo ${Object.entries(attrs).map(([key,value])=>`${key}="${escape(value)}"`).join(' ')}>`
- const head = attributes('meta',{name:'description',content:seo.description}) + attributes('meta',{name:'robots',content:seo.noindex || !serverConfig.production ? 'noindex, follow' : 'index, follow, max-image-preview:large'}) + attributes('link',{rel:'canonical',href:seo.canonical}) + LANGUAGES.map(language=>attributes('link',{rel:'alternate',hreflang:language,href:canonicalUrl({...route,language},serverConfig.origin)})).join('') + Object.entries({title:seo.title,description:seo.description,url:seo.canonical,type:'website',...socialImage(serverConfig.origin)}).map(([key,value])=>attributes('meta',{property:`og:${key}`,content:value})).join('')
+ const head = attributes('meta',{name:'description',content:seo.description}) + attributes('meta',{name:'robots',content:seo.noindex || !serverConfig.production ? 'noindex, follow' : 'index, follow, max-image-preview:large'}) + attributes('link',{rel:'canonical',href:seo.canonical}) + LANGUAGES.map(language=>attributes('link',{rel:'alternate',hreflang:language,href:canonicalUrl({...route,language},serverConfig.origin)})).join('') + Object.entries({title:seo.title,description:seo.description,url:canonicalUrl(route, requestOrigin),type:'website',site_name:'KOHAUS Real Estate',...socialImage(requestOrigin, route, selected)}).map(([key,value])=>attributes('meta',{property:`og:${key}`,content:value})).join('')
+ const image = socialImage(requestOrigin, route, selected)
+ const twitterHead = Object.entries({card:route.view === 'anuncio' && image.image.includes('/api/property-image') ? 'summary_large_image' : 'summary', title:seo.title, description:seo.description, image:image.image, 'image:alt':image['image:alt']}).map(([key,value])=>attributes('meta',{name:`twitter:${key}`,content:value})).join('')
  // JSON is inert data; escaping '<' prevents user-authored descriptions from closing the script.
  const state = JSON.stringify(initialPage).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')
- return {html,head,state,title:escape(seo.title),language:seo.language}
+ return {html,head:head + twitterHead,state,title:escape(seo.title),language:seo.language}
 }
