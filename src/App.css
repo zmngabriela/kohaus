@@ -444,6 +444,13 @@
   align-items: start;
 }
 
+/* Keep the owner copy aligned while ending near the last photo’s midpoint. */
+@media (min-width: 1101px) {
+  .services-section .editorial-band-body > p {
+    max-width: 72%;
+  }
+}
+
 .action-buttons {
   display: flex;
   gap: 12px;
@@ -3277,8 +3284,11 @@
 .listing-chips { position: absolute; top: 16px; left: 16px; right: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
 .listing-chips .listing-chip { position: static; }
 
-/* Keep only the search button text small; preserve control dimensions. */
-.search-panel > button,
+/* Hero action shares its field labels; catalog keeps its compact action. */
+.search-panel > button {
+  font-size: var(--fs-label-sm);
+}
+
 .catalog-search-button {
   font-size: var(--fs-label-xs);
 }
@@ -3539,4 +3549,9 @@
   }
   .catalog-search-button { grid-row: 2; grid-column: 3; justify-self: end; }
   .catalog-results { padding-top: 28px; }
+}
+
+@media (max-width: 720px) {
+  .page-shell .featured-heading h2 { font-size: var(--fs-card-title); }
+  .page-shell main .featured-property-copy h3 { font-size: var(--fs-body-lg); }
 }
