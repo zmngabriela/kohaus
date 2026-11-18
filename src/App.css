@@ -3552,6 +3552,5 @@
 }
 
 @media (max-width: 720px) {
-  .page-shell .featured-heading h2 { font-size: var(--fs-card-title); }
   .page-shell main .featured-property-copy h3 { font-size: var(--fs-body-lg); }
 }
