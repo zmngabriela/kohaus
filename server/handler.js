@@ -28,7 +28,7 @@ export function createPageHandler({renderPage,requestRoute,publicViews,serverCon
     return new Response('<!doctype html><html><head><meta name="robots" content="noindex"><title>KOHAUS · 404</title></head><body><h1>404</h1><a href="/">KOHAUS Real Estate</a></body></html>',{status:404,headers:{...headers,'X-Robots-Tag':'noindex'}})
    }
    const shell = await next()
-   const page = renderPage(route,rows)
+   const page = renderPage(route,rows,new URL(request.url).origin)
    const template = await shell.text()
    const html = template.replace(/<html[^>]*>/,`<html lang="${page.language}">`).replace(/<title>[^<]*<\/title>/,()=>`<title>${page.title}</title>`).replace('</head>',()=>`${page.head}</head>`).replace('<div id="root"></div>',()=>`<div id="root">${page.html}</div><script id="kohaus-initial-page" type="application/json">${page.state}</script>`)
    return new Response(request.method==='HEAD'?null:html,{headers})

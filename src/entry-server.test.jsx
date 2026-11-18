@@ -9,3 +9,11 @@ it('renders crawler-visible listing and main-page social previews without JavaSc
  expect(main.head).toContain('/brand/kohaus-social-monogram.png')
  expect(main.head).not.toContain('/api/property-image')
 })
+
+it('keeps preview images and OG URLs on the shared deployment domain', () => {
+ const rows = [{id:'a',title:'Apartment',status:'active',photos:[{url:'https://media.example/first.webp'}]}]
+ const page = renderPage({view:'anuncio',language:'pt',propertyId:'a'}, rows, 'https://dev.kohaus.pages.dev')
+ expect(page.head).toContain('property="og:image" content="https://dev.kohaus.pages.dev/api/property-image?id=a"')
+ expect(page.head).toContain('property="og:url" content="https://dev.kohaus.pages.dev/?view=anuncio&amp;lang=pt&amp;id=a"')
+ expect(page.head).not.toContain('content="https://kohausrealestate.com/api/property-image')
+})
