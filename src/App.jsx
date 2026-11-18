@@ -1,3 +1,4 @@
+import { propertyCountry, propertyCity, countryLabel } from './lib/propertyLocation'
 import SiteIcon from './components/SiteIcon.jsx'
 import Prospecting from './components/Prospecting'
 import { idealistaListingId, idealistaOperationPreview } from './lib/idealistaListing'
@@ -109,6 +110,7 @@ const PROPERTY_FORM_DEFAULTS = {
   reference: '',
   operation: 'comprar',
   destination: 'barcelona',
+  country: 'ES',
   type: 'apartamento',
   priceLabel: '',
   ownerClientId: '',
@@ -1651,7 +1653,8 @@ function mapPropertyToForm(property) {
     title: property.title,
     reference: property.reference,
     operation: property.operation,
-    destination: property.destination,
+    destination: propertyCity(property),
+    country: propertyCountry(property),
     type: normalizeTypes([property.type])[0],
     priceLabel: property.priceLabel,
     currency: property.currency || 'EUR',
@@ -1664,7 +1667,7 @@ function mapPropertyToForm(property) {
     photos: property.photos || [],
     publishToPortals: Boolean(property.portalPublications?.length),
     selectedPortals: (property.portalPublications || []).map((publication) => publication.portalId).filter(Boolean),
-    portalData: { ...PROPERTY_FORM_DEFAULTS.portalData, ...(property.portalData || {}), extras: propertyExtras(property) },
+    portalData: { ...PROPERTY_FORM_DEFAULTS.portalData, ...(property.portalData || {}), municipality: propertyCity(property), extras: propertyExtras(property) },
   }
 }
 
@@ -2139,8 +2142,8 @@ async function fetchDashboardProperties(database = supabase, databaseEnabled = h
 }
 
 function publicProperty(property) {
-  const { id, createdAt, title, reference, operation, destination, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket } = property
-  return { id, createdAt, title, reference, operation, destination, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket, observations: offMarket ? '' : property.observations || '', photos: offMarket ? [] : property.photos || [], portalData: offMarket ? {} : Object.fromEntries(Object.entries(property.portalData || {}).filter(([key]) => ['featuredSlot','translations','province','municipality','neighborhood','condition','usefulSurface','builtSurface','orientation','buildingYear','energyConsumptionRating','energyEmissionsRating','nearCityCenter','nearShops','nearSchools','nearPharmacy','nearParks','nearPolice','nearPublicTransport','numberOfFloors'].includes(key))), extras: offMarket ? [] : propertyExtras(property) }
+  const { id, createdAt, title, reference, operation, destination, country, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket } = property
+  return { id, createdAt, title, reference, operation, destination, country, type, priceValue, priceLabel, currency, surface, rooms, bathrooms, status, offMarket, observations: offMarket ? '' : property.observations || '', photos: offMarket ? [] : property.photos || [], portalData: offMarket ? {} : Object.fromEntries(Object.entries(property.portalData || {}).filter(([key]) => ['featuredSlot','translations','province','municipality','neighborhood','condition','usefulSurface','builtSurface','orientation','buildingYear','energyConsumptionRating','energyEmissionsRating','nearCityCenter','nearShops','nearSchools','nearPharmacy','nearParks','nearPolice','nearPublicTransport','numberOfFloors'].includes(key))), extras: offMarket ? [] : propertyExtras(property) }
 }
 
 async function fetchPublishedProperties(database = supabase, databaseEnabled = hasSupabaseConfig) {
@@ -2234,7 +2237,8 @@ async function saveDashboardProperty(formState, orderedPhotos, database = supaba
     title: formState.title,
     reference: formState.reference.trim(),
     operation: formState.operation,
-    destination: normalizeCity(formState.destination),
+    destination: normalizeCity(formState.portalData?.municipality || formState.destination),
+    country: (formState.country || '').trim(),
     type: formState.type,
     ...priceFields(formState.priceValue, formState.currency || 'EUR'),
     currency: formState.currency || 'EUR',
@@ -2264,6 +2268,7 @@ async function saveDashboardProperty(formState, orderedPhotos, database = supaba
     title: nextProperty.title,
     operation: nextProperty.operation,
     destination: nextProperty.destination,
+    country: nextProperty.country,
     type: nextProperty.type,
     price_value: nextProperty.priceValue,
     currency: nextProperty.currency,
@@ -2313,6 +2318,7 @@ async function updateDashboardProperty(id, patch, database = supabase, databaseE
   if (patch.destination !== undefined) {
     supabasePatch.destination = patch.destination
   }
+  if (patch.country !== undefined) supabasePatch.country = patch.country
   if (patch.type !== undefined) {
     supabasePatch.type = patch.type
   }
@@ -2646,7 +2652,8 @@ export function mapPropertyFromSupabase(row) {
     title: row.title,
     reference: row.reference,
     operation: row.operation,
-    destination: row.destination,
+    destination: row.portal_data?.municipality?.trim() || row.destination,
+    country: propertyCountry(row),
     type: normalizeTypes([row.type])[0],
     currency: row.currency || 'EUR',
     ...priceFields(row.price_value, row.currency || 'EUR'),
@@ -4181,7 +4188,7 @@ export default function App({ initialPage } = {}) {
       if (propertyEditor.mode === 'edit' && propertyEditor.propertyId) {
         const patch = {
           ownerClientId: propertyForm.ownerClientId, privateAddress: propertyForm.privateAddress, offMarket: propertyForm.offMarket, title: propertyForm.title, operation: propertyForm.operation,
-          destination: normalizeCity(propertyForm.destination), type: propertyForm.type, ...priceFields(propertyForm.priceValue, propertyForm.currency), currency: propertyForm.currency, surface: Number(propertyForm.surface || 0),
+          destination: normalizeCity(propertyForm.portalData?.municipality || propertyForm.destination), country: (propertyForm.country || '').trim(), type: propertyForm.type, ...priceFields(propertyForm.priceValue, propertyForm.currency), currency: propertyForm.currency, surface: Number(propertyForm.surface || 0),
           rooms: Number(propertyForm.rooms || 0), bathrooms: Number(propertyForm.bathrooms || 0), status: propertyForm.status,
           observations: propertyForm.observations, portalData: propertyForm.portalData,
           photos: orderedPhotos, portalPublications,
@@ -5435,7 +5442,8 @@ export default function App({ initialPage } = {}) {
 
             <form className="dashboard-property-form dashboard-property-editor-page" onSubmit={handlePropertySubmit}>
               <div className="property-editor-toolbar dashboard-property-form-full">
-                <p>{propertyForm.reference || (language === 'pt' ? 'Referência automática: KH0115 em diante.' : language === 'es' ? 'Referencia automática: desde KH0115.' : 'Automatic reference: KH0115 onwards.')}</p>
+                {propertyForm.reference && <p>{propertyForm.reference}</p>}
+
                 <PropertyEditorActions editing={propertyEditor.mode === 'edit'} busy={propertySaving} language={language} saveLabel={propertyEditor.mode === 'edit' ? copy.dashboard.updateProperty : copy.dashboard.addProperty} savingLabel={copy.dashboard.saving} onDelete={handleDeleteProperty} />
               </div>
               <PropertyOwner Select={CustomSelect} value={propertyForm.ownerClientId} clients={dashboardClients} language={language} onChange={ownerClientId=>setPropertyForm(current=>({...current,ownerClientId}))} onCreate={()=>{setClientForm({...CLIENT_FORM_DEFAULTS,language,requestId:createId('client')});setClientEditor({isOpen:true,mode:'create',clientId:null});setCreatingPropertyOwner(true);window.scrollTo(0,0)}} />
@@ -5463,8 +5471,12 @@ export default function App({ initialPage } = {}) {
                 />
               </label>
               <label>
-                <span>{copy.dashboard.propertyFields.destination}</span>
-                <input required value={capitalizeCity(propertyForm.destination)} onChange={event => setPropertyForm(current => ({...current,destination:capitalizeCity(event.target.value)}))} />
+                <span>{({pt:'País',es:'País',en:'Country'})[language]}</span>
+                <input required maxLength={100} autoComplete="country-name" value={countryLabel(propertyForm.country, language)} onChange={event => setPropertyForm(current => ({...current,country:event.target.value}))} />
+              </label>
+              <label>
+                <span>{({pt:'Cidade / município',es:'Ciudad / municipio',en:'City / municipality'})[language]}</span>
+                <input required value={capitalizeCity(propertyForm.portalData?.municipality || propertyForm.destination)} onChange={event => setPropertyForm(current => ({...current,destination:capitalizeCity(event.target.value),portalData:{...current.portalData,municipality:capitalizeCity(event.target.value)}}))} />
               </label>
               <label>
                 <span>{copy.dashboard.propertyFields.type}</span>
@@ -5519,7 +5531,7 @@ export default function App({ initialPage } = {}) {
                   {...propertyNumericRules.rooms}
                   value={propertyForm.rooms}
                   onChange={(event) => setPropertyForm((current) => ({ ...current, rooms: event.target.value }))}
-                  required
+                  required={!propertyForm.offMarket}
                 />
               </label>
               <label>
@@ -5529,7 +5541,7 @@ export default function App({ initialPage } = {}) {
                   {...propertyNumericRules.bathrooms}
                   value={propertyForm.bathrooms}
                   onChange={(event) => setPropertyForm((current) => ({ ...current, bathrooms: event.target.value }))}
-                  required
+                  required={!propertyForm.offMarket}
                 />
               </label>
               <div className="dashboard-property-form-full property-publication-options">
@@ -5573,7 +5585,7 @@ export default function App({ initialPage } = {}) {
                   </div>
                 </div>
                 <div className="dashboard-portal-data-grid">
-                  {PORTAL_DATA_FIELDS.map(([field, type], index) => (
+                  {PORTAL_DATA_FIELDS.map(([field, type], index) => field === 'municipality' ? null : (
                     <label key={field}>
                       <span>{portalFormCopy.fields[index]}</span>
                       <input
@@ -6332,7 +6344,8 @@ export default function App({ initialPage } = {}) {
                   { label: copy.property.detailLabels.price, value: selectedProperty.priceLabel },
                   { label: copy.property.detailLabels.type, value: getTypeLabel(selectedProperty.type, language) },
                   { label: copy.property.detailLabels.province, value: selectedProperty.portalData?.province },
-                  { label: copy.property.detailLabels.municipality, value: selectedProperty.portalData?.municipality },
+                  { label: ({pt:'País',es:'País',en:'Country'})[language], value: countryLabel(selectedProperty.country, language) },
+                  { label: copy.property.detailLabels.municipality, value: propertyCity(selectedProperty) },
                   { label: copy.property.detailLabels.neighborhood, value: selectedProperty.portalData?.neighborhood },
                   { label: copy.property.detailLabels.condition, value: selectedProperty.portalData?.condition },
                 ]}
@@ -6544,7 +6557,7 @@ export default function App({ initialPage } = {}) {
                 const text = getPropertyText(property, language)
                 const propertyMeta = [
                   property.priceLabel,
-                  getDestinationMeta(property.destination, language).name,
+                  [getDestinationMeta(property.destination, language).name, countryLabel(property.country, language)].filter(Boolean).join(', '),
                   property.surface ? `${property.surface} m²` : '',
                 ].filter(Boolean).join(' · ')
 
