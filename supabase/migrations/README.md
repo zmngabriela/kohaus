@@ -31,3 +31,11 @@ documente a ordem/dependências. Nunca copie dados de DEV para PROD nem reescrev
 já aplicados.
 
 Processo completo: [docs/AMBIENTES.md](../../docs/AMBIENTES.md).
+
+- `202611190020_property_country.sql`: adiciona país, preserva Município como cidade,
+  atualiza a gravação transacional e a view pública. Aplicar em DEV antes de publicar
+  o frontend e depois em PROD. Não altera cidades existentes nem inventa municípios.
+
+Execução confirmada: `202611190020_property_country.sql` aplicada em 19/11/2026
+no DEV `nnrfluzbsbdngxklomyp`; coluna `country` conferida em `dashboard_properties`
+e `public_properties`. Produção separada: execução ainda não confirmada.

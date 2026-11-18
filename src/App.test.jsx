@@ -222,12 +222,36 @@ describe('KOHAUS app regressions', () => {
     expect(screen.getByText('Costa Brava villa.')).toBeInTheDocument()
   })
 
+  it('requires room counts only for public properties', async () => {
+    const user = userEvent.setup()
+    renderApp('/?view=dashboard&section=properties&lang=en')
+    await user.click(screen.getByRole('button', {name:'New property'}))
+    const rooms = screen.getByLabelText('Bedrooms')
+    const bathrooms = screen.getByLabelText('Bathrooms')
+    await user.clear(rooms)
+    await user.clear(bathrooms)
+    expect(rooms).toBeRequired()
+    expect(bathrooms).toBeRequired()
+    const offMarket = screen.getByRole('checkbox', {name:/Off-market/})
+    await user.click(offMarket)
+    expect(rooms).not.toBeRequired()
+    expect(bathrooms).not.toBeRequired()
+    expect(rooms.checkValidity()).toBe(true)
+    expect(bathrooms.checkValidity()).toBe(true)
+    await user.click(offMarket)
+    expect(rooms).toBeRequired()
+    expect(bathrooms).toBeRequired()
+  })
+
   it('creates and updates a dashboard property in local mode', async () => {
     const user = userEvent.setup()
     renderApp('/?view=dashboard&section=properties&lang=en')
 
     await user.click(screen.getByRole('button', { name: 'New property' }))
 
+    expect(screen.getByLabelText('Country')).toHaveValue('Spain')
+    expect(screen.getAllByLabelText('City / municipality')).toHaveLength(1)
+    expect(screen.queryByLabelText('Municipality')).not.toBeInTheDocument()
     const titleInput = screen.getByLabelText('Title')
     const priceValueInput = screen.getByLabelText('Price')
     const surfaceInput = screen.getByLabelText('Area m²')

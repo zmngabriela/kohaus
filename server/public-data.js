@@ -1,4 +1,4 @@
-const fields = 'id,created_at,title,reference,operation,destination,type,price_value,currency,surface,rooms,bathrooms,status,off_market,observations,photos,portal_data'
+const fields = 'country,id,created_at,title,reference,operation,destination,type,price_value,currency,surface,rooms,bathrooms,status,off_market,observations,photos,portal_data'
 export async function loadPublicRows(config, fetcher = fetch) {
  const endpoint = new URL('/rest/v1/public_properties',config.url)
  endpoint.searchParams.set('select',fields)

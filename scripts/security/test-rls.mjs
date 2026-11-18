@@ -56,10 +56,13 @@ for(let i=0;i<20;i++) assert.equal((await as('authenticated',owner,'select publi
 assert.equal((await as('authenticated',owner,'select public.consume_property_ai_quota() permitted')).rows[0].permitted,false)
 await denied('authenticated',owner,'select * from public.property_ai_usage')
 // New property workflow: unique automatic references, retry-safe creation and private owner link.
-const payload={id:'retry-property',title:'Test',operation:'comprar',destination:'Sitges',type:'piso',currency:'EUR',surface:80,rooms:2,bathrooms:1,status:'active',owner_client_id:'c1'}
+const payload={id:'retry-property',title:'Test',operation:'comprar',destination:'Sitges',country:'ES',type:'piso',currency:'EUR',surface:80,rooms:2,bathrooms:1,status:'active',owner_client_id:'c1'}
 const command=`select public.save_property_with_address('${JSON.stringify(payload)}'::jsonb,'PRIVATE OWNER ADDRESS')`
 await as('authenticated',owner,command)
 await as('authenticated',owner,command)
+assert.equal((await db.query("select country from public.dashboard_properties where id='retry-property'")).rows[0].country,'ES')
+await as('authenticated',owner,`select public.save_property_with_address('{"country":"PT"}'::jsonb,'PRIVATE OWNER ADDRESS','retry-property')`)
+assert.equal((await as('anon','',"select country from public.public_properties where id='retry-property'")).rows[0].country,'PT')
 assert.equal((await db.query("select count(*)::int n from public.dashboard_properties where id='retry-property'")).rows[0].n,1)
 assert.equal((await db.query("select reference from public.dashboard_properties where id='retry-property'")).rows[0].reference,'KH0115')
 assert.equal((await db.query("select owner_client_id from public.property_private where property_id='retry-property'")).rows[0].owner_client_id,'c1')
