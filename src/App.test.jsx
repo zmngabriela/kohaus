@@ -37,6 +37,16 @@ beforeEach(() => {
 })
 
 describe('KOHAUS app regressions', () => {
+  it.each(['comprar', 'alquilar'])('cleans catalog parameters when returning home from %s', async operation => {
+    const user = userEvent.setup()
+    renderApp(`/?view=catalogo&lang=en&op=${operation}&dest=barcelona&ref=TEST`)
+    await user.click(screen.getByRole('link', {name:'KOHAUS Real Estate'}))
+    expect(window.location.pathname + window.location.search).toBe('/?lang=en')
+    await user.click(screen.getByRole('link', {name:'Rent',exact:true}))
+    expect(new URLSearchParams(window.location.search).get('op')).toBe('alquilar')
+    expect(new URLSearchParams(window.location.search).get('view')).toBe('catalogo')
+  })
+
   it('opens destinations with buy and rent together and switches operation without losing the city', async () => {
     const user = userEvent.setup()
     window.localStorage.setItem('kohaus-dashboard-properties-v1', JSON.stringify([
