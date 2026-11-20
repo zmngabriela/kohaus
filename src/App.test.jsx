@@ -84,6 +84,19 @@ describe('KOHAUS app regressions', () => {
     expect(screen.getByText('Hospitalet property')).toBeInTheDocument()
   })
 
+  it('includes regional towns when opening the Costa Brava destination', async () => {
+    localStorage.setItem('kohaus-dashboard-properties-v1', JSON.stringify([
+      ...PROPERTY_FIXTURES,
+      {...PROPERTY_FIXTURES[0],id:'palamos',destination:'Palamós',title:'Palamos home'},
+      {...PROPERTY_FIXTURES[0],id:'begur',destination:'Begur',title:'Begur home'},
+    ]))
+    const {container}=renderApp('/?view=catalogo&lang=en&op=comprar&dest=costa-brava')
+    await waitFor(()=>expect(getListingCards(container)).toHaveLength(3))
+    expect(screen.getByText('Palamos home')).toBeInTheDocument()
+    expect(screen.getByText('Begur home')).toBeInTheDocument()
+    expect(screen.queryByText(PROPERTY_FIXTURES[0].title)).not.toBeInTheDocument()
+  })
+
   it('shows the site footer on every page', () => {
     const routes = [
       '/?lang=en',

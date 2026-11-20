@@ -13,7 +13,7 @@ import { availableFeaturedSlots, selectFeatured } from './lib/featuredProperties
 import Seo from './components/Seo'
 import { optimizePhoto } from './lib/optimizePhoto'
 import PropertyEditorActions from './components/PropertyEditorActions'
-import { capitalizeCity, normalizeCity, cityKey, cityOptions } from './lib/propertyCities'
+import { capitalizeCity, normalizeCity, cityKey, cityOptions, matchesDestination } from './lib/propertyCities'
 import PropertyOwner from './components/PropertyOwner'
 import PropertyAI from './components/PropertyAI'
 import { botCheck } from './lib/botCheck'
@@ -2730,7 +2730,7 @@ function fileToLocalPhoto(file) {
 function filterCatalogProperties(properties, filters) {
   return properties
     .filter((property) => filters.operation === 'all' || property.operation === filters.operation)
-    .filter((property) => filters.destination === 'todos' || cityKey(property.destination) === cityKey(filters.destination))
+    .filter((property) => matchesDestination(property, filters.destination))
     .filter((property) => {
       if (!filters.reference) {
         return true
