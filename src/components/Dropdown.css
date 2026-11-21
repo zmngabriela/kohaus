@@ -38,8 +38,8 @@
   line-height: 1.3;
   letter-spacing: .08em;
   text-transform: uppercase;
-  white-space: nowrap;
-  overflow-wrap: normal;
+  white-space: normal;
+  overflow-wrap: anywhere;
   word-break: normal;
 }
 .custom-select .custom-select-option.is-active { color: rgba(247, 243, 235, .56); }
