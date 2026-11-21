@@ -39,3 +39,10 @@ Processo completo: [docs/AMBIENTES.md](../../docs/AMBIENTES.md).
 Execução confirmada: `202611190020_property_country.sql` aplicada em 19/11/2026
 no DEV `nnrfluzbsbdngxklomyp`; coluna `country` conferida em `dashboard_properties`
 e `public_properties`. Produção separada: execução ainda não confirmada.
+
+- `202611211200_commercial_activity.sql`: histórico imutável de visitas e tarefas,
+  vinculado aos clientes, proprietários, imóveis e leads. Depende da associação de
+  proprietários (`202610251000_property_workflow.sql`). Aplicar antes do frontend.
+  Registros existentes recebem uma fotografia inicial identificada como tal;
+  mudanças anteriores não são reconstruídas. Usuária informou em 21/11/2026 que
+  executou o SQL; ambiente não especificado e execução não verificada via CLI.
