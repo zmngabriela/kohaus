@@ -7,13 +7,13 @@ export function dropdownPosition(anchor, menuHeight, menuWidth, viewport) {
   const below = Math.max(0, bottomEdge - anchor.bottom - gap)
   const above = Math.max(0, anchor.top - gap - topEdge)
   const upwards = menuHeight > below && above > below
-  const maxHeight = Math.max(0, Math.min(360, upwards ? above : below))
-  const height = Math.min(menuHeight, maxHeight)
+  const scrollWithPage = menuHeight > Math.max(above, below)
+  const height = menuHeight
   const width = Math.min(Math.max(anchor.width, menuWidth), viewport.width - margin * 2)
   return {
     top: Math.max(topEdge, upwards ? anchor.top - gap - height : Math.min(anchor.bottom + gap, bottomEdge - height)),
     left: Math.max(viewport.left + margin, Math.min(anchor.left, viewport.left + viewport.width - margin - width)),
-    width, maxHeight,
+    width, scrollWithPage,
   }
 }
 
@@ -26,16 +26,21 @@ export function useVisibleDropdown(rootRef, open, close) {
     if (!menu || !trigger) return
     const update = () => {
       // Measure the natural option width before clamping the panel to the viewport.
-      Object.assign(menu.style, { width: 'max-content', minWidth: '0', maxWidth: 'none', right: 'auto' })
+      Object.assign(menu.style, { width: 'max-content', minWidth: '0', maxWidth: 'none', maxHeight: 'none', overflow: 'visible', right: 'auto' })
       const viewport = window.visualViewport
-      const bounds = dropdownPosition(trigger.getBoundingClientRect(), menu.scrollHeight, menu.scrollWidth, {
+      const anchor = trigger.getBoundingClientRect()
+      const naturalWidth = menu.scrollWidth
+      menu.style.width = `${Math.min(Math.max(anchor.width, naturalWidth), (viewport?.width || window.innerWidth) - 24)}px`
+      const bounds = dropdownPosition(anchor, menu.scrollHeight, naturalWidth, {
         top: viewport?.offsetTop || 0, left: viewport?.offsetLeft || 0,
         width: viewport?.width || window.innerWidth, height: viewport?.height || window.innerHeight,
       })
       Object.assign(menu.style, {
-        position: 'fixed', top: `${bounds.top}px`, left: `${bounds.left}px`, right: 'auto', bottom: 'auto',
-        width: `${bounds.width}px`, minWidth: '0', maxHeight: `${bounds.maxHeight}px`, boxSizing: 'border-box',
-        overflowY: 'auto', overscrollBehavior: 'contain', zIndex: '1000',
+        position: bounds.scrollWithPage ? 'absolute' : 'fixed',
+        top: bounds.scrollWithPage ? 'calc(100% + 8px)' : `${bounds.top}px`,
+        left: `${bounds.scrollWithPage ? bounds.left - root.getBoundingClientRect().left : bounds.left}px`, right: 'auto', bottom: 'auto',
+        width: `${bounds.width}px`, minWidth: '0', maxHeight: 'none', boxSizing: 'border-box',
+        overflow: 'visible', zIndex: '1000',
       })
     }
     const escape = event => { if (event.key === 'Escape') { close(false); trigger.focus() } }

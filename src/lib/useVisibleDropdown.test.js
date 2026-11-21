@@ -11,8 +11,8 @@ it('opens below when there is room and stays within horizontal edges', () => {
  expect(result.top).toBe(102)
  expect(result.left + result.width).toBeLessThanOrEqual(378)
 })
-it('caps long lists inside the visible viewport, including the mobile keyboard', () => {
+it('lets long lists scroll with the page instead of creating an internal scrollbar', () => {
  const result = dropdownPosition({top:210,bottom:254,left:20,width:200},900,200,{...viewport,height:300})
- expect(result.top).toBeGreaterThanOrEqual(12)
- expect(result.top + result.maxHeight).toBeLessThanOrEqual(288)
+ expect(result.scrollWithPage).toBe(true)
+ expect(result.maxHeight).toBeUndefined()
 })
