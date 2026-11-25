@@ -3555,7 +3555,9 @@
   color:var(--ink);
   font-size:var(--crm-page-title-size);
 }
-.dashboard-page .crm-list-heading > h2 { font-size:var(--type-heading); }
+.dashboard-page .crm-list-heading > h2,
+.crm-record-page .crm-section-heading > h1,
+.dashboard-page .tasks-section .dashboard-editor-head > h2 { font-size:var(--type-heading); }
 .page-shell :is(.crm-create-button,.invoice-toolbar .outline-button,.dashboard-lead-actions > button) {
   display:inline-flex;
   align-items:center;

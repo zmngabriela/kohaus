@@ -56,7 +56,7 @@ export default function Tasks({ language, clients, leads, properties, onSaving, 
   }
   const links = [['client_id', 'client', clients, person], ['lead_id', 'lead', leads, person], ['property_id', 'property', properties, p => `${p.reference || ''} ${p.title}`.trim()]]
   return <section className="dashboard-section tasks-section">
-    <header className="crm-section-heading"><h2>{c.title}</h2><button type="button" className="solid-button crm-create-button" onClick={() => { setForm(blank()); setEditorOpen(true) }}>{c.new}</button></header>
+    <header className="crm-section-heading crm-list-heading"><h2>{c.title}</h2><button type="button" className="solid-button crm-create-button" onClick={() => { setForm(blank()); setEditorOpen(true) }}>{c.new}</button></header>
     {error && <div role="alert" className="tasks-error">{c.error} <button type="button" onClick={() => { setLoading(true); setError(false); setRetry(n => n + 1) }} disabled={busy}>{c.retry}</button></div>}
     {editorOpen && <EditorDialog title={form.id ? c.edit : c.new} closeLabel={c.cancel} busy={busy} onClose={() => { setForm(blank()); setEditorOpen(false) }}>
     {error && <p role="alert">{c.error}</p>}
