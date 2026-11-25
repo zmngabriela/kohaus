@@ -477,6 +477,26 @@ describe('KOHAUS app regressions', () => {
 
     const calendarLink = await screen.findByRole('link', { name: 'Add to calendar' })
     expect(calendarLink).toHaveClass('dashboard-calendar-link')
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Edit visit' }))
+    expect(screen.getByRole('heading', { name: 'Edit visit' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Back to viewings' }))
+    expect(screen.getByRole('link', { name: 'Add to calendar' })).toBeInTheDocument()
+  })
+
+  it('opens a lead in its own page and returns to the leads list', async () => {
+    localStorage.setItem('kohaus-owner-leads-v1', JSON.stringify([{
+      id:'lead-page', name:'ANA', surname:'SILVA', createdAt:'2026-11-25T10:00:00Z',
+      operation:'comprar', source:'property_request', status:'nuevo', comments:'Interested in a viewing',
+    }]))
+    renderApp('/?view=dashboard&section=leads&lang=en')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name:'Manage' }))
+    expect(screen.getByRole('heading', { name:'Ana Silva', level:1 })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name:'Back to leads' }))
+    expect(screen.getByRole('heading', { name:'Leads' })).toBeInTheDocument()
   })
 
   it('creates and updates a dashboard client in local mode', async () => {
@@ -485,15 +505,17 @@ describe('KOHAUS app regressions', () => {
 
     await user.click(screen.getByRole('button', { name: 'New client' }))
 
-    const dialog = screen.getByRole('dialog', { name: 'Edit client' })
-    await user.type(within(dialog).getByLabelText('Name'), 'Maya')
-    await user.type(within(dialog).getByLabelText('Surname'), 'Costa')
-    await user.type(within(dialog).getByLabelText('Phone'), '+34 600 111 222')
-    await user.type(within(dialog).getByLabelText('Email'), 'maya@example.com')
-    await user.type(within(dialog).getByLabelText('Minimum budget'), '1500000')
-    await user.type(within(dialog).getByLabelText('Maximum budget'), '2200000')
-    await user.type(within(dialog).getByLabelText('Internal notes'), 'Interested in Barcelona and quick closings.')
-    await user.click(within(dialog).getByRole('button', { name: 'Save client' }))
+    expect(screen.getByRole('heading', { name: 'New client' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    const clientPage = screen.getByRole('main')
+    await user.type(within(clientPage).getByLabelText('Name'), 'Maya')
+    await user.type(within(clientPage).getByLabelText('Surname'), 'Costa')
+    await user.type(within(clientPage).getByLabelText('Phone'), '+34 600 111 222')
+    await user.type(within(clientPage).getByLabelText('Email'), 'maya@example.com')
+    await user.type(within(clientPage).getByLabelText('Minimum budget'), '1500000')
+    await user.type(within(clientPage).getByLabelText('Maximum budget'), '2200000')
+    await user.type(within(clientPage).getByLabelText('Internal notes'), 'Interested in Barcelona and quick closings.')
+    await user.click(within(clientPage).getByRole('button', { name: 'Save client' }))
 
     expect(await screen.findByText('Maya Costa')).toBeInTheDocument()
     expect(screen.getByText(/\+34 600 111 222/)).toBeInTheDocument()
@@ -502,18 +524,19 @@ describe('KOHAUS app regressions', () => {
       button.closest('.dashboard-client-card')?.textContent?.includes('Maya Costa'),
     ))
 
-    const editDialog = screen.getByRole('dialog', { name: 'Edit client' })
-    const notesInput = within(editDialog).getByLabelText('Internal notes')
+    expect(screen.getByRole('heading', { name: 'Edit client' })).toBeInTheDocument()
+    const editPage = screen.getByRole('main')
+    const notesInput = within(editPage).getByLabelText('Internal notes')
     await user.clear(notesInput)
     await user.type(notesInput, 'Qualified and ready for curated options.')
-    await user.click(within(editDialog).getByRole('button', { name: 'Update client' }))
+    await user.click(within(editPage).getByRole('button', { name: 'Update client' }))
 
     expect(screen.queryByText('Qualified and ready for curated options.')).not.toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Edit client' }).find(button => button.closest('.dashboard-client-card')?.textContent?.includes('Maya Costa')))
-    expect(within(screen.getByRole('dialog', { name: 'Edit client' })).getByLabelText('Internal notes')).toHaveValue('Qualified and ready for curated options.')
+    expect(within(screen.getByRole('main')).getByLabelText('Internal notes')).toHaveValue('Qualified and ready for curated options.')
 
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
-    await user.click(within(screen.getByRole('dialog', { name: 'Edit client' })).getByRole('button', { name: 'Delete client' }))
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Delete client' }))
     expect(await screen.findByText('Client deleted.')).toBeInTheDocument()
     expect(screen.queryByText('Maya Costa')).not.toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem('kohaus-dashboard-clients-v1'))).toEqual([])

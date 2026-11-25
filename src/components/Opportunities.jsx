@@ -19,7 +19,7 @@ export default function Opportunities({ clients, properties, language, copy, onC
     return <label><span>{label}</span><Select light className="dashboard-filter-select" ariaLabel={label} value={filters[key] || ''} onChange={value=>onFilter({...filters,[key]:value})} options={[{value:'',label:copy.catalog.all},...items]} /></label>
   }
   return <section className="dashboard-section opportunities-section">
-    <div className="dashboard-properties-head"><div><p className="section-label dashboard-label">{c.title}</p><h2>{c.intro}</h2></div></div>
+    <header className="crm-section-heading"><h2>{c.title}</h2></header>
     <div className="dashboard-property-filters">
       {field('client',copy.dashboard.visitFields.client,clients.map(client=>({value:client.id,label:fullName(client)})))}
       {field('property',copy.dashboard.visitFields.property,properties.map(p=>({value:p.id,label:[p.reference,p.title].filter(Boolean).join(' · ')})))}

@@ -8,6 +8,10 @@ it('whitelists input and requires consent',()=>{
  expect(()=>validateLead({...lead,legal_accepted:false})).toThrow()
  expect(()=>validateLead({...lead,comments:'x'.repeat(10001)})).toThrow()
 })
+it('normalizes names submitted through public forms',()=>{
+ expect(validateLead({...lead,name:'  ÁLVARO josé ',surname:'d’ÁVILA-SILVA'}))
+  .toMatchObject({name:'Álvaro José',surname:'D’Ávila-Silva',email:lead.email})
+})
 it('fails closed without bindings and rejects cross-origin requests',async()=>{
  const request=new Request('https://site.test/api/leads',{method:'POST',headers:{Origin:'https://evil.test'}})
  expect((await onRequest({request,env:{}})).status).toBe(403)

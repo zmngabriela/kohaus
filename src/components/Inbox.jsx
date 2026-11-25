@@ -128,7 +128,7 @@ export default function Inbox({language='pt',clients=[],leads=[],properties=[],v
  const sendLabel=ticket?.channel==='whatsapp'?c.send:language==='pt'?'Enviar e-mail':language==='es'?'Enviar correo':'Send email'
  const eventNames={'ticket.insert':c.ticketCreated,'ticket.update':c.ticketUpdated,'message.insert':c.messageAdded,'message.update':c.messageUpdated}
  return <section className={`inbox dashboard-section ${selected?'inbox-has-selection':''}`}>
-  <header className="inbox-heading"><h2>{c.title}</h2><div className="inbox-heading-actions">{connection.state!=='error' && <span className={`inbox-connection ${connection.state==='connected'?'is-connected':''}`}><i/>{statusText}</span>}<button className="outline-button" disabled={busy || loading} aria-busy={refreshing} onClick={refreshInbox}>{refreshing?refreshCopy.checking:c.refresh}</button><button className="dashboard-property-cta" disabled={!editable || busy} onClick={newTicket}>{c.new}</button></div></header>
+  <header className="inbox-heading crm-section-heading crm-list-heading"><h2>{c.title}</h2><div className="inbox-heading-actions">{connection.state!=='error' && <span className={`inbox-connection ${connection.state==='connected'?'is-connected':''}`}><i/>{statusText}</span>}<button className="solid-button crm-create-button" disabled={busy || loading} aria-busy={refreshing} onClick={refreshInbox}>{refreshing?refreshCopy.checking:c.refresh}</button><button className="solid-button crm-create-button" disabled={!editable || busy} onClick={newTicket}>{c.new}</button></div></header>
   {local && <aside className="inbox-local"><div><strong>{c.local}</strong><p>{c.localHint}</p></div><div><button onClick={()=>act(async()=>{await store.seedDemo();await store.seedEmailDemo();const rows=await refresh();select(rows.find(t=>t.demo)?.id)})} disabled={busy}>{c.demo}</button>{leads.length>0 && <button onClick={()=>act(async()=>{await store.importForms(leads);await refresh()})} disabled={busy}>{c.import}</button>}</div></aside>}
   {(error || notice) && <FormNotice key={error || notice} language={language} error={Boolean(error)} onDismiss={()=>{
    setError('');setNotice('')
@@ -192,8 +192,7 @@ export default function Inbox({language='pt',clients=[],leads=[],properties=[],v
         <option value="pt">Português</option><option value="es">Español</option><option value="en">English</option>
        </select></label>
        <button type="button" className="outline-button inbox-reply-macro" disabled={busy} onClick={()=>{
-       const [initial = '', ...rest] = Array.from(ticket.contact_name?.trim().split(/\s+/)[0] || '')
-       const firstName = initial.toLocaleUpperCase(macroLanguage) + rest.join('')
+       const firstName = ticket.contact_name?.includes('@') ? '' : ticket.contact_name?.split(/\s+/)[0]
        const greeting=macroLanguage==='pt'?'Olá':macroLanguage==='es'?'Hola':'Hello'
        const opening=macroLanguage==='pt'?'Agradecemos o seu contato com a KOHAUS. Como podemos ajudar?':macroLanguage==='es'?'Gracias por contactar con KOHAUS. ¿En qué podemos ayudarte?':'Thank you for contacting KOHAUS. How can we help?'
        insert([firstName?`${greeting}, ${firstName}!`:`${greeting}!`,opening].join('\n\n'))

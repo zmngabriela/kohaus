@@ -1,12 +1,28 @@
 .opportunity-card { padding:clamp(16px,2vw,24px); border:1px solid var(--line); background:var(--surface); overflow-wrap:anywhere; }
 .opportunity-card :is(h3,h4,p) { margin:0; }
-.opportunity-card h3 { font-size:var(--fs-card-title); }
-.opportunity-card p,.opportunity-card small { color:var(--copy); font-size:var(--fs-ui); }
+.opportunity-card h3 { font-size:var(--type-heading); }
+.opportunity-card p,.opportunity-card small { color:var(--copy); font-size:var(--type-body); }
 .opportunity-card ul { list-style:none; padding:0; margin:16px 0; }
 .opportunity-card li { display:flex; align-items:center; gap:16px; border-top:1px solid var(--line); padding:12px 0; }
 .opportunity-card li div { flex:1; min-width:0; }
 .opportunity-card li img { width:76px; aspect-ratio:3/2; object-fit:cover; }
 .opportunity-actions { display:flex; flex-wrap:wrap; gap:8px; }
-.opportunity-actions :is(a,button) { display:inline-flex; align-items:center; min-height:40px; padding:8px 12px; border:1px solid var(--line); color:var(--ink); background:var(--field); font:inherit; font-size:var(--fs-ui); text-decoration:none; cursor:pointer; }
+.opportunity-actions > :is(a,button),
+.opportunity-card li > .dashboard-property-edit {
+  display:inline-flex;
+  align-items:center;
+  width:auto;
+  min-height:40px;
+  padding:8px 12px;
+  border:1px solid var(--line);
+  color:var(--ink);
+  background:var(--field);
+  font:inherit;
+  font-size:var(--type-body);
+  letter-spacing:normal;
+  text-transform:none;
+  text-decoration:none;
+  cursor:pointer;
+}
 .opportunity-actions .solid-button { color:var(--paper); background:var(--ink); }
 @media(max-width:600px) { .opportunity-card li { flex-wrap:wrap; } .opportunity-card li div { min-width:55%; } }

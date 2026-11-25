@@ -4,5 +4,11 @@ verify_jwt = true
 [functions.idealista-feed]
 verify_jwt = false # The importer authenticates with IDEALISTA_FEED_TOKEN.
 
+# Webhook verifies Meta HMAC; API validates the JWT and CRM role itself.
+[functions.whatsapp-webhook]
+verify_jwt = false
+[functions.whatsapp-api]
+verify_jwt = false
+
 [functions.spacemail]
 verify_jwt = false

@@ -1,3 +1,4 @@
+import { formatContactName, formatContactNames } from './lib/contactName'
 import { isLocalInbox } from './lib/inbox'
 import { inboxDemo } from './lib/inboxDemo'
 import { propertyCountry, propertyCity, countryLabel } from './lib/propertyLocation'
@@ -6,6 +7,7 @@ import Prospecting from './components/Prospecting'
 import { idealistaListingId, idealistaOperationPreview } from './lib/idealistaListing'
 import FormNotice from './components/FormNotice'
 import CommercialAgenda, { commercialText } from './components/CommercialAgenda'
+import DashboardGrowth from './components/DashboardGrowth'
 import DashboardSidebar, { DashboardUtilities } from './components/DashboardSidebar'
 import RecordHistory from './components/RecordHistory'
 import { recordChanges } from './lib/recordHistory'
@@ -24,7 +26,6 @@ import PasswordRecovery from './components/PasswordRecovery'
 import PasswordSetup from './components/PasswordSetup'
 import { initialAuthCallback } from './lib/authCallback'
 import { readPreferredLanguage } from './lib/analytics'
-import EditorDialog from './components/EditorDialog'
 import CrmRecord from './components/CrmRecord'
 import { useVisibleDropdown } from './lib/useVisibleDropdown'
 import HeroVideo from './components/HeroVideo'
@@ -2052,7 +2053,7 @@ function getLocalDashboardProperties() {
 
 async function fetchOwnerLeads() {
   if (!hasSupabaseConfig || !supabase) {
-    return readLocalStorage(LEADS_STORAGE_KEY)
+    return readLocalStorage(LEADS_STORAGE_KEY).map(formatContactNames)
   }
 
   const { data, error } = await supabase.from('owner_leads').select('*').order('created_at', { ascending: false })
@@ -2063,7 +2064,8 @@ async function fetchOwnerLeads() {
   return data.map(mapLeadFromSupabase)
 }
 
-async function saveOwnerLead(payload) {
+async function saveOwnerLead(input) {
+  const payload = formatContactNames(input)
   if (!hasSupabaseConfig || !supabase) {
     const nextLead = {
       ...payload,
@@ -2071,7 +2073,7 @@ async function saveOwnerLead(payload) {
       createdAt: new Date().toISOString(),
       status: 'nuevo',
     }
-    const next = [nextLead, ...readLocalStorage(LEADS_STORAGE_KEY)]
+    const next = [nextLead, ...readLocalStorage(LEADS_STORAGE_KEY).map(formatContactNames)]
     writeLocalStorage(LEADS_STORAGE_KEY, next)
     return next
   }
@@ -2103,7 +2105,7 @@ async function saveOwnerLead(payload) {
 
 async function updateLeadStatus(id, status) {
   if (!hasSupabaseConfig || !supabase) {
-    const next = readLocalStorage(LEADS_STORAGE_KEY).map((lead) => (lead.id === id ? { ...lead, status } : lead))
+    const next = readLocalStorage(LEADS_STORAGE_KEY).map(formatContactNames).map((lead) => (lead.id === id ? { ...lead, status } : lead))
     writeLocalStorage(LEADS_STORAGE_KEY, next)
     return next
   }
@@ -2372,7 +2374,7 @@ async function updateDashboardProperty(id, patch, database = supabase, databaseE
 
 async function fetchDashboardClients() {
   if (!hasSupabaseConfig || !supabase) {
-    return readLocalStorage(CLIENTS_STORAGE_KEY)
+    return readLocalStorage(CLIENTS_STORAGE_KEY).map(formatContactNames)
   }
 
   const { data, error } = await supabase.from('dashboard_clients').select('*').order('created_at', { ascending: false })
@@ -2388,8 +2390,8 @@ async function saveDashboardClient(formState) {
     id: formState.requestId || createId('client'),
     createdAt: new Date().toISOString(),
     language: formState.language || 'es',
-    name: formState.name,
-    surname: formState.surname,
+    name: formatContactName(formState.name),
+    surname: formatContactName(formState.surname),
     phone: formState.phone,
     email: formState.email,
     operation: formState.operation,
@@ -2408,8 +2410,8 @@ async function saveDashboardClient(formState) {
   }
 
   if (!hasSupabaseConfig || !supabase) {
-    if (readLocalStorage(CLIENTS_STORAGE_KEY).some(c=>c.id===nextClient.id)) return readLocalStorage(CLIENTS_STORAGE_KEY)
-    const next = [nextClient, ...readLocalStorage(CLIENTS_STORAGE_KEY)]
+    if (readLocalStorage(CLIENTS_STORAGE_KEY).some(c=>c.id===nextClient.id)) return readLocalStorage(CLIENTS_STORAGE_KEY).map(formatContactNames)
+    const next = [nextClient, ...readLocalStorage(CLIENTS_STORAGE_KEY).map(formatContactNames)]
     writeLocalStorage(CLIENTS_STORAGE_KEY, next)
     return next
   }
@@ -2449,7 +2451,7 @@ async function saveDashboardClient(formState) {
 
 async function updateDashboardClient(id, patch) {
   if (!hasSupabaseConfig || !supabase) {
-    const next = readLocalStorage(CLIENTS_STORAGE_KEY).map((client) => (client.id === id ? { ...client, ...patch } : client))
+    const next = readLocalStorage(CLIENTS_STORAGE_KEY).map(formatContactNames).map((client) => (client.id === id ? { ...client, ...patch } : client))
     writeLocalStorage(CLIENTS_STORAGE_KEY, next)
     return next
   }
@@ -2530,7 +2532,7 @@ async function saveDashboardVisit(formState) {
     clientId: formState.clientId || '',
     propertyId: formState.propertyId || '',
     leadId: formState.leadId || '',
-    contactName: formState.contactName,
+    contactName: formatContactName(formState.contactName),
     contactPhone: formState.contactPhone,
     contactEmail: formState.contactEmail,
     location: formState.location,
@@ -2633,8 +2635,8 @@ function mapLeadFromSupabase(row) {
     language: row.language || null,
     id: row.id,
     createdAt: row.created_at,
-    name: row.name,
-    surname: row.surname,
+    name: formatContactName(row.name),
+    surname: formatContactName(row.surname),
     phone: row.phone,
     email: row.email,
     address: row.address ?? '',
@@ -2680,8 +2682,8 @@ function mapClientFromSupabase(row) {
     language: row.language || null,
     id: row.id,
     createdAt: row.created_at,
-    name: row.name,
-    surname: row.surname ?? '',
+    name: formatContactName(row.name),
+    surname: formatContactName(row.surname),
     phone: row.phone ?? '',
     email: row.email ?? '',
     operation: row.operation,
@@ -2707,7 +2709,7 @@ function mapVisitFromSupabase(row) {
     clientId: row.client_id ?? '',
     propertyId: row.property_id ?? '',
     leadId: row.lead_id ?? '',
-    contactName: row.contact_name ?? '',
+    contactName: formatContactName(row.contact_name),
     contactPhone: row.contact_phone ?? '',
     contactEmail: row.contact_email ?? '',
     location: row.location ?? '',
@@ -3290,6 +3292,19 @@ function Header({
   )
 }
 
+function CrmEditorPage({ title, backLabel, onBack, busy = false, error, children }) {
+  return <main className="dashboard-page">
+    <section className="dashboard-shell">
+      <header className="crm-section-heading">
+        <h1>{title}</h1>
+        <button type="button" className="solid-button crm-create-button" onClick={onBack} disabled={busy}>{backLabel}</button>
+      </header>
+      {error && <p role="alert">{error}</p>}
+      {children}
+    </section>
+  </main>
+}
+
 function CrmFooter({ language, siteHref, settings }) {
   const labels = {
     pt: { navigation: 'Links do CRM', website: 'Ver site', privacy: 'Privacidade' },
@@ -3431,6 +3446,7 @@ export default function App({ initialPage } = {}) {
     setRoute(current => ({ ...current, language: preferred }))
   }, [initialPage])
   const propertyPhotoItemsRef = useRef([])
+  const propertyPhotoInputRef = useRef(null)
   const [passwordSetup, setPasswordSetup] = useState(initialAuthCallback.active)
   const requiresDashboardAuth = hasSupabaseConfig
   const [homeSearch, setHomeSearch] = useState(() => ({
@@ -3456,6 +3472,7 @@ export default function App({ initialPage } = {}) {
   const [propertyInquiry, setPropertyInquiry] = useState(PROPERTY_INQUIRY_DEFAULTS)
   const [propertyInquirySuccess, setPropertyInquirySuccess] = useState(false)
   const [leads, setLeads] = useState([])
+  const [leadFilters, setLeadFilters] = useState({ search: '', status: 'all', source: 'all' })
   const [dashboardProperties, setDashboardProperties] = useState([])
   const [publishedProperties, setPublishedProperties] = useState(() => initialPage?.properties || [])
   const [dashboardClients, setDashboardClients] = useState([])
@@ -3471,7 +3488,11 @@ export default function App({ initialPage } = {}) {
   const [portalFilters, setPortalFilters] = useState(PORTAL_FILTER_DEFAULTS)
   const [clientForm, setClientForm] = useState(CLIENT_FORM_DEFAULTS)
   const [shortcut,setShortcut] = useState(null)
-  const openShortcut = (section,target) => { goDashboard(section); setShortcut(target) }
+  const openShortcut = (section,target) => {
+    goDashboard(section)
+    if (section === 'leads' && target.leadId) setLeadFilters({ search: '', status: 'all', source: 'all' })
+    setShortcut(target)
+  }
   const inboxButton = (field,item) => <button type="button" onClick={()=>openShortcut('inbox',{context:{[field]:item.id}})}>{copy.dashboard.sections.inbox}</button>
   const opportunityButton = (field,item) => <button type="button" onClick={()=>openShortcut('opportunities',{filters:{[field]:item.id}})}>{copy.dashboard.sections.opportunities}</button>
   const [historyView, setHistoryView] = useState(null)
@@ -3511,6 +3532,11 @@ export default function App({ initialPage } = {}) {
   useEffect(() => {
     function handlePopState() {
       const nextRoute = parseRoute()
+      setShortcut(null)
+      setVisitEditorOpen(false)
+      setClientEditor(CLIENT_EDITOR_DEFAULT)
+      setCreatingPropertyOwner(false)
+      setOffMarketSelection(null)
       setRoute(nextRoute)
       setLanguage(nextRoute.language)
       setHomeSearch((current) => ({
@@ -3764,6 +3790,12 @@ export default function App({ initialPage } = {}) {
   const historyRecord = historyView?.kind === dashboardSection && (dashboardSection === 'clients' ? dashboardClients : dashboardProperties).find(item => item.id === historyView.id)
   const historyButton = (kind,id) => <button type="button" onClick={()=>{setHistoryView({kind,id});window.scrollTo(0,0)}}>{copy.dashboard.historyTitle}</button>
   const leadSourceLabel = lead => lead.source === 'similar-property' ? similarInquiry[language].inquiryLabel : lead.source === 'catalog-alert' ? searchCopy[language].source : copy.ownerForm.sources[lead.source] || companyCopy[language].contact
+  const leadSearch = leadFilters.search.trim().toLocaleLowerCase(language)
+  const filteredLeads = leads.filter(lead =>
+    (leadFilters.status === 'all' || lead.status === leadFilters.status)
+    && (leadFilters.source === 'all' || lead.source === leadFilters.source)
+    && [lead.name, lead.surname, lead.email, lead.phone, lead.city, lead.comments].join(' ').toLocaleLowerCase(language).includes(leadSearch)
+  )
   const portalFormCopy = getPortalFormCopy(language)
   const portalEnvironmentCopy = getPortalEnvironmentCopy(language)
   const catalogProperties = publishedProperties
@@ -3920,6 +3952,7 @@ export default function App({ initialPage } = {}) {
   }
 
   function syncRoute(nextRoute) {
+    setOffMarketSelection(null)
     setRoute(nextRoute)
     const nextSearch = toSearch(nextRoute)
     window.history.pushState({}, '', nextSearch)
@@ -4249,7 +4282,7 @@ export default function App({ initialPage } = {}) {
       if (clientEditor.mode === 'edit' && clientEditor.clientId) {
         const currentClient = dashboardClients.find((client) => client.id === clientEditor.clientId)
         const patch = {
-          name: clientForm.name, surname: clientForm.surname, phone: clientForm.phone, email: clientForm.email,
+          name: formatContactName(clientForm.name), surname: formatContactName(clientForm.surname), phone: clientForm.phone, email: clientForm.email,
           language: clientForm.language, operation: clientForm.operation, destinations: clientForm.destinations, types: normalizeTypes(clientForm.types),
           budgetMin: parseBudget(clientForm.budgetMin), budgetMax: parseBudget(clientForm.budgetMax), currency: clientForm.currency,
           minBathrooms: Number(clientForm.minBathrooms || 0), requiredExtras: clientForm.requiredExtras,
@@ -4326,7 +4359,7 @@ export default function App({ initialPage } = {}) {
         const currentVisit = dashboardVisits.find((visit) => visit.id === visitEditorId)
         next = await updateDashboardVisit(visitEditorId, {
           clientId: visitForm.clientId, propertyId: visitForm.propertyId, leadId: visitForm.leadId,
-          contactName: visitForm.contactName, contactPhone: visitForm.contactPhone,
+          contactName: formatContactName(visitForm.contactName), contactPhone: visitForm.contactPhone,
           contactEmail: visitForm.contactEmail, location: visitForm.location, scheduledAt: visitForm.scheduledAt,
           durationMinutes: Number(visitForm.durationMinutes || 60), status: visitForm.status, notes: visitForm.notes,
           history: [createHistoryEntry('Visit updated from dashboard.'), ...(currentVisit?.history || [])],
@@ -4385,6 +4418,7 @@ export default function App({ initialPage } = {}) {
   }
 
   function openVisitEditor(visit) {
+    setDataError('')
     setVisitEditorOpen(true)
     setVisitForm({
       clientId: visit.clientId || '',
@@ -4404,6 +4438,7 @@ export default function App({ initialPage } = {}) {
   }
 
   function openCreateVisit({lead, client, property} = {}) {
+    setDataError('')
     const contact = client || lead
     setVisitEditorOpen(true)
     setVisitEditorId(null)
@@ -4422,6 +4457,7 @@ export default function App({ initialPage } = {}) {
   }
 
   function openCreateClientFromLead(lead) {
+    setDataError('')
     setClientForm({
       ...CLIENT_FORM_DEFAULTS,
       language: lead.language || 'es',
@@ -4437,7 +4473,6 @@ export default function App({ initialPage } = {}) {
       mode: 'create',
       clientId: null,
     })
-    goDashboard('leads')
   }
 
   function openCreatePropertyFromLead(lead) {
@@ -4483,6 +4518,7 @@ export default function App({ initialPage } = {}) {
   }
 
   function openClientEditor(client) {
+    setDataError('')
     setClientForm({
       language: client.language || 'es',
       name: client.name,
@@ -4517,6 +4553,7 @@ export default function App({ initialPage } = {}) {
   }
 
   function openCreateClientEditor() {
+    setDataError('')
     setClientForm(CLIENT_FORM_DEFAULTS)
     setClientEditor({
       isOpen: true,
@@ -4658,6 +4695,21 @@ export default function App({ initialPage } = {}) {
     }
   }
 
+  const showClientPage = clientEditor.isOpen && (
+    (route.view === 'dashboard' && ['clients', 'opportunities', 'leads'].includes(dashboardSection))
+    || (route.view === 'property-editor' && creatingPropertyOwner)
+  )
+  const showVisitPage = route.view === 'dashboard' && dashboardSection === 'visits' && visitEditorOpen
+  const activeLead = route.view === 'dashboard' && dashboardSection === 'leads' && leads.find(lead => lead.id === shortcut?.leadId)
+  const viewingRecordPage = Boolean(showClientPage || showVisitPage || activeLead)
+  useEffect(() => {
+    if (viewingRecordPage) window.scrollTo(0, 0)
+  }, [viewingRecordPage, showClientPage, showVisitPage, activeLead?.id])
+  const recordBackLabels = {
+    pt: {clients:'Voltar para clientes',visits:'Voltar para visitas',leads:'Voltar para leads',opportunities:'Voltar para oportunidades'},
+    es: {clients:'Volver a clientes',visits:'Volver a visitas',leads:'Volver a leads',opportunities:'Volver a oportunidades'},
+    en: {clients:'Back to clients',visits:'Back to viewings',leads:'Back to leads',opportunities:'Back to opportunities'},
+  }[language]
   const crmSiteHref = toSearch({ view: 'home', language })
 
   return (
@@ -4708,7 +4760,7 @@ export default function App({ initialPage } = {}) {
         />
       ) : null}
 
-      {route.view === 'dashboard' && canOpenDashboard ? (
+      {route.view === 'dashboard' && canOpenDashboard && !showClientPage && !showVisitPage && !activeLead ? (
         <main className="dashboard-page">
           <section className="dashboard-shell dashboard-workspace">
             <DashboardSidebar copy={copy} language={language} section={dashboardSection} onSelect={goDashboard} account={authAccess} email={authSession?.user?.email} siteHref={crmSiteHref} onLanguageChange={handleLanguageChange} onSignOut={authSession ? handleSignOut : undefined} />
@@ -4718,158 +4770,85 @@ export default function App({ initialPage } = {}) {
               onSchedule={()=>openShortcut('tasks',{draft:{client_id:historyRecord.id,title:commercialText[language].task+' · '+[historyRecord.name,historyRecord.surname].join(' ')},followup:true})}
               onBack={()=>setHistoryView(null)} onActivity={async activity=>{setDashboardClients(await updateDashboardClient(historyRecord.id,{history:[{...createHistoryEntry(activity.text),...activity},...(historyRecord.history || [])]}))}} /> : <>
             {dashboardSection === 'overview' ? (
-              <section className="dashboard-section">
-                <CommercialAgenda language={language} leads={leads} visits={dashboardVisits} onLead={l=>openShortcut('leads',{leadId:l.id})} onTask={t=>openShortcut('tasks',{draft:t})} onVisit={openVisitEditor} />
-                <div className="dashboard-stats">
-                  <article className="dashboard-stat-card">
-                    <span>{copy.dashboard.stats.total}</span>
-                    <strong>{dashboardStats.total}</strong>
-                  </article>
-                  <article className="dashboard-stat-card">
-                    <span>{copy.dashboard.stats.nuevo}</span>
-                    <strong>{dashboardStats.nuevo}</strong>
-                  </article>
-                  <article className="dashboard-stat-card">
-                    <span>{copy.dashboard.stats.contactado}</span>
-                    <strong>{dashboardStats.contactado}</strong>
-                  </article>
-                  <article className="dashboard-stat-card">
-                    <span>{copy.dashboard.stats.cerrado}</span>
-                    <strong>{dashboardStats.cerrado}</strong>
-                  </article>
-                </div>
-                <div className="dashboard-overview-grid">
-                  <article className="dashboard-overview-card">
-                    <span>{copy.dashboard.sections.leads}</span>
-                    <strong>{leads.length}</strong>
-                  </article>
-                  <article className="dashboard-overview-card">
-                    <span>{copy.dashboard.sections.properties}</span>
-                    <strong>{dashboardProperties.length}</strong>
-                  </article>
-                  <article className="dashboard-overview-card">
-                    <span>{copy.dashboard.sections.portals}</span>
-                    <strong>{readyPortalsCount}</strong>
-                  </article>
-                  <article className="dashboard-overview-card">
-                    <span>{copy.dashboard.sections.visits}</span>
-                    <strong>{upcomingVisitsCount}</strong>
-                  </article>
-                  <article className="dashboard-overview-card">
-                    <span>{copy.dashboard.sections.clients}</span>
-                    <strong>{dashboardClients.length}</strong>
-                  </article>
+              <section className="dashboard-section dashboard-daily">
+                <header className="crm-section-heading"><h2>{commercialText[language].title}</h2></header>
+                <div className="dashboard-daily-layout">
+                  <CommercialAgenda language={language} leads={leads} visits={dashboardVisits} onLead={lead=>openShortcut('leads',{leadId:lead.id})} onTask={task=>openShortcut('tasks',{draft:task})} onVisit={openVisitEditor} />
+                  <div className="dashboard-daily-metrics">
+                    <section className="dashboard-metric-panel">
+                      <div className="dashboard-lead-total">
+                        <h3>{copy.dashboard.sections.leads}</h3>
+                        <strong aria-label={copy.dashboard.stats.total}>{dashboardStats.total}</strong>
+                      </div>
+                      {['nuevo','contactado','cerrado'].map(status => <div className="dashboard-lead-metric" key={status}>
+                        <span>{copy.dashboard.stats[status]}</span><strong>{dashboardStats[status]}</strong>
+                        <div aria-hidden="true" className={`dashboard-lead-bar is-${status}`}>
+                          <span style={{width:`${dashboardStats.total ? 100 * dashboardStats[status] / dashboardStats.total : 0}%`}} />
+                        </div>
+                      </div>)}
+                      <DashboardGrowth language={language} leads={leads} properties={dashboardProperties} />
+                    </section>
+                    <section className="dashboard-metric-panel">
+                      <h3>{ {pt:'Visão geral',es:'Vista general',en:'Overview'}[language] }</h3>
+                      <div className="dashboard-overview-grid">
+                        {[[ 'properties',dashboardProperties.length ],[ 'portals',readyPortalsCount ],[ 'visits',upcomingVisitsCount ],[ 'clients',dashboardClients.length ]].map(([key,count])=>
+                          <article className="dashboard-overview-card" key={key}><span>{copy.dashboard.sections[key]}</span><strong>{count}</strong></article>
+                        )}
+                      </div>
+                    </section>
+                  </div>
                 </div>
               </section>
             ) : null}
 
             {dashboardSection === 'leads' ? (
-              leads.length ? (
                 <section className="dashboard-section">
-                  <div className="dashboard-properties-head"><div><p className="section-label dashboard-label">{copy.dashboard.sections.leads}</p></div></div>
-                  <div className="dashboard-leads-grid">
-                    {leads.map((lead) => (
-                      <CrmRecord key={lead.id} initiallyOpen={shortcut?.leadId===lead.id} className="dashboard-lead-card" language={language} title={`${lead.name} ${lead.surname}`} meta={[lead.phone, lead.email, lead.city, copy.ownerForm.operations[lead.operation] || companyCopy[language].contact].filter(Boolean).join(' · ')} status={copy.dashboard.statusOptions[lead.status]} fields={[
+                  <header className="crm-section-heading crm-list-heading"><h2>{copy.dashboard.sections.leads}</h2></header>
+                  <div className="dashboard-property-filters">
+                    <label>
+                      <span>{copy.dashboard.propertyFilters.search}</span>
+                      <input type="search" value={leadFilters.search} onChange={event => setLeadFilters(current => ({ ...current, search: event.target.value }))} />
+                    </label>
+                    <label>
+                      <span>{copy.dashboard.columns.status}</span>
+                      <CustomSelect value={leadFilters.status} onChange={value => setLeadFilters(current => ({ ...current, status: value }))}
+                        options={[{ value: 'all', label: copy.catalog.all }, ...leadStatusOptions]} ariaLabel={copy.dashboard.columns.status} light />
+                    </label>
+                    <label>
+                      <span>{copy.dashboard.columns.source}</span>
+                      <CustomSelect value={leadFilters.source} onChange={value => setLeadFilters(current => ({ ...current, source: value }))}
+                        options={[{ value: 'all', label: copy.catalog.all }, ...[...new Set(leads.map(lead => lead.source).filter(Boolean))].map(value => ({ value, label: leadSourceLabel({ source: value }) }))]}
+                        ariaLabel={copy.dashboard.columns.source} light />
+                    </label>
+                  </div>
+                  {filteredLeads.length ? <div className="dashboard-leads-grid">
+                    {filteredLeads.map((lead) => (
+                      <CrmRecord key={lead.id} editLabel={{pt:'Gerenciar',es:'Gestionar',en:'Manage'}[language]} onEdit={() => { setDataError(''); setShortcut({ leadId:lead.id }) }} className="dashboard-lead-card" language={language} title={`${lead.name} ${lead.surname}`} meta={[lead.phone, lead.email, lead.city, copy.ownerForm.operations[lead.operation] || companyCopy[language].contact].filter(Boolean).join(' · ')} status={copy.dashboard.statusOptions[lead.status]} fields={[
                         { label: copy.dashboard.columns.source, value: ['catalog-alert','similar-property'].includes(lead.source) ? leadSourceLabel(lead) : copy.ownerForm.sources[lead.source] || lead.source },
                         { label: copy.dashboard.columns.date, value: formatDate(lead.createdAt, language) },
                         { label: copy.ownerForm.fields?.comments || (language === 'pt' ? 'Mensagem' : language === 'es' ? 'Mensaje' : 'Message'), value: lead.comments },
-                      ]}>
-                        <div className="dashboard-lead-top">
-                          <div>
-                            <p className="dashboard-lead-name">
-                              {lead.name} {lead.surname}
-                            </p>
-                            <p className="dashboard-lead-meta">
-                              {lead.city}
-                              {lead.address ? ` · ${lead.address}` : ''}
-                            </p>
-                          </div>
-                          <p className="dashboard-lead-date">{formatDate(lead.createdAt, language)}</p>
-                        </div>
-                        <div className="dashboard-lead-details">
-                          <div>
-                            <span>{copy.dashboard.columns.operation}</span>
-                            <strong>{(copy.ownerForm.operations[lead.operation] || companyCopy[language].contact)}</strong>
-                          </div>
-                          <div>
-                            <span>{copy.dashboard.columns.source}</span>
-                            <strong>{leadSourceLabel(lead)}</strong>
-                          </div>
-                          <div>
-                            <span>{copy.dashboard.columns.date}</span>
-                            <strong>{lead.phone}</strong>
-                          </div>
-                          <div>
-                            <span>Email</span>
-                            <strong>{lead.email}</strong>
-                          </div>
-                        </div>
-                        {lead.comments ? <p className="dashboard-lead-comments">{lead.comments}</p> : null}
-                        <div className="dashboard-lead-status">
-                          <div>
-                            <span>{copy.dashboard.columns.status}</span>
-                            <strong>{copy.dashboard.statusOptions[lead.status]}</strong>
-                          </div>
-                          <CustomSelect
-                            value={lead.status}
-                            onChange={(value) => handleLeadStatusChange(lead.id, value)}
-                            options={leadStatusOptions}
-                            className="dashboard-status-select"
-                            ariaLabel={copy.dashboard.columns.status}
-                            disabled={Boolean(leadSavingId)}
-                            light
-                          />
-                        </div>
-                        <div className="dashboard-lead-actions">
-                          {inboxButton('lead_id',lead)}
-                          <button type="button" className="dashboard-editor-secondary" disabled={Boolean(leadSavingId)} onClick={() => handleDeleteLead(lead)}>
-                            {copy.dashboard.deleteLead}
-                          </button>
-                          <button type="button" className="dashboard-property-edit" onClick={() => openCreateClientFromLead(lead)}>
-                            {copy.dashboard.leadToClient}
-                          </button>
-                          {lead.source !== 'property_request' ? (
-                            <button type="button" className="dashboard-property-edit" onClick={() => openCreatePropertyFromLead(lead)}>
-                              {copy.dashboard.leadToProperty}
-                            </button>
-                          ) : null}
-                          <button type="button" className="dashboard-property-cta" onClick={() => openCreateVisit({lead})}>
-                            {copy.dashboard.leadToVisit}
-                          </button>
-                        </div>
-                      </CrmRecord>
+                      ]} />
                     ))}
-                  </div>
+                  </div> : <div className="dashboard-empty">
+                    <p>{leads.length ? { pt: 'Nenhum lead corresponde aos filtros.', es: 'Ningún lead coincide con los filtros.', en: 'No leads match these filters.' }[language] : copy.dashboard.empty}</p>
+                  </div>}
                 </section>
-              ) : (
-                <div className="dashboard-empty">
-                  <p>{copy.dashboard.empty}</p>
-                </div>
-              )
             ) : null}
 
             {dashboardSection === 'properties' ? (
               <section className="dashboard-properties-section dashboard-section">
-                <div className="dashboard-properties-head">
-                  <div>
-                    <p className="section-label dashboard-label">{copy.dashboard.propertiesLabel}</p>
-                    <h2>{copy.dashboard.propertiesTitle}</h2>
-                  </div>
-                </div>
-                <div className="dashboard-property-panel">
-                  <div>
-                    <p>{copy.dashboard.propertyPanelCopy}</p>
-                  </div>
-                  <button type="button" className="dashboard-property-cta" onClick={openCreatePropertyEditor}>
+                <header className="crm-section-heading crm-list-heading">
+                  <h2>{copy.dashboard.propertiesLabel}</h2>
+                  <button type="button" className="solid-button crm-create-button" onClick={openCreatePropertyEditor}>
                     {copy.dashboard.openPropertyEditor}
                   </button>
-                </div>
+                </header>
 
                 <div className="dashboard-property-filters">
                   <label>
                     <span>{copy.dashboard.propertyFilters.search}</span>
                     <input
-                      type="text"
+                      type="search"
                       value={propertyFilters.search}
                       onChange={(event) =>
                         setPropertyFilters((current) => ({ ...current, search: event.target.value }))
@@ -4946,27 +4925,17 @@ export default function App({ initialPage } = {}) {
             {dashboardSection === 'prospecting' && <Prospecting language={language} />}
             {dashboardSection === 'portals' ? (
               <section className="dashboard-portals-section dashboard-section">
-                <div className="dashboard-properties-head">
-                  <div>
-                    <p className="section-label dashboard-label">{copy.dashboard.portalsLabel}</p>
-                    <h2>{copy.dashboard.portalsTitle}</h2>
-                  </div>
-                </div>
+                <header className="crm-section-heading crm-list-heading"><h2>{copy.dashboard.portalsLabel}</h2></header>
 
                 <div className="portal-status-tabs" role="group" aria-label={copy.dashboard.portalFilters.status}>
                   {[{value:'all',label:copy.catalog.all},...portalStatusOptions].map(option=><button type="button" key={option.value} className="dashboard-property-edit" aria-pressed={portalFilters.status===option.value} onClick={()=>setPortalFilters(current=>({...current,status:option.value}))}>{option.label} <span>{filterDashboardPortalItems(dashboardPortalItems,{...portalFilters,status:option.value}).length}</span></button>)}
-                </div>
-                <div className="dashboard-property-panel">
-                  <div>
-                    <p>{copy.dashboard.portalsPanelCopy}</p>
-                  </div>
                 </div>
 
                 <div className="dashboard-property-filters">
                   <label>
                     <span>{copy.dashboard.portalFilters.search}</span>
                     <input
-                      type="text"
+                      type="search"
                       value={portalFilters.search}
                       onChange={(event) => setPortalFilters((current) => ({ ...current, search: event.target.value }))}
                     />
@@ -5183,131 +5152,20 @@ export default function App({ initialPage } = {}) {
 
             {dashboardSection === 'visits' ? (
               <section className="dashboard-visits-section dashboard-section">
-                <div className="dashboard-properties-head">
-                  <div>
-                    <p className="section-label dashboard-label">{copy.dashboard.visitsLabel}</p>
-                    <h2>{copy.dashboard.visitsTitle}</h2>
-                  </div>
-                </div>
-
-                <div className="dashboard-property-panel">
-                  <div>
-                    <p>{copy.dashboard.visitPanelCopy}</p>
-                  </div>
-                  <button type="button" className="dashboard-property-cta" onClick={() => openCreateVisit()}>
+                <header className="crm-section-heading crm-list-heading">
+                  <h2>{copy.dashboard.visitsLabel}</h2>
+                  <button type="button" className="solid-button crm-create-button" onClick={() => openCreateVisit()}>
                     {copy.dashboard.newVisit}
                   </button>
-                </div>
+                </header>
 
-                {visitEditorOpen && <EditorDialog title={visitEditorId ? copy.dashboard.editVisit : copy.dashboard.addVisit} closeLabel={copy.dashboard.closeEditor} busy={visitSaving} onClose={closeVisitEditor}>
-                {dataError && <p role="alert">{dataError}</p>}
-                <form className="dashboard-visit-form" onSubmit={handleVisitSubmit}>
-                  <label>
-                    <span>{copy.dashboard.visitFields.client}</span>
-                    <CustomSelect
-                      value={visitForm.clientId}
-                      onChange={handleVisitClientChange}
-                      options={clientOptions}
-                      className="dashboard-form-select"
-                      ariaLabel={copy.dashboard.visitFields.client}
-                      light
-                    />
-                  </label>
-                  <label>
-                    <span>{copy.dashboard.visitFields.property}</span>
-                    <CustomSelect
-                      value={visitForm.propertyId}
-                      onChange={(value) => setVisitForm((current) => ({ ...current, propertyId: value, location: dashboardProperties.find(property => property.id === value)?.privateAddress || '' }))}
-                      options={propertyOptions}
-                      className="dashboard-form-select"
-                      ariaLabel={copy.dashboard.visitFields.property}
-                      light
-                    />
-                  </label>
-                  <label>
-                    <span>{copy.dashboard.visitFields.scheduledAt}</span>
-                    <input
-                      type="datetime-local"
-                      value={visitForm.scheduledAt}
-                      onChange={(event) => setVisitForm((current) => ({ ...current, scheduledAt: event.target.value }))}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>{copy.dashboard.visitFields.durationMinutes}</span>
-                    <input
-                      type="number"
-                      min="15"
-                      step="15"
-                      value={visitForm.durationMinutes}
-                      onChange={(event) => setVisitForm((current) => ({ ...current, durationMinutes: event.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    <span>{copy.dashboard.visitFields.contactName}</span>
-                    <input
-                      type="text"
-                      value={visitForm.contactName}
-                      onChange={(event) => setVisitForm((current) => ({ ...current, contactName: event.target.value }))}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>{copy.dashboard.visitFields.contactPhone}</span>
-                    <input
-                      type="text"
-                      value={visitForm.contactPhone}
-                      onChange={(event) => setVisitForm((current) => ({ ...current, contactPhone: event.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    <span>{copy.dashboard.visitFields.contactEmail}</span>
-                    <input
-                      type="email"
-                      value={visitForm.contactEmail}
-                      onChange={(event) => setVisitForm((current) => ({ ...current, contactEmail: event.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    <span>{copy.dashboard.visitFields.status}</span>
-                    <CustomSelect
-                      value={visitForm.status}
-                      onChange={(value) => setVisitForm((current) => ({ ...current, status: value }))}
-                      options={visitStatusOptions}
-                      className="dashboard-form-select"
-                      ariaLabel={copy.dashboard.visitFields.status}
-                      light
-                    />
-                  </label>
-                  <label className="dashboard-property-form-full">
-                    <span>{copy.dashboard.visitFields.location}</span>
-                    <input
-                      type="text"
-                      value={visitForm.location}
-                      onChange={(event) => setVisitForm((current) => ({ ...current, location: event.target.value }))}
-                    />
-                  </label>
-                  <label className="dashboard-property-form-full">
-                    <span>{copy.dashboard.visitFields.notes}</span>
-                    <textarea
-                      value={visitForm.notes}
-                      onChange={(event) => setVisitForm((current) => ({ ...current, notes: event.target.value }))}
-                    />
-                  </label>
-                  <div className="dashboard-editor-actions dashboard-property-form-full">
-                    {visitEditorId && <button type="button" className="dashboard-editor-secondary" disabled={visitSaving} onClick={handleDeleteVisit}>{copy.dashboard.deleteVisit}</button>}
-                    <button type="submit" className="dashboard-property-submit" disabled={visitSaving}>
-                      {visitSaving ? copy.dashboard.saving : visitEditorId ? copy.dashboard.updateVisit : copy.dashboard.addVisit}
-                    </button>
-                  </div>
-                </form>
-                </EditorDialog>}
+
 
                 <div className="dashboard-property-filters">
                   <label>
                     <span>{copy.dashboard.visitFilters.search}</span>
                     <input
-                      type="text"
+                      type="search"
                       value={visitFilters.search}
                       onChange={(event) => setVisitFilters((current) => ({ ...current, search: event.target.value }))}
                     />
@@ -5361,27 +5219,18 @@ export default function App({ initialPage } = {}) {
 
             {dashboardSection === 'clients' ? (
               <section className="dashboard-clients-section dashboard-section">
-                <div className="dashboard-properties-head">
-                  <div>
-                    <p className="section-label dashboard-label">{copy.dashboard.clientsLabel}</p>
-                    <h2>{copy.dashboard.clientsTitle}</h2>
-                  </div>
-                </div>
-
-                <div className="dashboard-client-panel">
-                  <div>
-                    <p>{copy.dashboard.clientPanelCopy}</p>
-                  </div>
-                  <button type="button" className="dashboard-client-reset" onClick={openCreateClientEditor}>
+                <header className="crm-section-heading crm-list-heading">
+                  <h2>{copy.dashboard.clientsLabel}</h2>
+                  <button type="button" className="solid-button crm-create-button" onClick={openCreateClientEditor}>
                     {copy.dashboard.newClient}
                   </button>
-                </div>
+                </header>
 
                 <div className="dashboard-property-filters">
                   <label>
                     <span>{copy.dashboard.clientFilters.search}</span>
                     <input
-                      type="text"
+                      type="search"
                       value={clientFilters.search}
                       onChange={(event) => setClientFilters((current) => ({ ...current, search: event.target.value }))}
                     />
@@ -5659,12 +5508,15 @@ export default function App({ initialPage } = {}) {
                     ))}
                   </div>
                 </div>
-              <label className="dashboard-property-form-full">
+              <div className="dashboard-property-form-full dashboard-property-photo-picker">
                 <span>{copy.dashboard.propertyFields.photos}</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={propertyForm.offMarket} onChange={handlePropertyPhotoFilesChange} />
+                <input ref={propertyPhotoInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden disabled={propertyForm.offMarket} onChange={handlePropertyPhotoFilesChange} />
+                <button type="button" className="solid-button" disabled={propertyForm.offMarket} onClick={() => propertyPhotoInputRef.current?.click()}>
+                  {{pt:'Selecionar fotos',es:'Seleccionar fotos',en:'Select photos'}[language]}
+                </button>
                 {propertyForm.offMarket && <small>{language === 'pt' ? 'Off-market usa apenas a imagem ilustrativa no site.' : language === 'es' ? 'Off-market utiliza solo la imagen ilustrativa en la web.' : 'Off-market uses only the illustrative image on the website.'}</small>}
                 <small className="dashboard-property-help">{copy.dashboard.photoHelp}</small>
-              </label>
+              </div>
               {propertyPhotoItems.length ? (
                 <div className="dashboard-property-photo-sorter dashboard-property-form-full">
                   <span>{copy.dashboard.photoLabel}</span>
@@ -5680,7 +5532,7 @@ export default function App({ initialPage } = {}) {
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={() => handlePropertyPhotoDrop(item.queueId)}
                       >
-                        <img src={item.url} alt={item.caption || propertyForm.title} />
+                        <img src={item.url} alt={item.caption || propertyForm.title} loading="lazy" />
                         <figcaption>
                           <strong>{index + 1}</strong>
                           <span>{item.name || copy.dashboard.photoLabel}</span>
@@ -5750,166 +5602,319 @@ export default function App({ initialPage } = {}) {
         </main>
       ) : null}
 
-      {canOpenDashboard && clientEditor.isOpen && ((route.view === 'dashboard' && ['clients', 'opportunities', 'leads'].includes(dashboardSection)) || (route.view === 'property-editor' && creatingPropertyOwner)) ? (
-        <div className={creatingPropertyOwner ? 'property-owner-page' : 'dashboard-editor-overlay'} role={creatingPropertyOwner ? undefined : 'dialog'} aria-modal={creatingPropertyOwner ? undefined : true} aria-label={copy.dashboard.editClient}>
-          {!creatingPropertyOwner && <div className="dashboard-editor-backdrop" onClick={closeClientEditor} />}
-          <section className={creatingPropertyOwner ? 'dashboard-property-editor-page' : 'dashboard-editor-sheet'}>
-            <div className="dashboard-editor-head">
-              <div>
-                <p className="section-label dashboard-label">
-                  {clientEditor.mode === 'edit' ? copy.dashboard.editClient : copy.dashboard.newClient}
-                </p>
-                <h2>{copy.dashboard.clientsTitle}</h2>
-              </div>
-              <button type="button" className="dashboard-editor-close" onClick={closeClientEditor}>
-                {copy.dashboard.closeEditor}
+      {canOpenDashboard && showVisitPage && (
+        <CrmEditorPage title={visitEditorId ? copy.dashboard.editVisit : copy.dashboard.newVisit}
+          backLabel={recordBackLabels.visits} onBack={closeVisitEditor} busy={visitSaving} error={dataError}>
+          <form className="dashboard-visit-form" onSubmit={handleVisitSubmit}>
+            <label>
+              <span>{copy.dashboard.visitFields.client}</span>
+              <CustomSelect
+                value={visitForm.clientId}
+                onChange={handleVisitClientChange}
+                options={clientOptions}
+                className="dashboard-form-select"
+                ariaLabel={copy.dashboard.visitFields.client}
+                light
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.visitFields.property}</span>
+              <CustomSelect
+                value={visitForm.propertyId}
+                onChange={(value) => setVisitForm((current) => ({ ...current, propertyId: value, location: dashboardProperties.find(property => property.id === value)?.privateAddress || '' }))}
+                options={propertyOptions}
+                className="dashboard-form-select"
+                ariaLabel={copy.dashboard.visitFields.property}
+                light
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.visitFields.scheduledAt}</span>
+              <input
+                type="datetime-local"
+                value={visitForm.scheduledAt}
+                onChange={(event) => setVisitForm((current) => ({ ...current, scheduledAt: event.target.value }))}
+                required
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.visitFields.durationMinutes}</span>
+              <input
+                type="number"
+                min="15"
+                step="15"
+                value={visitForm.durationMinutes}
+                onChange={(event) => setVisitForm((current) => ({ ...current, durationMinutes: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.visitFields.contactName}</span>
+              <input
+                type="text"
+                value={visitForm.contactName}
+                onChange={(event) => setVisitForm((current) => ({ ...current, contactName: event.target.value }))}
+                required
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.visitFields.contactPhone}</span>
+              <input
+                type="text"
+                value={visitForm.contactPhone}
+                onChange={(event) => setVisitForm((current) => ({ ...current, contactPhone: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.visitFields.contactEmail}</span>
+              <input
+                type="email"
+                value={visitForm.contactEmail}
+                onChange={(event) => setVisitForm((current) => ({ ...current, contactEmail: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.visitFields.status}</span>
+              <CustomSelect
+                value={visitForm.status}
+                onChange={(value) => setVisitForm((current) => ({ ...current, status: value }))}
+                options={visitStatusOptions}
+                className="dashboard-form-select"
+                ariaLabel={copy.dashboard.visitFields.status}
+                light
+              />
+            </label>
+            <label className="dashboard-property-form-full">
+              <span>{copy.dashboard.visitFields.location}</span>
+              <input
+                type="text"
+                value={visitForm.location}
+                onChange={(event) => setVisitForm((current) => ({ ...current, location: event.target.value }))}
+              />
+            </label>
+            <label className="dashboard-property-form-full">
+              <span>{copy.dashboard.visitFields.notes}</span>
+              <textarea
+                value={visitForm.notes}
+                onChange={(event) => setVisitForm((current) => ({ ...current, notes: event.target.value }))}
+              />
+            </label>
+            <div className="dashboard-editor-actions dashboard-property-form-full">
+              {visitEditorId && <button type="button" className="dashboard-editor-secondary" disabled={visitSaving} onClick={handleDeleteVisit}>{copy.dashboard.deleteVisit}</button>}
+              <button type="submit" className="dashboard-property-submit" disabled={visitSaving}>
+                {visitSaving ? copy.dashboard.saving : visitEditorId ? copy.dashboard.updateVisit : copy.dashboard.addVisit}
               </button>
             </div>
+          </form>
+        </CrmEditorPage>
+      )}
 
-            <form className="dashboard-client-form dashboard-editor-form" onSubmit={handleClientSubmit}>
-              <label>
-                <span>{copy.dashboard.clientFields.name}</span>
-                <input
-                  type="text"
-                  value={clientForm.name}
-                  onChange={(event) => setClientForm((current) => ({ ...current, name: event.target.value }))}
-                  required
-                />
-              </label>
-              <label>
-                <span>{copy.dashboard.clientFields.surname}</span>
-                <input
-                  type="text"
-                  value={clientForm.surname}
-                  onChange={(event) => setClientForm((current) => ({ ...current, surname: event.target.value }))}
-                />
-              </label>
-              <label>
-                <span>{copy.dashboard.clientFields.phone}</span>
-                <input
-                  type="text"
-                  value={clientForm.phone}
-                  onChange={(event) => setClientForm((current) => ({ ...current, phone: event.target.value }))}
-                />
-              </label>
-              <label>
-                <span>{copy.dashboard.clientFields.email}</span>
-                <input
-                  type="email"
-                  value={clientForm.email}
-                  onChange={(event) => setClientForm((current) => ({ ...current, email: event.target.value }))}
-                />
-              </label>
-              <label><span>{copy.nav.language}</span><CustomSelect value={clientForm.language || 'es'} onChange={value => setClientForm(current => ({ ...current, language: value }))} options={[{value:'es',label:'Español'},{value:'pt',label:'Português'},{value:'en',label:'English'}]} ariaLabel={copy.nav.language} className="dashboard-form-select" light /></label>
-              <label>
-                <span>{copy.dashboard.clientFields.operation}</span>
-                <CustomSelect
-                  value={clientForm.operation}
-                  onChange={(value) => setClientForm((current) => ({ ...current, operation: value }))}
-                  options={[
-                    { value: 'comprar', label: copy.nav.buy },
-                    { value: 'alquilar', label: copy.nav.rent },
-                  ]}
-                  className="dashboard-form-select"
-                  ariaLabel={copy.dashboard.clientFields.operation}
-                  light
-                />
-              </label>
-              <label>
-                <span>{copy.dashboard.clientFields.status}</span>
-                <CustomSelect
-                  value={clientForm.status}
-                  onChange={(value) => setClientForm((current) => ({ ...current, status: value }))}
-                  options={clientStatusOptions}
-                  className="dashboard-form-select"
-                  ariaLabel={copy.dashboard.clientFields.status}
-                  light
-                />
-              </label>
-              <label>
-                <span>{language === 'pt' ? 'Moeda' : language === 'es' ? 'Moneda' : 'Currency'}</span>
-                <CustomSelect value={clientForm.currency} onChange={value => setClientForm(current => ({ ...current, currency: value }))} options={CURRENCIES.map(value => ({ value, label: value }))} className="dashboard-form-select" ariaLabel={language === 'pt' ? 'Moeda' : language === 'es' ? 'Moneda' : 'Currency'} light />
-              </label>
-              <label>
-                <span>{copy.dashboard.clientFields.budgetMin}</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={clientForm.budgetMin}
-                  onChange={(event) => setClientForm((current) => ({ ...current, budgetMin: event.target.value }))}
-                />
-              </label>
-              <label>
-                <span>{copy.dashboard.clientFields.budgetMax}</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={clientForm.budgetMax}
-                  onChange={(event) => setClientForm((current) => ({ ...current, budgetMax: event.target.value }))}
-                />
-              </label>
-              <label>
-                <span>{copy.dashboard.clientFields.minRooms}</span>
-                <input
-                  type="number"
-                  {...clientNumericRules.minRooms}
-                  value={clientForm.minRooms}
-                  onChange={(event) => setClientForm((current) => ({ ...current, minRooms: event.target.value }))}
-                />
-              </label>
-              <label>
-                <span>{opportunityCopy[language].bathrooms}</span>
-                <input type="number" min="0" step="1" value={clientForm.minBathrooms} onChange={event => setClientForm(current => ({ ...current, minBathrooms: event.target.value }))} />
-              </label>
-              <label>
-                <span>{copy.dashboard.clientFields.minSurface}</span>
-                <input
-                  type="number"
-                  {...clientNumericRules.minSurface}
-                  value={clientForm.minSurface}
-                  onChange={(event) => setClientForm((current) => ({ ...current, minSurface: event.target.value }))}
-                />
-              </label>
-              <div className="dashboard-property-form-full">
-                <p>{opportunityCopy[language].extras}</p>
-                <p>{opportunityCopy[language].hint}</p>
-                <TogglePillGroup value={clientForm.requiredExtras} options={Object.entries(copy.catalog.extras).map(([value, label]) => ({ value, label }))} onChange={value => setClientForm(current => ({ ...current, requiredExtras: value }))} ariaLabel={opportunityCopy[language].extras} />
+      {canOpenDashboard && showClientPage && (
+        <CrmEditorPage title={clientEditor.mode === 'edit' ? copy.dashboard.editClient : copy.dashboard.newClient}
+          backLabel={creatingPropertyOwner ? copy.dashboard.closeEditor : recordBackLabels[dashboardSection]}
+          onBack={closeClientEditor} busy={clientSaving} error={dataError}>
+          <form className="dashboard-client-form dashboard-editor-form" onSubmit={handleClientSubmit}>
+            <label>
+              <span>{copy.dashboard.clientFields.name}</span>
+              <input
+                type="text"
+                value={clientForm.name}
+                onChange={(event) => setClientForm((current) => ({ ...current, name: event.target.value }))}
+                required
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.clientFields.surname}</span>
+              <input
+                type="text"
+                value={clientForm.surname}
+                onChange={(event) => setClientForm((current) => ({ ...current, surname: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.clientFields.phone}</span>
+              <input
+                type="text"
+                value={clientForm.phone}
+                onChange={(event) => setClientForm((current) => ({ ...current, phone: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.clientFields.email}</span>
+              <input
+                type="email"
+                value={clientForm.email}
+                onChange={(event) => setClientForm((current) => ({ ...current, email: event.target.value }))}
+              />
+            </label>
+            <label><span>{copy.nav.language}</span><CustomSelect value={clientForm.language || 'es'} onChange={value => setClientForm(current => ({ ...current, language: value }))} options={[{value:'es',label:'Español'},{value:'pt',label:'Português'},{value:'en',label:'English'}]} ariaLabel={copy.nav.language} className="dashboard-form-select" light /></label>
+            <label>
+              <span>{copy.dashboard.clientFields.operation}</span>
+              <CustomSelect
+                value={clientForm.operation}
+                onChange={(value) => setClientForm((current) => ({ ...current, operation: value }))}
+                options={[
+                  { value: 'comprar', label: copy.nav.buy },
+                  { value: 'alquilar', label: copy.nav.rent },
+                ]}
+                className="dashboard-form-select"
+                ariaLabel={copy.dashboard.clientFields.operation}
+                light
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.clientFields.status}</span>
+              <CustomSelect
+                value={clientForm.status}
+                onChange={(value) => setClientForm((current) => ({ ...current, status: value }))}
+                options={clientStatusOptions}
+                className="dashboard-form-select"
+                ariaLabel={copy.dashboard.clientFields.status}
+                light
+              />
+            </label>
+            <label>
+              <span>{language === 'pt' ? 'Moeda' : language === 'es' ? 'Moneda' : 'Currency'}</span>
+              <CustomSelect value={clientForm.currency} onChange={value => setClientForm(current => ({ ...current, currency: value }))} options={CURRENCIES.map(value => ({ value, label: value }))} className="dashboard-form-select" ariaLabel={language === 'pt' ? 'Moeda' : language === 'es' ? 'Moneda' : 'Currency'} light />
+            </label>
+            <label>
+              <span>{copy.dashboard.clientFields.budgetMin}</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={clientForm.budgetMin}
+                onChange={(event) => setClientForm((current) => ({ ...current, budgetMin: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.clientFields.budgetMax}</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={clientForm.budgetMax}
+                onChange={(event) => setClientForm((current) => ({ ...current, budgetMax: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{copy.dashboard.clientFields.minRooms}</span>
+              <input
+                type="number"
+                {...clientNumericRules.minRooms}
+                value={clientForm.minRooms}
+                onChange={(event) => setClientForm((current) => ({ ...current, minRooms: event.target.value }))}
+              />
+            </label>
+            <label>
+              <span>{opportunityCopy[language].bathrooms}</span>
+              <input type="number" min="0" step="1" value={clientForm.minBathrooms} onChange={event => setClientForm(current => ({ ...current, minBathrooms: event.target.value }))} />
+            </label>
+            <label>
+              <span>{copy.dashboard.clientFields.minSurface}</span>
+              <input
+                type="number"
+                {...clientNumericRules.minSurface}
+                value={clientForm.minSurface}
+                onChange={(event) => setClientForm((current) => ({ ...current, minSurface: event.target.value }))}
+              />
+            </label>
+            <div className="dashboard-property-form-full">
+              <p>{opportunityCopy[language].extras}</p>
+              <p>{opportunityCopy[language].hint}</p>
+              <TogglePillGroup value={clientForm.requiredExtras} options={Object.entries(copy.catalog.extras).map(([value, label]) => ({ value, label }))} onChange={value => setClientForm(current => ({ ...current, requiredExtras: value }))} ariaLabel={opportunityCopy[language].extras} />
+            </div>
+            <label className="dashboard-property-form-full">
+              <span>{copy.dashboard.clientFields.destinations}</span>
+              <TogglePillGroup
+                value={clientForm.destinations}
+                options={destinationOptions}
+                onChange={(value) => setClientForm((current) => ({ ...current, destinations: value }))}
+                ariaLabel={copy.dashboard.clientFields.destinations}
+              />
+            </label>
+            <label className="dashboard-property-form-full">
+              <span>{copy.dashboard.clientFields.types}</span>
+              <TogglePillGroup
+                value={normalizeTypes(clientForm.types)}
+                options={normalizeTypes(PROPERTY_TYPE_OPTIONS).map((value) => ({ value, label: copy.catalog.types[value] }))}
+                onChange={(value) => setClientForm((current) => ({ ...current, types: value }))}
+                ariaLabel={copy.dashboard.clientFields.types}
+              />
+            </label>
+            <label className="dashboard-property-form-full">
+              <span>{copy.dashboard.clientFields.notes}</span>
+              <textarea
+                value={clientForm.notes}
+                onChange={(event) => setClientForm((current) => ({ ...current, notes: event.target.value }))}
+              />
+            </label>
+            <div className="dashboard-editor-actions dashboard-property-form-full">
+              {clientEditor.mode === 'edit' && <button type="button" className="dashboard-editor-secondary" disabled={clientSaving} onClick={handleDeleteClient}>{copy.dashboard.deleteClient}</button>}
+              <button type="submit" className="dashboard-property-submit" disabled={clientSaving}>
+                {clientSaving ? copy.dashboard.saving : clientEditor.mode === 'edit' ? copy.dashboard.updateClient : copy.dashboard.addClient}
+              </button>
+            </div>
+          </form>
+        </CrmEditorPage>
+      )}
+
+      {canOpenDashboard && activeLead && !showClientPage && (
+        <CrmEditorPage title={`${activeLead.name} ${activeLead.surname}`.trim()}
+          backLabel={recordBackLabels.leads} onBack={() => setShortcut(null)} busy={Boolean(leadSavingId)} error={dataError}>
+          <div className="crm-record-editor dashboard-lead-card">
+            <p className="dashboard-lead-meta">{[activeLead.phone, activeLead.city, activeLead.address].filter(Boolean).join(' · ')}</p>
+            <div className="dashboard-lead-details">
+              <div>
+                <span>{copy.dashboard.columns.operation}</span>
+                <strong>{(copy.ownerForm.operations[activeLead.operation] || companyCopy[language].contact)}</strong>
               </div>
-              <label className="dashboard-property-form-full">
-                <span>{copy.dashboard.clientFields.destinations}</span>
-                <TogglePillGroup
-                  value={clientForm.destinations}
-                  options={destinationOptions}
-                  onChange={(value) => setClientForm((current) => ({ ...current, destinations: value }))}
-                  ariaLabel={copy.dashboard.clientFields.destinations}
-                />
-              </label>
-              <label className="dashboard-property-form-full">
-                <span>{copy.dashboard.clientFields.types}</span>
-                <TogglePillGroup
-                  value={normalizeTypes(clientForm.types)}
-                  options={normalizeTypes(PROPERTY_TYPE_OPTIONS).map((value) => ({ value, label: copy.catalog.types[value] }))}
-                  onChange={(value) => setClientForm((current) => ({ ...current, types: value }))}
-                  ariaLabel={copy.dashboard.clientFields.types}
-                />
-              </label>
-              <label className="dashboard-property-form-full">
-                <span>{copy.dashboard.clientFields.notes}</span>
-                <textarea
-                  value={clientForm.notes}
-                  onChange={(event) => setClientForm((current) => ({ ...current, notes: event.target.value }))}
-                />
-              </label>
-              <div className="dashboard-editor-actions dashboard-property-form-full">
-                {clientEditor.mode === 'edit' && <button type="button" className="dashboard-editor-secondary" disabled={clientSaving} onClick={handleDeleteClient}>{copy.dashboard.deleteClient}</button>}
-                <button type="submit" className="dashboard-property-submit" disabled={clientSaving}>
-                  {clientSaving ? copy.dashboard.saving : clientEditor.mode === 'edit' ? copy.dashboard.updateClient : copy.dashboard.addClient}
+              <div>
+                <span>{copy.dashboard.columns.source}</span>
+                <strong>{leadSourceLabel(activeLead)}</strong>
+              </div>
+              <div>
+                <span>{copy.dashboard.columns.date}</span>
+                <strong>{formatDate(activeLead.createdAt, language)}</strong>
+              </div>
+              <div>
+                <span>Email</span>
+                <strong>{activeLead.email}</strong>
+              </div>
+            </div>
+            {activeLead.comments ? <p className="dashboard-lead-comments">{activeLead.comments}</p> : null}
+            <div className="dashboard-lead-status">
+              <div>
+                <span>{copy.dashboard.columns.status}</span>
+                <strong>{copy.dashboard.statusOptions[activeLead.status]}</strong>
+              </div>
+              <CustomSelect
+                value={activeLead.status}
+                onChange={(value) => handleLeadStatusChange(activeLead.id, value)}
+                options={leadStatusOptions}
+                className="dashboard-status-select"
+                ariaLabel={copy.dashboard.columns.status}
+                disabled={Boolean(leadSavingId)}
+                light
+              />
+            </div>
+            <div className="dashboard-lead-actions">
+              {inboxButton('lead_id',activeLead)}
+              <button type="button" className="dashboard-editor-secondary" disabled={Boolean(leadSavingId)} onClick={() => handleDeleteLead(activeLead)}>
+                {copy.dashboard.deleteLead}
+              </button>
+              <button type="button" className="dashboard-property-edit" onClick={() => openCreateClientFromLead(activeLead)}>
+                {copy.dashboard.leadToClient}
+              </button>
+              {activeLead.source !== 'property_request' ? (
+                <button type="button" className="dashboard-property-edit" onClick={() => openCreatePropertyFromLead(activeLead)}>
+                  {copy.dashboard.leadToProperty}
                 </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      ) : null}
+              ) : null}
+              <button type="button" className="dashboard-property-cta" onClick={() => openCreateVisit({lead:activeLead})}>
+                {copy.dashboard.leadToVisit}
+              </button>
+            </div>
+          </div>
+        </CrmEditorPage>
+      )}
 
 
       {['catalogo', 'off-market'].includes(route.view) ? (
