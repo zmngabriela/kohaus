@@ -3511,6 +3511,7 @@ export default function App({ initialPage } = {}) {
   useEffect(() => {
     function handlePopState() {
       const nextRoute = parseRoute()
+      setOffMarketSelection(null)
       setRoute(nextRoute)
       setLanguage(nextRoute.language)
       setHomeSearch((current) => ({
@@ -3920,6 +3921,7 @@ export default function App({ initialPage } = {}) {
   }
 
   function syncRoute(nextRoute) {
+    setOffMarketSelection(null)
     setRoute(nextRoute)
     const nextSearch = toSearch(nextRoute)
     window.history.pushState({}, '', nextSearch)

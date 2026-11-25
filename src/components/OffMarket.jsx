@@ -27,11 +27,11 @@ export default function OffMarket({ property, language, onSubmit, onClose }) {
  return <section ref={section} className="offmarket-request" aria-label={c.request}>
   <h2>{c.request} · {property.reference}</h2>
   {result && <FormNotice language={language} error={!sent} onDismiss={() => setResult('')}>{result}</FormNotice>}
-  {!sent && <form onSubmit={submit} className="crm-extension-form"><fieldset disabled={busy}>
+  {!sent && <form onSubmit={submit} className="contact-form offmarket-form"><fieldset disabled={busy}>
    {['name','surname','email','phone'].map(key=><label key={key}>{c[key]}<input name={key} type={key==='email'?'email':key==='phone'?'tel':'text'} required /></label>)}
-   <label>{c.message}<textarea name="message" /></label>
-   <label className="offmarket-consent"><input type="checkbox" required /><span>{c.consent} <PrivacyConsent language={language} /></span></label>
-   <button type="submit">{c.send}</button>
+   <label className="contact-wide">{c.message}<textarea name="message" /></label>
+   <label className="contact-consent contact-wide"><input type="checkbox" required /><span>{c.consent} <PrivacyConsent language={language} /></span></label>
+   <button type="submit" className="solid-button">{c.send}</button>
   </fieldset></form>}
   <button type="button" className="outline-button" onClick={onClose}>{c.cancel}</button>
  </section>

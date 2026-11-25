@@ -84,3 +84,42 @@
 
 .invoice-form-actions { grid-column:1 / -1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-items:stretch; }
 .invoice-form-actions button { width:100%; min-height:48px; height:100%; padding:12px; overflow-wrap:anywhere; }
+
+.offmarket-request {
+  width: min(100%, 560px);
+  margin-inline: auto;
+  box-sizing: border-box;
+  padding: clamp(18px, 3vw, 28px);
+}
+.page-shell .offmarket-request > h2,
+.page-shell .listing-body > h2 {
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+.offmarket-request .offmarket-form {
+  display: block;
+}
+.offmarket-form fieldset {
+  border: 0;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.offmarket-form input:not([type='checkbox']) {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+.offmarket-form textarea {
+  min-height: 96px;
+  padding: 10px 12px;
+}
+@media (max-width: 720px) {
+  .page-shell .offmarket-request > h2,
+  .page-shell .listing-body > h2 {
+    font-size: 1.25rem;
+  }
+  .offmarket-form fieldset { grid-template-columns: 1fr; }
+}
