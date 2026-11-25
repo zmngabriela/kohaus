@@ -410,7 +410,6 @@ const COPY = {
       backToProperties: 'Volver a inmuebles',
       editorCreateEyebrow: 'Nuevo inmueble',
       editorEditEyebrow: 'Editar inmueble',
-      editorCreateTitle: 'Carga un inmueble en una capa enfocada y sin ruido.',
       editorEditTitle: '',
       saveObservation: 'Guardar observación',
       historyTitle: 'Historial interno',
@@ -840,7 +839,6 @@ const COPY = {
       backToProperties: 'Back to properties',
       editorCreateEyebrow: 'New property',
       editorEditEyebrow: 'Edit property',
-      editorCreateTitle: 'Add a property in a focused layer with no visual noise.',
       editorEditTitle: '',
       saveObservation: 'Save note',
       historyTitle: 'Internal history',
@@ -1270,7 +1268,6 @@ const COPY = {
       backToProperties: 'Voltar para imóveis',
       editorCreateEyebrow: 'Novo imóvel',
       editorEditEyebrow: 'Editar imóvel',
-      editorCreateTitle: 'Cadastre um imóvel numa camada focada e sem ruído visual.',
       editorEditTitle: '',
       saveObservation: 'Salvar observação',
       historyTitle: 'Histórico interno',
@@ -3293,7 +3290,7 @@ function Header({
 }
 
 function CrmEditorPage({ title, backLabel, onBack, busy = false, error, children }) {
-  return <main className="dashboard-page">
+  return <main className="dashboard-page crm-record-page">
     <section className="dashboard-shell">
       <header className="crm-section-heading">
         <h1>{title}</h1>
@@ -4771,7 +4768,7 @@ export default function App({ initialPage } = {}) {
               onBack={()=>setHistoryView(null)} onActivity={async activity=>{setDashboardClients(await updateDashboardClient(historyRecord.id,{history:[{...createHistoryEntry(activity.text),...activity},...(historyRecord.history || [])]}))}} /> : <>
             {dashboardSection === 'overview' ? (
               <section className="dashboard-section dashboard-daily">
-                <header className="crm-section-heading"><h2>{commercialText[language].title}</h2></header>
+                <header className="crm-section-heading crm-list-heading"><h2>{commercialText[language].title}</h2></header>
                 <div className="dashboard-daily-layout">
                   <CommercialAgenda language={language} leads={leads} visits={dashboardVisits} onLead={lead=>openShortcut('leads',{leadId:lead.id})} onTask={task=>openShortcut('tasks',{draft:task})} onVisit={openVisitEditor} />
                   <div className="dashboard-daily-metrics">
@@ -5314,10 +5311,7 @@ export default function App({ initialPage } = {}) {
                 {propertyEditor.mode === 'edit' ? (
                   <h1>{copy.dashboard.editorEditEyebrow}</h1>
                 ) : (
-                  <>
-                    <p className="section-label dashboard-label">{copy.dashboard.editorCreateEyebrow}</p>
-                    <h1>{copy.dashboard.editorCreateTitle}</h1>
-                  </>
+                  <h1>{copy.dashboard.editorCreateEyebrow}</h1>
                 )}
               </div>
               <button type="button" className="dashboard-editor-secondary" disabled={propertySaving} onClick={closePropertyEditor}>

@@ -1,3 +1,4 @@
+import { localDate } from './lib/tasks'
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
@@ -696,7 +697,7 @@ it('records a client call and shows it again after navigating back to the list',
   expect(await screen.findByText('Confirmed the viewing by phone')).toBeInTheDocument()
 })
 
-it('schedules a client follow-up from history and opens the overdue task from the daily agenda', async () => {
+it('schedules a client follow-up from history and opens today’s task from the daily agenda', async () => {
   const user=userEvent.setup()
   localStorage.setItem('kohaus-dashboard-clients-v1',JSON.stringify([{id:'ana',name:'Ana',surname:'Silva',status:'new',operation:'comprar',types:[],destinations:[],history:[]}]))
   renderApp('/?view=dashboard&section=clients&lang=en')
@@ -704,10 +705,14 @@ it('schedules a client follow-up from history and opens the overdue task from th
   await user.click(screen.getByRole('button',{name:'Schedule next contact'}))
   const editor=within(await screen.findByRole('dialog'))
   expect(editor.getByLabelText('Client')).toHaveValue('ana')
-  fireEvent.change(editor.getByLabelText('Due date'),{target:{value:'2020-01-01'}})
+  fireEvent.change(editor.getByLabelText('Due date'),{target:{value:localDate()}})
   await user.click(editor.getByRole('button',{name:'Save task'}))
   await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   await user.click(screen.getByRole('button',{name:'Dashboard',exact:true}))
+  const taskStatus = await screen.findByRole('combobox',{name:/Task status: Follow up · Ana Silva/})
+  await user.selectOptions(taskStatus,'completed')
+  await waitFor(()=>expect(taskStatus).toHaveValue('completed'))
+  expect(JSON.parse(localStorage.getItem('kohaus-dashboard-tasks-v1'))[0].status).toBe('completed')
   await user.click(await screen.findByRole('button',{name:/Follow up · Ana Silva/}))
-  expect(within(await screen.findByRole('dialog')).getByLabelText('Due date')).toHaveValue('2020-01-01')
+  expect(within(await screen.findByRole('dialog')).getByLabelText('Due date')).toHaveValue(localDate())
 })

@@ -28,6 +28,21 @@ export async function saveTask(task, database = supabase, enabled = hasSupabaseC
   return data
 }
 
+export async function updateTaskStatus(id, status, database = supabase, enabled = hasSupabaseConfig) {
+  if (status !== 'pending' && status !== 'completed') throw new Error('Invalid task status')
+  if (!enabled) {
+    const tasks = await fetchTasks(database, false)
+    const task = tasks.find(item => item.id === id)
+    if (!task) throw new Error('Task not found')
+    const updated = { ...task, status }
+    localStorage.setItem(KEY, JSON.stringify(tasks.map(item => item.id === id ? updated : item)))
+    return updated
+  }
+  const { data, error } = await database.from('dashboard_tasks').update({ status }).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+
 export async function deleteTask(id, database = supabase, enabled = hasSupabaseConfig) {
   if (!enabled) {
     const tasks = await fetchTasks(database, false)
