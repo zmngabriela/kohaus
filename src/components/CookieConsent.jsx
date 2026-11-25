@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { CONSENT_KEY, CONSENT_TTL, readConsent, storeConsent, syncAnalytics, syncPreferences } from '../lib/analytics'
 import './Legal.css'
 import { cookieCopy } from '../lib/cookie-copy'
-export default function CookieConsent({ language, view, deferInitial = false }) {
+export default function CookieConsent({ language, view, deferInitial = false, renderSettings }) {
  const c = cookieCopy[language] || cookieCopy.es
  const [consent, setConsent] = useState(() => deferInitial ? null : readConsent())
  const [ready, setReady] = useState(!deferInitial)
@@ -31,8 +31,9 @@ export default function CookieConsent({ language, view, deferInitial = false }) 
   }
  }
  function configure() { setPreferences(consent?.preferences === true); setAnalytics(consent?.analytics === true); setOpen(true) }
+ const settingsButton = <button type="button" onClick={configure}>{c.settings}</button>
  return <>
-  <div className="cookie-settings-footer"><button type="button" onClick={configure}>{c.settings}</button></div>
+  {renderSettings ? renderSettings(settingsButton) : <div className="cookie-settings-footer">{settingsButton}</div>}
   {ready && (!consent || open) && <aside className="privacy-notice" aria-label={c.title}>
    <strong>{open ? c.settings : c.title}</strong>
    <p>{open ? c.configureText : c.text} <a href={`?view=cookies&lang=${language}`}>{c.policy}</a></p>

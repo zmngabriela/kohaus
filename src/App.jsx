@@ -1,10 +1,12 @@
+import { isLocalInbox } from './lib/inbox'
+import { inboxDemo } from './lib/inboxDemo'
 import { propertyCountry, propertyCity, countryLabel } from './lib/propertyLocation'
 import SiteIcon from './components/SiteIcon.jsx'
 import Prospecting from './components/Prospecting'
 import { idealistaListingId, idealistaOperationPreview } from './lib/idealistaListing'
 import FormNotice from './components/FormNotice'
 import CommercialAgenda, { commercialText } from './components/CommercialAgenda'
-import DashboardSidebar from './components/DashboardSidebar'
+import DashboardSidebar, { DashboardUtilities } from './components/DashboardSidebar'
 import RecordHistory from './components/RecordHistory'
 import { recordChanges } from './lib/recordHistory'
 import { propertyNumericRules, portalNumericRules, clientNumericRules, validateNumericFields } from './lib/numericFields'
@@ -42,6 +44,7 @@ import { buildVisitEmail } from './lib/visitEmail'
 import { propertyPrice, priceFields, CURRENCIES } from './lib/propertyPrice'
 import { normalizeTypes, parseBudget } from './lib/clientCriteria'
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+const Inbox = lazy(() => import('./components/Inbox'))
 const Invoices = lazy(() => import('./components/Invoices'))
 import './App.css'
 import './components/PropertyWatermark.css'
@@ -358,6 +361,7 @@ const COPY = {
       title: 'Leads recibidos desde el sitio.',
       empty: 'Todavía no hay leads guardados desde el sitio.',
       sections: {
+        inbox: 'Conversaciones',
         overview: 'Dashboard',
         leads: 'Leads',
         properties: 'Inmuebles',
@@ -787,6 +791,7 @@ const COPY = {
       title: 'Leads received from the website.',
       empty: 'There are no saved website leads yet.',
       sections: {
+        inbox: 'Conversations',
         overview: 'Dashboard',
         leads: 'Leads',
         properties: 'Properties',
@@ -1216,6 +1221,7 @@ const COPY = {
       title: 'Leads recebidos pelo site.',
       empty: 'Ainda não há leads salvos pelo site.',
       sections: {
+        inbox: 'Conversas',
         overview: 'Dashboard',
         leads: 'Leads',
         properties: 'Imóveis',
@@ -3284,6 +3290,25 @@ function Header({
   )
 }
 
+function CrmFooter({ language, siteHref, settings }) {
+  const labels = {
+    pt: { navigation: 'Links do CRM', website: 'Ver site', privacy: 'Privacidade' },
+    es: { navigation: 'Enlaces del CRM', website: 'Ver sitio web', privacy: 'Privacidad' },
+    en: { navigation: 'CRM links', website: 'View website', privacy: 'Privacy' },
+  }[language]
+  return <footer className="site-footer crm-footer">
+    <div className="crm-footer-brand">
+      <img className="footer-brand-logo" src="/brand/kohaus-logo.svg" alt="KOHAUS Real Estate" width="120" />
+      <span>CRM</span>
+    </div>
+    <nav aria-label={labels.navigation}>
+      <a href={siteHref}>{labels.website}</a>
+      <a href={toSearch({ view: 'privacy', language })}>{labels.privacy}</a>
+      {settings}
+    </nav>
+  </footer>
+}
+
 function Footer({ copy, language }) {
   return (
     <footer className="site-footer" id="contacto">
@@ -3447,6 +3472,7 @@ export default function App({ initialPage } = {}) {
   const [clientForm, setClientForm] = useState(CLIENT_FORM_DEFAULTS)
   const [shortcut,setShortcut] = useState(null)
   const openShortcut = (section,target) => { goDashboard(section); setShortcut(target) }
+  const inboxButton = (field,item) => <button type="button" onClick={()=>openShortcut('inbox',{context:{[field]:item.id}})}>{copy.dashboard.sections.inbox}</button>
   const opportunityButton = (field,item) => <button type="button" onClick={()=>openShortcut('opportunities',{filters:{[field]:item.id}})}>{copy.dashboard.sections.opportunities}</button>
   const [historyView, setHistoryView] = useState(null)
   const [clientFilters, setClientFilters] = useState(CLIENT_FILTER_DEFAULTS)
@@ -4632,10 +4658,12 @@ export default function App({ initialPage } = {}) {
     }
   }
 
+  const crmSiteHref = toSearch({ view: 'home', language })
+
   return (
     <div className="page-shell">
       <Seo route={{...route, language}} property={selectedProperty} />
-      <Header
+      {!isDashboardRoute && !passwordSetup && <Header
         copy={copy}
         language={language}
         onLanguageChange={handleLanguageChange}
@@ -4643,9 +4671,10 @@ export default function App({ initialPage } = {}) {
         onCatalogClick={(operation) => goCatalog(operation)}
         onOwnerClick={() => goOwnerForm('')}
         onOffMarketClick={() => { setCatalogFilters({ ...CATALOG_FILTER_DEFAULTS, operation: 'all' }); setOffMarketSelection(null); syncRoute({ ...route, view: 'off-market', language, operation: 'all', destination: 'todos', reference: '' }) }}
-        showSignOut={route.view === 'dashboard' && Boolean(authSession)}
-        onSignOut={handleSignOut}
-      />
+      />}
+      {(passwordSetup || showDashboardAuthGate) && <div className="dashboard-entry-tools"><DashboardUtilities copy={copy} language={language} siteHref={crmSiteHref} onLanguageChange={handleLanguageChange} /></div>}
+
+      {isLocalInbox() && route.view === 'inbox-preview' && <main className="inbox-preview-page"><Suspense fallback={<p>…</p>}><Inbox language={language} {...inboxDemo} forceLocal userId="demo-preview" /></Suspense></main>}
 
       {passwordSetup ? <PasswordSetup language={language} client={supabase} session={authSession} loading={authLoading} invalid={initialAuthCallback.invalid} onBack={async () => {
         await handleSignOut()
@@ -4682,9 +4711,9 @@ export default function App({ initialPage } = {}) {
       {route.view === 'dashboard' && canOpenDashboard ? (
         <main className="dashboard-page">
           <section className="dashboard-shell dashboard-workspace">
-            <DashboardSidebar copy={copy} language={language} section={dashboardSection} onSelect={goDashboard} account={authAccess} email={authSession?.user?.email} />
+            <DashboardSidebar copy={copy} language={language} section={dashboardSection} onSelect={goDashboard} account={authAccess} email={authSession?.user?.email} siteHref={crmSiteHref} onLanguageChange={handleLanguageChange} onSignOut={authSession ? handleSignOut : undefined} />
             <div className="dashboard-content">
-            {historyRecord ? <RecordHistory key={historyRecord.id} record={historyRecord} client={historyView.kind==='clients'} language={language} properties={dashboardProperties} visits={dashboardVisits}
+            {historyRecord ? <RecordHistory userId={authSession?.user?.id || 'local'} key={historyRecord.id} record={historyRecord} client={historyView.kind==='clients'} language={language} properties={dashboardProperties} visits={dashboardVisits}
               labels={{...copy.dashboard.propertyFields,...copy.dashboard.clientFields,...copy.dashboard.visitStatusOptions,...copy.property.detailLabels}}
               onSchedule={()=>openShortcut('tasks',{draft:{client_id:historyRecord.id,title:commercialText[language].task+' · '+[historyRecord.name,historyRecord.surname].join(' ')},followup:true})}
               onBack={()=>setHistoryView(null)} onActivity={async activity=>{setDashboardClients(await updateDashboardClient(historyRecord.id,{history:[{...createHistoryEntry(activity.text),...activity},...(historyRecord.history || [])]}))}} /> : <>
@@ -4792,6 +4821,7 @@ export default function App({ initialPage } = {}) {
                           />
                         </div>
                         <div className="dashboard-lead-actions">
+                          {inboxButton('lead_id',lead)}
                           <button type="button" className="dashboard-editor-secondary" disabled={Boolean(leadSavingId)} onClick={() => handleDeleteLead(lead)}>
                             {copy.dashboard.deleteLead}
                           </button>
@@ -4893,6 +4923,7 @@ export default function App({ initialPage } = {}) {
                         status={copy.dashboard.propertyStatusOptions[property.status]} editLabel={copy.dashboard.editProperty} onEdit={() => openEditPropertyEditor(property)} actions={<>
                           {historyButton('properties',property.id)}
                           {opportunityButton('property',property)}
+                          {inboxButton('property_id',property)}
                           {property.status === 'active' && <button type="button" onClick={() => openCreateVisit({property})}>{copy.dashboard.leadToVisit}</button>}
                           {isPublishedListing(property) && !property.offMarket && <a href={toSearch({view:'anuncio',propertyId:property.id,language})} target="_blank" rel="noreferrer">{copy.catalog.viewListing}</a>}
                         </>}
@@ -5145,6 +5176,9 @@ export default function App({ initialPage } = {}) {
 
             {dashboardSection === 'opportunities' ? <Opportunities Select={CustomSelect} filters={shortcut?.filters || {}} onFilter={filters=>setShortcut({filters})} clients={dashboardClients} properties={dashboardProperties} language={language} copy={copy} onClient={openClientEditor} onProperty={goProperty} loading={opportunitiesLoading} error={dataError} /> : null}
 
+            {dashboardSection === 'inbox' && <Suspense fallback={<p>…</p>}><Inbox language={language} clients={dashboardClients} leads={leads} properties={dashboardProperties} visits={dashboardVisits} userId={authSession?.user?.id || 'local'} role={authAccess?.role || 'viewer'} initialContext={shortcut?.context || {}}
+              onClient={client=>{goDashboard('clients');openClientEditor(client)}} onProperty={openEditPropertyEditor} onLead={lead=>openShortcut('leads',{leadId:lead.id})} onVisit={openCreateVisit} onTask={draft=>openShortcut('tasks',{draft,followup:true})} /></Suspense>}
+
             {dashboardSection === 'tasks' ? <Tasks initialDraft={shortcut?.draft} followup={shortcut?.followup} language={language} clients={dashboardClients} leads={leads} properties={dashboardProperties} onSaving={() => setDashboardNotice('')} onSaved={(kind) => setDashboardNotice(kind === 'deleted' ? copy.dashboard.taskDeleted : copy.dashboard.taskSaved)} /> : null}
 
             {dashboardSection === 'visits' ? (
@@ -5310,6 +5344,7 @@ export default function App({ initialPage } = {}) {
                             { label: copy.dashboard.visitFields.location, value: visit.location },
                           ]}
                           actions={<>
+                            {inboxButton('visit_id',visit)}
                             {calendarLink && <a className="dashboard-property-edit dashboard-calendar-link" href={calendarLink} target="_blank" rel="noreferrer" title={copy.dashboard.visitReminderTip}>{copy.dashboard.calendarLink}</a>}
                             {emailLink ? <a className="dashboard-property-edit" href={emailLink}>{copy.dashboard.visitEmail}</a> : <button type="button" disabled title={copy.dashboard.visitEmailMissing}>{copy.dashboard.visitEmail}</button>}
                           </>} />
@@ -5389,6 +5424,7 @@ export default function App({ initialPage } = {}) {
                           status={copy.dashboard.clientStatusOptions[client.status]} editLabel={copy.dashboard.editClient} onEdit={() => openClientEditor(client)} actions={<>
                             {historyButton('clients',client.id)}
                             {opportunityButton('client',client)}
+                            {inboxButton('client_id',client)}
                             {links.phone && <a href={links.phone}>{opportunityCopy[language].call}</a>}
                             {links.email && <a href={links.email}>{opportunityCopy[language].email}</a>}
                             <button type="button" onClick={() => openCreateVisit({client})}>{copy.dashboard.leadToVisit}</button>
@@ -6640,8 +6676,9 @@ export default function App({ initialPage } = {}) {
       ) : null}
 
       </>}
-      <Footer copy={copy} language={language} />
-      <CookieConsent deferInitial={Boolean(initialPage)} language={language} view={passwordSetup ? 'auth' : route.view} />
+      {!isDashboardRoute && !passwordSetup && <Footer copy={copy} language={language} />}
+      <CookieConsent deferInitial={Boolean(initialPage)} language={language} view={passwordSetup ? 'auth' : route.view}
+        renderSettings={isDashboardRoute || passwordSetup ? settings => <CrmFooter language={language} siteHref={crmSiteHref} settings={settings} /> : undefined} />
     </div>
   )
 }

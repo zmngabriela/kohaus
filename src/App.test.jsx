@@ -97,7 +97,7 @@ describe('KOHAUS app regressions', () => {
     expect(screen.queryByText(PROPERTY_FIXTURES[0].title)).not.toBeInTheDocument()
   })
 
-  it('shows the site footer on every page', () => {
+  it('shows the site footer on public pages and the CRM footer in the dashboard', () => {
     const routes = [
       '/?lang=en',
       '/?view=catalogo&lang=en&op=comprar&dest=todos',
@@ -110,7 +110,12 @@ describe('KOHAUS app regressions', () => {
       const { container, unmount } = renderApp(route)
 
       expect(container.querySelectorAll('.site-footer')).toHaveLength(1)
-      expect(screen.getByText('hola@kohausrealestate.com')).toBeInTheDocument()
+      if (route.includes('view=dashboard')) {
+        expect(container.querySelector('.crm-footer')).toBeInTheDocument()
+        expect(screen.getByRole('navigation', { name: 'CRM links' })).toBeInTheDocument()
+      } else {
+        expect(screen.getByText('hola@kohausrealestate.com')).toBeInTheDocument()
+      }
 
       unmount()
     })

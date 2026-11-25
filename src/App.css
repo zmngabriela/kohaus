@@ -3597,3 +3597,52 @@
 @media (max-width: 720px) {
   .page-shell main .featured-property-copy h3 { font-size: var(--fs-body-lg); }
 }
+
+.dashboard-utilities { display: grid; gap: 8px; min-width: 0; }
+.dashboard-utilities > label { display: grid; gap: 4px; font-size: var(--fs-ui-sm); }
+.dashboard-utilities select {
+  width: 100%;
+  min-height: 40px;
+  padding-block: 8px;
+  padding-inline-start: 12px;
+  background-color: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  color: var(--ink);
+  font: inherit;
+}
+.dashboard-utilities > .outline-button {
+  width: 100%;
+  min-height: 40px;
+  text-align: center;
+}
+.dashboard-entry-tools { margin: 16px auto 0; max-width: 24rem; padding-inline: 20px; }
+@media (max-width: 720px) {
+  .dashboard-utilities { display: flex; flex-wrap: wrap; align-items: end; }
+  .dashboard-utilities > .outline-button { width: auto; }
+  .dashboard-utilities > label { flex: 1 1 8rem; }
+}
+
+.site-footer.crm-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 26px;
+  padding: 22px clamp(20px, 4vw, 44px);
+}
+.crm-footer .crm-footer-brand,
+.crm-footer nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; }
+.crm-footer .crm-footer-brand .footer-brand-logo { width: 120px; }
+.crm-footer .crm-footer-brand > span { margin: 0; }
+.crm-footer nav :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  color: var(--paper);
+  font: inherit;
+  font-size: .8rem;
+}
+.crm-footer nav > button { border: 0; padding: 0; background: none; cursor: pointer; }
+.crm-footer nav > button:hover { opacity: .7; }
+.crm-footer nav :is(a, button):focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
