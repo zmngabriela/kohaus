@@ -81,7 +81,7 @@ export default function Prospecting({language}) {
     return ()=>{current=false}
   },[zone,operation,page,retry])
   return <section className="dashboard-section">
-    <p className="section-label">{c.label} · Idealista</p><h2 className="section-title">{c.title}</h2>
+    <header className="crm-section-heading"><h2>{c.label} · Idealista</h2></header>
     <div className="dashboard-property-filters">
       <label>{c.area} <select value={zone} onChange={e=>{setPage(1);setZone(e.target.value)}}>{Object.entries({barcelona:'Barcelona',palamos:'Palamós',roses:'Roses'}).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>
       <label>{c.operation} <select value={operation} onChange={e=>{setPage(1);setOperation(e.target.value)}}><option value="sale">{c.sale}</option><option value="rent">{c.rent}</option></select></label>

@@ -18,37 +18,43 @@ export function createInvoicePdf(snapshot, logo) {
  const { issuer, client, number, date, language, currency, description, base, taxRate }=snapshot
  const c=invoiceText[language], totals=invoiceTotals(base,taxRate), doc=new jsPDF({unit:'mm',format:'a4'})
  const money=value=>new Intl.NumberFormat(language,{style:'currency',currency,minimumFractionDigits:2}).format(value).replace(/\u00a0|\u202f/g,' ')
- const txt=(text,x,y,size=10,bold=false)=>{doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.text(String(text || ''),x,y)}
- const lines=(text,x,y,width,size=10)=>{doc.setFontSize(size);doc.setFont('helvetica','normal');const wrapped=doc.splitTextToSize(String(text||''),width);doc.text(wrapped,x,y);return y+wrapped.length*5}
+ // PDF typography uses points, converted from the four CSS sizes at 96 dpi.
+ const caption=8.64, body=10.08, heading=14.16, title=18
+ const txt=(text,x,y,size=body,bold=false)=>{doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.text(String(text || ''),x,y)}
+ const lines=(text,x,y,width,size=body)=>{doc.setFontSize(size);doc.setFont('helvetica','normal');const wrapped=doc.splitTextToSize(String(text||''),width);doc.text(wrapped,x,y);return y+wrapped.length*5}
  doc.setTextColor(38,38,38)
  let y=40
  for(const line of [issuer.name,`NIF / ID: ${issuer.taxId}`,issuer.phone,issuer.address,`IBAN: ${issuer.iban}`]) y=lines(line,21,y,100)
- lines(`${c.title}: ${number}`,140,40,50,11)
- lines(`${c.date}: ${new Intl.DateTimeFormat(language,{dateStyle:'long'}).format(new Date(`${date}T12:00:00`))}`,140,47,50)
- y=Math.max(80,y+12);txt(c.client,21,y,11,true);y+=6
+ const headingEnd=lines(`${c.title}: ${number}`,140,40,50,heading)
+ lines(`${c.date}: ${new Intl.DateTimeFormat(language,{dateStyle:'long'}).format(new Date(`${date}T12:00:00`))}`,140,headingEnd+3,50)
+ y=Math.max(80,y+12);txt(c.client,21,y,body,true);y+=6
  y=lines(`${client.name}\n${client.address}\n${client.taxId}`,21,y,150)
  let tableY=Math.max(116,y+12)
  const line=y=>{doc.setDrawColor(210,210,210);doc.setLineWidth(.3);doc.line(21,y,189,y)}
  if(tableY>160) {doc.addPage();tableY=30}
  line(tableY)
- txt(c.description,24,tableY+7,9,true);txt(c.quantity,101,tableY+7,9,true);txt(c.base,132,tableY+7,9,true);txt(c.tax,157,tableY+7,9,true);txt(c.total,177,tableY+7,9,true);line(tableY+12)
- doc.setFontSize(10);const descLines=doc.splitTextToSize(description,73)
+ txt(c.description,24,tableY+7,caption,true);txt(c.quantity,101,tableY+7,caption,true);txt(c.base,132,tableY+7,caption,true);txt(c.tax,157,tableY+7,caption,true);txt(c.total,177,tableY+7,caption,true);line(tableY+12)
+ doc.setFontSize(body);const descLines=doc.splitTextToSize(description,73)
  if(descLines.length>20) throw new Error('Description too long for the invoice template')
  let bottom=tableY+18+Math.max(36,descLines.length*5)
  if(bottom>220) {doc.addPage();tableY=25;bottom=tableY+18+Math.max(36,descLines.length*5);line(tableY)}
  doc.setTextColor(90,90,90);doc.text(descLines,24,tableY+22)
- txt('1',112,tableY+32,9)
- const amount=(value,right)=>{const text=money(value);doc.setFont('helvetica','normal');doc.setFontSize(9);if(doc.getTextWidth(text)>20)doc.setFontSize(Math.max(6,9*20/doc.getTextWidth(text)));doc.text(text,right,tableY+32,{align:'right'})}
+ txt('1',112,tableY+32,caption)
+ const amount=(value,right)=>{
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(caption)
+  doc.text(doc.splitTextToSize(money(value),20),right,tableY+32,{align:'right'})
+ }
  amount(totals.base,147);amount(totals.tax,169);amount(totals.total,189)
  line(bottom);line(bottom+12);line(bottom+24)
  const summary=Math.max(202,bottom+32)
  if(summary+45>260) {doc.addPage(); y=40} else y=summary
  doc.setDrawColor(210);doc.line(112,y,189,y)
- txt(c.taxable,115,y+8,9);doc.text(money(totals.base),186,y+8,{align:'right'})
- doc.line(112,y+13,189,y+13);txt(`${c.tax} ${taxRate}%`,115,y+21,9);doc.text(money(totals.tax),186,y+21,{align:'right'})
- doc.line(112,y+26,189,y+26);doc.setTextColor(30);txt(c.total,115,y+38,10,true);doc.text(money(totals.total),186,y+38,{align:'right'});doc.line(112,y+43,189,y+43)
+ txt(c.taxable,115,y+8,caption);doc.text(money(totals.base),186,y+8,{align:'right'})
+ doc.line(112,y+13,189,y+13);txt(`${c.tax} ${taxRate}%`,115,y+21,caption);doc.text(money(totals.tax),186,y+21,{align:'right'})
+ doc.line(112,y+26,189,y+26);doc.setTextColor(30);txt(c.total,115,y+38,body,true);doc.text(money(totals.total),186,y+38,{align:'right'});doc.line(112,y+43,189,y+43)
  if(logo) {const image=doc.getImageProperties(logo);doc.addImage(logo,'PNG',30,260,50,50*image.height/image.width)}
- else {txt('K O H A U S',30,264,18);txt('REAL ESTATE',40,270,7)}
+ else {txt('K O H A U S',30,264,title);txt('REAL ESTATE',40,270,caption)}
  return doc
 }
 export async function invoiceLogo() {

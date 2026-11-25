@@ -24,17 +24,18 @@ export default function DashboardSidebar({ copy, language, section, onSelect, ac
         {group.sections.map(key => <option key={key} value={key}>{sections[key]}</option>)}
       </optgroup>)}
     </select>
-    {account && <div className="dashboard-account" aria-label={copy.auth.signedInAs}>
-      <strong>{account.display_name || email}</strong>
-      <small>{copy.auth.roleLabel} · {account.role}</small>
-    </div>}
     <DashboardUtilities copy={copy} language={language} siteHref={siteHref}
-      onLanguageChange={onLanguageChange} onSignOut={onSignOut} />
+      onLanguageChange={onLanguageChange} onSignOut={onSignOut}>
+      {account && <div className="dashboard-account" aria-label={copy.auth.signedInAs}>
+        <strong>{account.display_name || email}</strong>
+        <small>{copy.auth.roleLabel} · {account.role}</small>
+      </div>}
+    </DashboardUtilities>
   </aside>
 }
 
 
-export function DashboardUtilities({ copy, language, siteHref, onLanguageChange, onSignOut }) {
+export function DashboardUtilities({ copy, language, siteHref, onLanguageChange, onSignOut, children }) {
   const labels = {
     pt: { site: 'Ver site', language: 'Idioma' },
     es: { site: 'Ver sitio web', language: 'Idioma' },
@@ -42,6 +43,7 @@ export function DashboardUtilities({ copy, language, siteHref, onLanguageChange,
   }[language]
   return <div className="dashboard-utilities">
     <a className="outline-button" href={siteHref}>{labels.site}</a>
+    {children}
     <label>{labels.language}
       <select value={language} onChange={event=>onLanguageChange(event.target.value)}>
         <option value="pt">Português</option>

@@ -15,20 +15,13 @@
   --line-strong: rgba(100, 90, 80, 0.34);
   --accent: #b5633e;
   --sans: 'Manrope', 'Helvetica Neue', sans-serif;
-  /* Shared hierarchy: page titles, section titles, body and supporting labels. */
-  --fs-title-medium: clamp(1.4rem, 2vw, 1.75rem);
-  --fs-label-xs: 0.72rem;
-  --fs-label-sm: 0.78rem;
-  --fs-ui-sm: 0.82rem;
-  --fs-ui: 0.84rem;
-  --fs-body: 0.92rem;
-  --fs-body-md: 0.96rem;
-  --fs-body-lg: 0.98rem;
-  --fs-card-title: 1.18rem;
-  --fs-price: var(--fs-title-medium);
-  --fs-section-title: var(--fs-title-medium);
+  --type-caption: 0.72rem;
+  --type-body: 0.84rem;
+  --type-heading: 1.18rem;
+  --type-title: 1.5rem;
 
   font-family: var(--sans);
+  font-size: 100%;
   line-height: 1.5;
   font-weight: 400;
   color: var(--ink);
@@ -51,11 +44,18 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  font-size: var(--type-body);
   background: var(--paper);
 }
 
 button,
-input {
+input,
+select,
+textarea,
+option,
+optgroup,
+pre,
+code {
   font: inherit;
 }
 
@@ -67,8 +67,9 @@ a {
   min-height: 100vh;
 }
 
-@media (max-width: 720px) {
-  :root {
-    --fs-title-medium: clamp(1.35rem, 5vw, 1.5rem);
-  }
-}
+
+h1 { font-size: var(--type-title); }
+h2, h3, h4 { font-size: var(--type-heading); }
+h5, h6 { font-size: var(--type-body); }
+small, sub, sup { font-size: var(--type-caption); }
+big { font-size: var(--type-heading); }

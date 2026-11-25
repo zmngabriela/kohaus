@@ -56,9 +56,8 @@ export default function Tasks({ language, clients, leads, properties, onSaving, 
   }
   const links = [['client_id', 'client', clients, person], ['lead_id', 'lead', leads, person], ['property_id', 'property', properties, p => `${p.reference || ''} ${p.title}`.trim()]]
   return <section className="dashboard-section tasks-section">
-    <div className="dashboard-properties-head"><div><p className="section-label dashboard-label">{c.title}</p><h2>{c.intro}</h2></div></div>
+    <header className="crm-section-heading"><h2>{c.title}</h2><button type="button" className="solid-button crm-create-button" onClick={() => { setForm(blank()); setEditorOpen(true) }}>{c.new}</button></header>
     {error && <div role="alert" className="tasks-error">{c.error} <button type="button" onClick={() => { setLoading(true); setError(false); setRetry(n => n + 1) }} disabled={busy}>{c.retry}</button></div>}
-    <div className="dashboard-property-panel"><p>{c.intro}</p><button type="button" className="dashboard-property-cta" onClick={() => { setForm(blank()); setEditorOpen(true) }}>{c.new}</button></div>
     {editorOpen && <EditorDialog title={form.id ? c.edit : c.new} closeLabel={c.cancel} busy={busy} onClose={() => { setForm(blank()); setEditorOpen(false) }}>
     {error && <p role="alert">{c.error}</p>}
     <form className="tasks-form" onSubmit={e => { e.preventDefault(); const {newFollowup,...values}=form; if (form.title.trim()) persist({ ...values, status: e.nativeEvent.submitter?.value === 'complete' ? 'completed' : form.status, id: form.id || `${newFollowup ? 'followup' : 'task'}-${crypto.randomUUID()}` }, true) }}>
@@ -70,15 +69,21 @@ export default function Tasks({ language, clients, leads, properties, onSaving, 
         <div className="tasks-actions tasks-wide">{form.title.trim() && form.due_date && <a className="task-calendar-link" href={taskCalendarLink(form)} target="_blank" rel="noreferrer">{{pt:'Adicionar ao Google Agenda',es:'Añadir a Google Calendar',en:'Add to Google Calendar'}[language]}</a>}{form.id && <button type="button" disabled={busy} onClick={() => remove(form)}>{c.delete}</button>}<button type="submit" className="button button-primary">{busy ? c.saving : c.save}</button>{form.id && form.status !== 'completed' && <button type="submit" name="action" value="complete">{busy ? c.saving : c.complete}</button>}<button type="button" onClick={() => { setForm(blank()); setEditorOpen(false) }}>{c.cancel}</button></div>
       </fieldset>
     </form></EditorDialog>}
-    <TaskCalendar tasks={tasks} language={language} disabled={busy} onEdit={task => { setForm(task); setEditorOpen(true) }} />
-    <p className="task-calendar-hint">{{pt:'O calendário acompanha as tarefas automaticamente. Adicionar ao Google Agenda abre um evento para salvar; alterações posteriores não são sincronizadas.',es:'El calendario refleja las tareas automáticamente. Añadir a Google Calendar abre un evento para guardar; los cambios posteriores no se sincronizan.',en:'This calendar updates with your tasks. Adding to Google Calendar opens an event to save; later changes are not synced.'}[language]}</p>
-    <div className="tasks-filters" aria-label={c.title}>{['pending', 'today', 'overdue', 'completed', 'all'].map(value => <button type="button" key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{c[value]} <span>{filterTasks(tasks, value).length}</span></button>)}</div>
-    {loading ? <p role="status">{c.loading}</p> : <div className="tasks-list">{filterTasks(tasks, filter).map(task => <CrmRecord key={task.id} language={language} title={task.title}
-      meta={<span className="task-emphasis"><strong className={task.status === 'pending' && task.due_date < localDate() ? 'task-deadline is-overdue' : 'task-deadline'}>{c.due}: {new Intl.DateTimeFormat(language).format(new Date(`${task.due_date}T12:00:00`))}</strong><span className={`task-priority priority-${task.priority}`}>{c.priority}: {c[task.priority]}</span></span>}
-      status={task.status === 'pending' && task.due_date < localDate() ? c.overdue : c[task.status]}
-      fields={links.map(([key, label, items, name]) => ({ label: c[label], value: items.find(item => item.id === task[key]) ? name(items.find(item => item.id === task[key])) : c.none }))}
-      editLabel={c.edit} disabled={busy} onEdit={() => { setForm(task); setEditorOpen(true) }}
-      actions={<><a href={taskCalendarLink(task)} target="_blank" rel="noreferrer">{{pt:"Adicionar ao Google Agenda",es:"Añadir a Google Calendar",en:"Add to Google Calendar"}[language]}</a><button disabled={busy} type="button" className="dashboard-property-edit" onClick={() => persist({ ...task, status: task.status === 'pending' ? 'completed' : 'pending' })}>{busy ? c.saving : task.status === 'pending' ? c.complete : c.reopen}</button></>}>
-</CrmRecord>)}{!error && !filterTasks(tasks, filter).length && <p>{c.empty}</p>}</div>}
+    <div className="tasks-workspace">
+      <div className="tasks-calendar-pane">
+        <TaskCalendar tasks={tasks} language={language} disabled={busy} onEdit={task => { setForm(task); setEditorOpen(true) }} />
+        <p className="task-calendar-hint">{{pt:'O calendário acompanha as tarefas automaticamente. Adicionar ao Google Agenda abre um evento para salvar; alterações posteriores não são sincronizadas.',es:'El calendario refleja las tareas automáticamente. Añadir a Google Calendar abre un evento para guardar; los cambios posteriores no se sincronizan.',en:'This calendar updates with your tasks. Adding to Google Calendar opens an event to save; later changes are not synced.'}[language]}</p>
+      </div>
+      <div className="tasks-list-pane">
+        <div className="tasks-filters" aria-label={c.title}>{['pending', 'today', 'overdue', 'completed', 'all'].map(value => <button type="button" key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{c[value]} <span>{filterTasks(tasks, value).length}</span></button>)}</div>
+        {loading ? <p role="status">{c.loading}</p> : <div className="tasks-list">{filterTasks(tasks, filter).map(task => <CrmRecord key={task.id} language={language} title={task.title}
+          meta={<span className="task-emphasis"><strong className={task.status === 'pending' && task.due_date < localDate() ? 'task-deadline is-overdue' : 'task-deadline'}>{c.due}: {new Intl.DateTimeFormat(language).format(new Date(`${task.due_date}T12:00:00`))}</strong><span className={`task-priority priority-${task.priority}`}>{c.priority}: {c[task.priority]}</span></span>}
+          status={task.status === 'pending' && task.due_date < localDate() ? c.overdue : c[task.status]}
+          fields={links.map(([key, label, items, name]) => ({ label: c[label], value: items.find(item => item.id === task[key]) ? name(items.find(item => item.id === task[key])) : c.none }))}
+          editLabel={c.edit} disabled={busy} onEdit={() => { setForm(task); setEditorOpen(true) }}
+          actions={<><a href={taskCalendarLink(task)} target="_blank" rel="noreferrer">{{pt:"Adicionar ao Google Agenda",es:"Añadir a Google Calendar",en:"Add to Google Calendar"}[language]}</a><button disabled={busy} type="button" className="dashboard-property-edit" onClick={() => persist({ ...task, status: task.status === 'pending' ? 'completed' : 'pending' })}>{busy ? c.saving : task.status === 'pending' ? c.complete : c.reopen}</button></>}>
+    </CrmRecord>)}{!error && !filterTasks(tasks, filter).length && <p>{c.empty}</p>}</div>}
+      </div>
+    </div>
   </section>
 }

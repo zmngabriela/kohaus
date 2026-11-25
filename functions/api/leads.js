@@ -1,3 +1,5 @@
+import { formatContactNames } from '../../src/lib/contactName.js'
+
 const response = (status, error) => Response.json(error ? { error } : { ok:true }, { status, headers: { 'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff', 'Referrer-Policy':'no-referrer' } })
 export function validateLead(input) {
  const bounds = {name:150,surname:150,email:254,phone:40,city:200,operation:40,source:100,address:500,comments:10000}
@@ -8,7 +10,7 @@ export function validateLead(input) {
   result[key] = value.trim()
  }
  if (['name','surname','email','phone','city','operation','source'].some(key=>!result[key]) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(result.email) || input.legal_accepted!==true || !['pt','es','en'].includes(input.language)) throw new Error('Invalid input')
- return {...result,id:crypto.randomUUID(),language:input.language,legal_accepted:true,newsletter_accepted:input.newsletter_accepted===true,status:'nuevo'}
+ return {...formatContactNames(result),id:crypto.randomUUID(),language:input.language,legal_accepted:true,newsletter_accepted:input.newsletter_accepted===true,status:'nuevo'}
 }
 export async function onRequest({ request, env, waitUntil }) {
  if (request.method!=='POST') return response(405,'method_not_allowed')

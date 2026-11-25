@@ -1,8 +1,11 @@
 import { supabase } from './supabase'
+import { formatContactName } from './contactName'
 import { canReply } from '../../supabase/functions/whatsapp-webhook/core'
 export { canReply }
 export const isLocalInbox = () => import.meta.env.DEV && typeof window !== 'undefined' && ['localhost','127.0.0.1','[::1]'].includes(window.location.hostname)
 export const fullName = item => [item?.name,item?.surname].filter(Boolean).join(' ')
+const displayContactName = name => /\S+@\S+/.test(name ?? '') ? name : formatContactName(name)
+const withContactName = ticket => ({...ticket,contact_name:displayContactName(ticket.contact_name)})
 const now = () => new Date().toISOString()
 const empty = () => ({tickets:[],messages:[],events:[],reads:{}})
 export function createInboxStore({local=false,userId='preview',database=supabase,storage=globalThis.localStorage}={}) {
@@ -14,15 +17,19 @@ export function createInboxStore({local=false,userId='preview',database=supabase
  return {
   local,
   async list(){
-   if(!local)return unwrap(database.from('crm_inbox').select('*').order('last_message_at',{ascending:false,nullsFirst:false}).limit(200))
-   const data=read();return data.tickets.map(t=>{const messages=data.messages.filter(m=>m.conversation_id===t.id).sort((a,b)=>a.created_at.localeCompare(b.created_at));return {...t,last_body:messages.at(-1)?.body || '',unread_count:messages.filter(m=>m.direction==='inbound' && m.created_at>(data.reads[t.id] || '')).length}}).sort((a,b)=>(b.last_message_at || b.created_at).localeCompare(a.last_message_at || a.created_at))
+   if(!local){
+    const rows=await unwrap(database.from('crm_inbox').select('*').order('last_message_at',{ascending:false,nullsFirst:false}).limit(200))
+    return rows.map(withContactName)
+   }
+   const data=read();return data.tickets.map(t=>{const messages=data.messages.filter(m=>m.conversation_id===t.id).sort((a,b)=>a.created_at.localeCompare(b.created_at));return {...withContactName(t),last_body:messages.at(-1)?.body || '',unread_count:messages.filter(m=>m.direction==='inbound' && m.created_at>(data.reads[t.id] || '')).length}}).sort((a,b)=>(b.last_message_at || b.created_at).localeCompare(a.last_message_at || a.created_at))
   },
   async messages(id,offset=0){
    if(!local){const rows=await unwrap(database.from('crm_messages').select('*').eq('conversation_id',id).order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+99));return rows.reverse()}
    return read().messages.filter(m=>m.conversation_id===id).sort((a,b)=>a.created_at.localeCompare(b.created_at)).slice(Math.max(0,read().messages.filter(m=>m.conversation_id===id).length-offset-100),offset ? -offset : undefined)
   },
   async events(id){if(!local)return unwrap(database.from('crm_inbox_events').select('*').eq('conversation_id',id).order('created_at',{ascending:false}).limit(100));return read().events.filter(e=>e.conversation_id===id).reverse()},
-  async save(id,patch){
+  async save(id,changes){
+   const patch=changes.contact_name===undefined ? changes : withContactName(changes)
    if(!local)return unwrap(database.rpc('crm_save_ticket',{p_id:id || null,p_data:patch}))
    const data=read(),before=data.tickets.find(t=>t.id===id)
    const t={id:id || crypto.randomUUID(),created_at:now(),channel:'whatsapp',subject:'',contact_name:'',contact_phone:'',contact_email:'',status:'open',priority:'normal',client_id:null,lead_id:null,property_id:null,visit_id:null,assigned_to:null,...before,...patch,updated_at:now()}
