@@ -1,14 +1,14 @@
 const groups = [
-  { sections:['overview'] },
+  { sections:['overview','inbox'] },
   { sections:['properties','clients','visits','tasks'], pt:'Gestão', es:'Gestión', en:'Management' },
-  { sections:['prospecting','leads','opportunities','portals'], pt:'Comercial', es:'Comercial', en:'Sales' },
+  { sections:['leads','opportunities','prospecting','portals'], pt:'Comercial', es:'Comercial', en:'Sales' },
   { sections:['invoices'], pt:'Financeiro', es:'Finanzas', en:'Finance' },
 ]
 
-export default function DashboardSidebar({ copy, language, section, onSelect, account, email }) {
+export default function DashboardSidebar({ copy, language, section, onSelect, account, email, siteHref, onLanguageChange, onSignOut }) {
   const sections = copy.dashboard.sections
   return <aside className="dashboard-sidebar">
-    <p className="section-label">{copy.dashboard.label}</p>
+    <p className="section-label">CRM KOHAUS</p>
     <nav aria-label="Dashboard sections">
       {groups.map(group => <div className="dashboard-nav-group" key={group.sections[0]}>
         {group[language] && <small>{group[language]}</small>}
@@ -19,7 +19,7 @@ export default function DashboardSidebar({ copy, language, section, onSelect, ac
       </div>)}
     </nav>
     <select className="dashboard-mobile-nav" aria-label={copy.dashboard.label} value={section} onChange={event => onSelect(event.target.value)}>
-      <option value="overview">{sections.overview}</option>
+      {groups[0].sections.map(key => <option key={key} value={key}>{sections[key]}</option>)}
       {groups.slice(1).map(group => <optgroup key={group.sections[0]} label={group[language]}>
         {group.sections.map(key => <option key={key} value={key}>{sections[key]}</option>)}
       </optgroup>)}
@@ -28,5 +28,27 @@ export default function DashboardSidebar({ copy, language, section, onSelect, ac
       <strong>{account.display_name || email}</strong>
       <small>{copy.auth.roleLabel} · {account.role}</small>
     </div>}
+    <DashboardUtilities copy={copy} language={language} siteHref={siteHref}
+      onLanguageChange={onLanguageChange} onSignOut={onSignOut} />
   </aside>
+}
+
+
+export function DashboardUtilities({ copy, language, siteHref, onLanguageChange, onSignOut }) {
+  const labels = {
+    pt: { site: 'Ver site', language: 'Idioma' },
+    es: { site: 'Ver sitio web', language: 'Idioma' },
+    en: { site: 'View website', language: 'Language' },
+  }[language]
+  return <div className="dashboard-utilities">
+    <a className="outline-button" href={siteHref}>{labels.site}</a>
+    <label>{labels.language}
+      <select value={language} onChange={event=>onLanguageChange(event.target.value)}>
+        <option value="pt">Português</option>
+        <option value="es">Español</option>
+        <option value="en">English</option>
+      </select>
+    </label>
+    {onSignOut && <button type="button" className="outline-button" onClick={onSignOut}>{copy.nav.signOut}</button>}
+  </div>
 }

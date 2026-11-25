@@ -12,7 +12,7 @@ export default defineConfig(({ mode, command }) => {
   })
   return {
     plugins: [react(), !process.env.VITEST && localLeads(env.VITE_SUPABASE_URL)],
-    server: { fs: { deny: ['.env', '.env.*', '.dev.vars*', '*.{crt,pem,key}', '**/.git/**'] } },
+    server: { proxy: { '/api/mail': 'http://127.0.0.1:8788' }, fs: { deny: ['.env', '.env.*', '.dev.vars*', '*.{crt,pem,key}', '**/.git/**'] } },
     test: {
       environment: 'jsdom',
       globals: true,

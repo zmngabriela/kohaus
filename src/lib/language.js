@@ -20,3 +20,17 @@ export function visitRecipient(visit, clients = [], leads = []) {
     || (name && unique(client => `${client.name || ''} ${client.surname || ''}`.trim().toLowerCase().replace(/\s+/g, ' ') === name))
     || leads.find(lead => lead.id === visit.leadId) || null
 }
+
+const replyMarkers = {
+  en: new Set('hello hi thanks thank please would could looking interested viewing apartment property rent buy available availability about information the and with from you your'.split(' ')),
+  es: new Set('hola gracias favor quisiera gustaría gustaría busco buscando interesado interesada piso inmueble vivienda alquiler alquilar comprar disponible información sobre visita estoy quiero buenos buenas con para una'.split(' ')),
+  pt: new Set('olá oi obrigado obrigada gostaria procuro procurando imóvel imóveis aluguel alugar comprar interessado interessada disponível informações sobre visita estou quero bom boa com para uma vocês não pelo'.split(' ')),
+}
+
+export function replyLanguage(text, fallback) {
+  const words = new Set(String(text || '').toLowerCase().match(/\p{L}+/gu) || [])
+  const scores = Object.entries(replyMarkers).map(([language, markers]) => [
+    language, [...words].filter(word => markers.has(word)).length,
+  ]).sort((a, b) => b[1] - a[1])
+  return scores[0][1] > scores[1][1] ? scores[0][0] : fallback
+}
