@@ -30,3 +30,5 @@ O build exige configuração válida e impede mistura de ambientes no Cloudflare
 
 ## Segurança
 Antes de publicar este pacote, siga [a ordem de ativação](docs/SEGURANCA.md): Turnstile, função de leads, D1 e migrações. Alertas e backups exigem configuração; os arquivos sozinhos não os ativam.
+
+Central de conversas e preparação do WhatsApp: [prévia local, limites e ativação](docs/WHATSAPP.md). A ativação do WhatsApp é uma etapa independente da publicação do site.
